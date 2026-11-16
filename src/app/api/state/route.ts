@@ -144,10 +144,15 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "lanzar_convocatoria": {
-        const snapshot = await dispararConvocatoriaJornada(
-          body.jornadaId || activeJornadaId
+        const result = await dispararConvocatoriaJornada(
+          body.jornadaId || activeJornadaId,
+          Boolean(body.forceResend)
         );
-        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
+        return NextResponse.json({
+          ok: true,
+          snapshot: finalize(result.snapshot),
+          warning: result.warning,
+        });
       }
       case "suspender_emergencia": {
         const snapshot = await suspenderJornadaPorEmergencia(

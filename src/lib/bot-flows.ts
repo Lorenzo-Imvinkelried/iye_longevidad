@@ -8,6 +8,7 @@ import {
   WhatsAppReplyButton,
 } from "@/types/domain";
 import { phonesMatch } from "@/lib/domain-helpers";
+import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
 import {
   addLog,
   appendBotMessage,
@@ -123,8 +124,9 @@ function upsertAsistencia(
 }
 
 export async function dispararConvocatoriaJornada(
-  jornadaId?: string
-): Promise<SystemSnapshot> {
+  jornadaId?: string,
+  forceResend: boolean = false
+): Promise<{ snapshot: SystemSnapshot; warning?: string }> {
   const state = await readStateAsync();
   const { targetJornada, targetCircuito } = resolveEventContext(state, jornadaId);
 
@@ -149,38 +151,69 @@ export async function dispararConvocatoriaJornada(
       idsDelEvento.has(p.id)
   );
 
+  const cloudConfigured = isWhatsAppCloudConfigured();
+  let sentCount = 0;
+  let cloudSentCount = 0;
+  const cloudErrors: string[] = [];
+
   for (const adulto of adultosActivos) {
     const asis = upsertAsistencia(state, targetJornada.id, adulto, {
       acuse_suspension_leido: false,
     });
 
     if (
+      forceResend ||
       asis.modalidad_elegida === "sin_respuesta" ||
       asis.modalidad_elegida === "no_asiste"
     ) {
-      asis.modalidad_elegida = "sin_respuesta";
-      asis.estado_padrino = "no_aplica";
+      if (
+        asis.modalidad_elegida === "no_asiste" ||
+        asis.modalidad_elegida === "sin_respuesta"
+      ) {
+        asis.modalidad_elegida = "sin_respuesta";
+        asis.estado_padrino = "no_aplica";
+      }
+      sentCount += 1;
       const primerNombre = adulto.nombre.split(" ")[0];
-      await appendBotMessage(
+      const cloudRes = await appendBotMessage(
         state,
         adulto,
         `Buen dia, ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}) para caminar juntos y cerrar con ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
         { buttons: buildConvocatoriaButtons(targetJornada.id) }
       );
+      if (cloudRes.dispatched) {
+        cloudSentCount += 1;
+      } else if (cloudConfigured && cloudRes.error) {
+        cloudErrors.push(`${adulto.nombre}: ${cloudRes.error}`);
+      }
     }
+  }
+
+  let warning: string | undefined;
+  if (cloudConfigured && sentCount > 0 && cloudErrors.length > 0 && cloudSentCount === 0) {
+    const firstErr = cloudErrors[0];
+    warning = firstErr.includes("401") || firstErr.toLowerCase().includes("expired")
+      ? `WhatsApp real no se pudo enviar porque el token de Meta (WHATSAPP_TOKEN) vencio (${firstErr}). Actualiza el token en Vercel para enviar al telefono; mientras tanto quedo registrado en el simulador.`
+      : `Meta WhatsApp Cloud API rechazo el envio (${firstErr}). Se guardo igual en el simulador.`;
   }
 
   addLog(
     state,
     targetCircuito.nombre_club,
-    "Flujo 1: Convocatoria Disparada",
-    `Mensajes 1 a 1 enviados a ${adultosActivos.length} abuelo(s) de ${targetCircuito.nombre_club}.`,
-    "info"
+    forceResend
+      ? "Flujo 1: Convocatoria Reenviada"
+      : "Flujo 1: Convocatoria Disparada",
+    warning
+      ? `${sentCount} abuelo(s) cargados en simulador; Meta API respondio: ${cloudErrors[0]}`
+      : `Mensajes 1 a 1 enviados a ${sentCount} de ${adultosActivos.length} abuelo(s) de ${targetCircuito.nombre_club}.${
+          cloudConfigured ? ` Despachados por WhatsApp Cloud API: ${cloudSentCount}.` : ""
+        }`,
+    warning ? "warning" : "info"
   );
 
   writeState(state);
   await syncToSupabaseIfConfigured(state);
-  return state;
+  return { snapshot: state, warning };
 }
 
 export async function procesarEventoWebhookWhatsApp(params: {

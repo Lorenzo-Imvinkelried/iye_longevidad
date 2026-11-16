@@ -14,7 +14,11 @@ import {
 } from "@/types/domain";
 import { buildInitialState } from "@/lib/seed-data";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase";
-import { isWhatsAppCloudConfigured, sendWhatsAppCloudMessage } from "@/lib/whatsapp-cloud";
+import {
+  CloudApiResult,
+  isWhatsAppCloudConfigured,
+  sendWhatsAppCloudMessage,
+} from "@/lib/whatsapp-cloud";
 
 const STATE_FILE_PATH = process.env.VERCEL
   ? path.join("/tmp", ".demo-runtime-state.json")
@@ -318,7 +322,7 @@ export async function appendBotMessage(
     recompensaSancor?: WhatsAppMessage["recompensaSancor"];
     esAlertaPrioritaria?: boolean;
   }
-) {
+): Promise<CloudApiResult> {
   state.mensajes.forEach((m) => {
     if (m.participante_id === participante.id && m.buttons) {
       m.buttons = m.buttons.map((b) => ({ ...b, disabled: true }));
@@ -346,6 +350,7 @@ export async function appendBotMessage(
   };
 
   state.mensajes.push(msg);
+  return cloudResult;
 }
 
 export function appendUserMessage(

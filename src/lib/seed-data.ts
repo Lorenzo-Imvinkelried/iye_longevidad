@@ -7,7 +7,6 @@ import {
   SystemSnapshot,
   WebhookEventLog,
   WhatsAppMessage,
-  WhatsAppReplyButton,
 } from "@/types/domain";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
@@ -283,9 +282,9 @@ export function buildInitialState(): SystemSnapshot {
     hora_inicio_caminata: "15:40",
     hora_encuentro_club: "16:00",
     actividad_cierre: "Torneo de Truco, Canasta y Bingo Recreativo",
-    monto_reintegro_asistencia: 2500,
-    plus_reintegro_padrino: 1500,
-    estado: "convocando",
+    monto_reintegro_asistencia: 0,
+    plus_reintegro_padrino: 0,
+    estado: "programada",
     motivo_suspension: null,
     updated_at: new Date().toISOString(),
   };
@@ -297,8 +296,8 @@ export function buildInitialState(): SystemSnapshot {
     hora_inicio_caminata: "10:10",
     hora_encuentro_club: "10:30",
     actividad_cierre: "Caminata Costanera, Kinesiologia Suave y Mateada",
-    monto_reintegro_asistencia: 3000,
-    plus_reintegro_padrino: 1800,
+    monto_reintegro_asistencia: 0,
+    plus_reintegro_padrino: 0,
     estado: "programada",
     motivo_suspension: null,
     updated_at: new Date(Date.now() - 60000).toISOString(),
@@ -311,7 +310,7 @@ export function buildInitialState(): SystemSnapshot {
       participante_id: SEED_IDS.rosa,
       modalidad_elegida: "sin_respuesta",
       parada_esquina_id: null,
-      padrino_asignado_id: SEED_IDS.padrinoCarlos,
+      padrino_asignado_id: null,
       estado_padrino: "no_aplica",
       acuse_suspension_leido: false,
       presente_validado_en_club: false,
@@ -322,10 +321,10 @@ export function buildInitialState(): SystemSnapshot {
       id: "66666666-6666-4666-8666-666666666002",
       jornada_id: SEED_IDS.jornada,
       participante_id: SEED_IDS.nelida,
-      modalidad_elegida: "nivel_1_puerta",
+      modalidad_elegida: "sin_respuesta",
       parada_esquina_id: null,
-      padrino_asignado_id: SEED_IDS.padrinoHector,
-      estado_padrino: "confirmado",
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
       acuse_suspension_leido: false,
       presente_validado_en_club: false,
       codigo_canje_farmacia: null,
@@ -348,8 +347,8 @@ export function buildInitialState(): SystemSnapshot {
       id: "66666666-6666-4666-8666-666666666004",
       jornada_id: SEED_IDS.jornada,
       participante_id: SEED_IDS.hilda,
-      modalidad_elegida: "nivel_2_esquina",
-      parada_esquina_id: "parada_2",
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
       padrino_asignado_id: null,
       estado_padrino: "no_aplica",
       acuse_suspension_leido: false,
@@ -361,7 +360,7 @@ export function buildInitialState(): SystemSnapshot {
       id: "66666666-6666-4666-8666-666666666005",
       jornada_id: SEED_IDS.jornada,
       participante_id: SEED_IDS.oscar,
-      modalidad_elegida: "nivel_3_directo",
+      modalidad_elegida: "sin_respuesta",
       parada_esquina_id: null,
       padrino_asignado_id: null,
       estado_padrino: "no_aplica",
@@ -377,7 +376,7 @@ export function buildInitialState(): SystemSnapshot {
       participante_id: SEED_IDS.rosa,
       modalidad_elegida: "sin_respuesta",
       parada_esquina_id: null,
-      padrino_asignado_id: SEED_IDS.padrinoCarlos,
+      padrino_asignado_id: null,
       estado_padrino: "no_aplica",
       acuse_suspension_leido: false,
       presente_validado_en_club: false,
@@ -388,8 +387,8 @@ export function buildInitialState(): SystemSnapshot {
       id: "66666666-6666-4666-8666-666666666007",
       jornada_id: SEED_IDS.jornadaGuadalupe,
       participante_id: SEED_IDS.jorge,
-      modalidad_elegida: "nivel_2_esquina",
-      parada_esquina_id: "parada_g1",
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
       padrino_asignado_id: null,
       estado_padrino: "no_aplica",
       acuse_suspension_leido: false,
@@ -399,40 +398,7 @@ export function buildInitialState(): SystemSnapshot {
     },
   ];
 
-  const convocatoriaButtons: WhatsAppReplyButton[] = [
-    { id: "btn_nivel_1", title: "Pasen a buscarme", variant: "primary" },
-    { id: "btn_nivel_2", title: "Voy a la esquina", variant: "primary" },
-    { id: "btn_nivel_3", title: "Voy directo al club", variant: "primary" },
-  ];
-
-  const mensajes: WhatsAppMessage[] = [
-    {
-      id: "msg-init-rosa-1",
-      participante_id: SEED_IDS.rosa,
-      telefono: "+54349615504079",
-      sender: "bot_sancor",
-      text: `Buen dia, Rosa. Hoy 15:40 hs nos encontramos en el Centro de Jubilados y Club Candioti "La Union" para caminar juntos y cerrar con Torneo de Truco, Canasta y Bingo Recreativo. ¿Como te sumas hoy?`,
-      timestamp: "09:30",
-      buttons: convocatoriaButtons,
-    },
-    {
-      id: "msg-init-carlos-1",
-      participante_id: SEED_IDS.padrinoCarlos,
-      telefono: "+5493424100104",
-      sender: "bot_sancor",
-      text: `Buen dia, Carlos (Padrino Acreditado #104). La jornada de hoy a las 15:40 hs rumbo al Club Candioti "La Union" esta en convocatoria. Te avisaremos por este chat privado cuando tu vecina Rosa Martinez solicite acompanamiento puerta a puerta.`,
-      timestamp: "09:30",
-    },
-    {
-      id: "msg-init-jorge-1",
-      participante_id: SEED_IDS.jorge,
-      telefono: "+5493424200003",
-      sender: "bot_sancor",
-      text: `Buen dia, Jorge. Hoy 15:40 hs nos encontramos en el Centro de Jubilados y Club Candioti "La Union" para caminar juntos y cerrar con Torneo de Truco, Canasta y Bingo Recreativo. ¿Como te sumas hoy?`,
-      timestamp: "09:30",
-      buttons: convocatoriaButtons,
-    },
-  ];
+  const mensajes: WhatsAppMessage[] = [];
 
   const logs: WebhookEventLog[] = [
     {
@@ -440,7 +406,7 @@ export function buildInitialState(): SystemSnapshot {
       timestamp: "09:30",
       actor: "Sistema Sancor",
       evento: "Plataforma Multi-Sede Inicializada",
-      detalle: "Sedes y tutores cargados. Esperando confirmaciones por WhatsApp.",
+      detalle: "Participantes cargados sin respuestas previas. Listo para enviar convocatoria.",
       tipo: "info",
     },
   ];

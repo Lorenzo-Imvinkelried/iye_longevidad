@@ -254,6 +254,10 @@ function DashboardCoordinadorInner({
         return { ok: false, error: msg };
       }
 
+      if (data?.warning) {
+        setActionError(String(data.warning));
+      }
+
       if (data?.snapshot) {
         const nextSnap = data.snapshot as SystemSnapshot;
         setSnapshot(nextSnap);

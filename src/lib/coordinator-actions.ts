@@ -403,7 +403,7 @@ export async function registrarNuevoTutorYLugar(input: {
       input.actividadInicial || "Encuentro Recreativo, Juegos de Mesa y Mateada",
     monto_reintegro_asistencia: 0,
     plus_reintegro_padrino: 0,
-    estado: "convocando",
+    estado: "programada",
     motivo_suspension: null,
     updated_at: new Date().toISOString(),
   };
@@ -514,7 +514,7 @@ export async function crearNuevoEventoOLugar(input: {
       input.actividad || "Torneo de Truco, Canasta y Bingo Recreativo",
     monto_reintegro_asistencia: Number(input.montoReintegro) || 0,
     plus_reintegro_padrino: Number(input.plusPadrino) || 0,
-    estado: "convocando",
+    estado: "programada",
     motivo_suspension: null,
     updated_at: new Date().toISOString(),
   };

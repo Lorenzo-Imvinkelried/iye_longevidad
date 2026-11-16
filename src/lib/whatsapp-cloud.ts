@@ -99,7 +99,7 @@ export async function sendWhatsAppCloudMessage(
     });
 
     // Si es un numero de Argentina (549...) y Meta lo tiene agendado sin el 9 (54...), reintentar automaticamente
-    if (!res.ok && cleanPhone.startsWith("549")) {
+    if (!res.ok && res.status !== 401 && cleanPhone.startsWith("549")) {
       const altPhone = "54" + cleanPhone.slice(3);
       const altPayload = buildMetaPayload(altPhone, bodyText, activeButtons);
       const altRes = await fetch(endpoint, {
@@ -117,12 +117,25 @@ export async function sendWhatsAppCloudMessage(
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
-      console.error("[WhatsApp Cloud API Error]", res.status, errBody);
+      let parsedMessage = errBody;
+      try {
+        const parsedJson = JSON.parse(errBody) as {
+          error?: { message?: string; code?: number };
+        };
+        if (parsedJson?.error?.message) {
+          parsedMessage = `${parsedJson.error.message}${
+            parsedJson.error.code ? ` (code ${parsedJson.error.code})` : ""
+          }`;
+        }
+      } catch {
+        // Use raw text
+      }
+      console.error("[WhatsApp Cloud API Error]", res.status, parsedMessage);
       return {
         dispatched: false,
         payload,
         responseStatus: res.status,
-        error: errBody,
+        error: `HTTP ${res.status}: ${parsedMessage}`,
       };
     }
 

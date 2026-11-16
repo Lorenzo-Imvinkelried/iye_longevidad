@@ -20,10 +20,12 @@ import EditorRutaPanel, {
 import {
   AlertTriangle,
   ArrowLeft,
+  CheckCircle2,
   ChevronDown,
   MapPin,
   Pencil,
   PhoneCall,
+  Send,
   UserPlus,
   Users,
   X,
@@ -74,6 +76,7 @@ export default function TabMonitorCircuito({
 
   const [isEditingRoute, setIsEditingRoute] = useState(false);
   const [listaAbuelosOpen, setListaAbuelosOpen] = useState(false);
+  const [confirmReenviarOpen, setConfirmReenviarOpen] = useState(false);
   const [editingAdultoId, setEditingAdultoId] = useState<string | null>(null);
   const [editAdultoError, setEditAdultoError] = useState<string | null>(null);
   const [editAdultoForm, setEditAdultoForm] = useState<{
@@ -114,6 +117,7 @@ export default function TabMonitorCircuito({
   useEffect(() => {
     setIsEditingRoute(false);
     setListaAbuelosOpen(false);
+    setConfirmReenviarOpen(false);
     setEditingAdultoId(null);
     setEditAdultoError(null);
     setDraftNodes([]);
@@ -522,15 +526,44 @@ export default function TabMonitorCircuito({
             <span>+ Sumar Abuelo</span>
           </button>
 
-          <button
-            onClick={() => onExecuteAction("lanzar_convocatoria")}
-            disabled={loadingAction === "lanzar_convocatoria"}
-            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition shadow-xs"
-          >
-            {loadingAction === "lanzar_convocatoria"
-              ? "Enviando..."
-              : "Enviar convocatoria por WhatsApp"}
-          </button>
+          {jornada.estado === "convocando" ||
+          jornada.estado === "en_marcha" ||
+          jornada.estado === "en_club" ||
+          jornada.estado === "finalizada" ? (
+            <button
+              type="button"
+              onClick={() => setConfirmReenviarOpen(true)}
+              disabled={loadingAction === "lanzar_convocatoria"}
+              title="La convocatoria ya fue enviada. Hace clic para volver a enviarla."
+              className="border border-[#168003] bg-[#d0e6cd]/45 hover:bg-[#d0e6cd]/75 text-[#168003] font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+            >
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>
+                {loadingAction === "lanzar_convocatoria"
+                  ? "Reenviando..."
+                  : "Convocatoria enviada (Reenviar)"}
+              </span>
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() =>
+                onExecuteAction("lanzar_convocatoria", {
+                  jornadaId: jornada.id,
+                  forceResend: false,
+                })
+              }
+              disabled={loadingAction === "lanzar_convocatoria"}
+              className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition shadow-xs flex items-center gap-1.5"
+            >
+              <Send className="w-3.5 h-3.5" />
+              <span>
+                {loadingAction === "lanzar_convocatoria"
+                  ? "Enviando..."
+                  : "Enviar convocatoria por WhatsApp"}
+              </span>
+            </button>
+          )}
 
           <button
             onClick={onOpenSuspenderModal}
@@ -1323,6 +1356,89 @@ export default function TabMonitorCircuito({
                 </div>
               </>
             )}
+          </div>
+        </div>
+      )}
+
+      {confirmReenviarOpen && (
+        <div
+          className="fixed inset-0 z-[700] bg-slate-900/55 flex items-center justify-center p-4"
+          onClick={() => setConfirmReenviarOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-md w-full p-5 shadow-2xl border border-[#eaeced] space-y-4"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#eaeced] pb-3">
+              <div className="flex items-center gap-2">
+                <CheckCircle2 className="w-5 h-5 text-[#168003]" />
+                <div>
+                  <div className="text-[10px] font-bold uppercase text-[#168003]">
+                    Convocatoria ya enviada
+                  </div>
+                  <h3 className="font-bold text-sm text-[#363f48]">
+                    ¿Estas seguro de volver a enviarla?
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                aria-label="Cerrar confirmacion de reenvio"
+                onClick={() => setConfirmReenviarOpen(false)}
+                className="text-[#52606d] hover:text-[#363f48] p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="bg-[#f6f6f7] border border-[#eaeced] rounded-xl p-3 text-xs space-y-1">
+              <div className="font-bold text-[#363f48]">{circuito.nombre_club}</div>
+              <div className="text-[#52606d]">
+                Actividad:{" "}
+                <strong className="text-[#363f48]">
+                  {jornada.actividad_cierre}
+                </strong>
+              </div>
+              <div className="text-[#52606d]">
+                Fecha y hora:{" "}
+                <strong className="text-[#363f48]">
+                  {jornada.fecha} • {jornada.hora_inicio_caminata} hs
+                </strong>
+              </div>
+            </div>
+
+            <p className="text-xs text-[#52606d] leading-relaxed">
+              Esta convocatoria por WhatsApp ya fue enviada anteriormente. Si confirmas, se volvera a enviar a los{" "}
+              <strong className="text-[#363f48]">
+                {adultosActivos.length} abuelo(s)
+              </strong>{" "}
+              de la lista actual.
+            </p>
+
+            <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#eaeced]">
+              <button
+                type="button"
+                onClick={() => setConfirmReenviarOpen(false)}
+                className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium text-xs"
+              >
+                Cancelar
+              </button>
+              <button
+                type="button"
+                disabled={loadingAction === "lanzar_convocatoria"}
+                onClick={() => {
+                  setConfirmReenviarOpen(false);
+                  void onExecuteAction("lanzar_convocatoria", {
+                    jornadaId: jornada.id,
+                    forceResend: true,
+                  });
+                }}
+                className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-400 text-white font-semibold px-4 py-2 rounded-full text-xs flex items-center gap-1.5 transition"
+              >
+                <Send className="w-3.5 h-3.5" />
+                <span>Si, reenviar convocatoria</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
