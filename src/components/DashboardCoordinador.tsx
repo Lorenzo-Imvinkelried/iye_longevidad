@@ -12,7 +12,6 @@ import PantallaLoginTutor from "@/components/auth/PantallaLoginTutor";
 import TabMonitorCircuito from "@/components/tabs/TabMonitorCircuito";
 import TabRecepcionClub from "@/components/tabs/TabRecepcionClub";
 import TabCadenaConfianza from "@/components/tabs/TabCadenaConfianza";
-import TabMetricasImpacto from "@/components/tabs/TabMetricasImpacto";
 import ModalLectorQr from "@/components/modals/ModalLectorQr";
 import ModalDerivacionFamiliar from "@/components/modals/ModalDerivacionFamiliar";
 import ModalAcreditarPadrino from "@/components/modals/ModalAcreditarPadrino";
@@ -471,8 +470,6 @@ function DashboardCoordinadorInner({
               onOpenCoordinadorModal={() => setCoordinadorModalOpen(true)}
             />
           )}
-
-          {activeTab === "tab4_impacto" && <TabMetricasImpacto />}
         </div>
       </main>
 
