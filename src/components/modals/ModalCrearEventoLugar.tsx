@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { CircuitoBarrial, Coords } from "@/types/domain";
 import SelectorMapaLugar from "@/components/mapa/SelectorMapaLugar";
 import { CalendarPlus, X } from "lucide-react";
@@ -27,7 +27,7 @@ interface ModalEventoProps {
     montoReintegro: number;
     plusPadrino: number;
     incluirAbuelosDelTutor: boolean;
-  }) => Promise<void>;
+  }) => Promise<{ ok: boolean; error?: string } | void>;
 }
 
 export default function ModalCrearEventoLugar({
@@ -38,6 +38,8 @@ export default function ModalCrearEventoLugar({
   circuitoActualId,
   onSubmit,
 }: ModalEventoProps) {
+  const submitRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   const [modoLugar, setModoLugar] = useState<"existente" | "nuevo">("existente");
   const [circuitoId, setCircuitoId] = useState<string>(circuitoActualId);
   const [nombreNuevoLugar, setNombreNuevoLugar] = useState("");
@@ -57,6 +59,8 @@ export default function ModalCrearEventoLugar({
 
   useEffect(() => {
     if (open) {
+      submitRef.current = false;
+      setSubmitting(false);
       setCircuitoId(circuitoActualId);
       setCoordsCustom(null);
       setBarrioCustom(undefined);
@@ -67,25 +71,34 @@ export default function ModalCrearEventoLugar({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitRef.current || submitting) return;
     if (modoLugar === "nuevo" && !nombreNuevoLugar.trim()) return;
-    await onSubmit({
-      tutorId,
-      modoLugar,
-      circuitoExistenteId: circuitoId || circuitoActualId,
-      nombreNuevoLugar,
-      direccionNuevoLugar,
-      zonaKey,
-      coordsCustom,
-      barrioCustom,
-      actividad,
-      fecha,
-      horaCaminata,
-      horaEncuentro,
-      montoReintegro,
-      plusPadrino,
-      incluirAbuelosDelTutor,
-    });
-    onClose();
+    submitRef.current = true;
+    setSubmitting(true);
+    try {
+      const res = await onSubmit({
+        tutorId,
+        modoLugar,
+        circuitoExistenteId: circuitoId || circuitoActualId,
+        nombreNuevoLugar,
+        direccionNuevoLugar,
+        zonaKey,
+        coordsCustom,
+        barrioCustom,
+        actividad,
+        fecha,
+        horaCaminata,
+        horaEncuentro,
+        montoReintegro,
+        plusPadrino,
+        incluirAbuelosDelTutor,
+      });
+      if (res && res.ok === false) return;
+      onClose();
+    } finally {
+      submitRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -296,16 +309,18 @@ export default function ModalCrearEventoLugar({
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#eaeced]">
             <button
               type="button"
+              disabled={submitting}
               onClick={onClose}
-              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium"
+              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold px-5 py-2 rounded-full transition"
+              disabled={submitting}
+              className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-400 text-white font-semibold px-5 py-2 rounded-full transition"
             >
-              Guardar y activar evento
+              {submitting ? "Guardando..." : "Guardar y activar evento"}
             </button>
           </div>
         </form>

@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { CircuitoBarrial, Coords } from "@/types/domain";
 import { parseGoogleMapsLocationInput } from "@/lib/domain-helpers";
+import { useGlobalLoading } from "@/components/modals/ModalCargando";
 import { ExternalLink, MapPin, Search } from "lucide-react";
 
 const SelectorMapaLeaflet = dynamic(
@@ -47,6 +48,8 @@ export default function SelectorMapaLugar({
   onSelectCircuitoExistente,
   onLocationPicked,
 }: SelectorMapaProps) {
+  const { withLoading } = useGlobalLoading();
+  const busyRef = useRef<boolean>(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState<NominatimHit[]>([]);
@@ -57,79 +60,101 @@ export default function SelectorMapaLugar({
     coords: Coords,
     suggestedName?: string
   ) => {
+    if (busyRef.current) return;
+    busyRef.current = true;
     setMapsFeedback("Obteniendo direccion del punto seleccionado...");
     try {
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}&addressdetails=1`
-      );
-      if (res.ok) {
-        const data = await res.json();
-        const addr = data?.address || {};
-        const streetLine = [addr.road, addr.house_number]
-          .filter(Boolean)
-          .join(" ");
-        const city = addr.city || addr.town || "Santa Fe";
-        const barrio =
-          addr.suburb || addr.neighbourhood || addr.quarter || undefined;
-        const formattedAddr = streetLine
-          ? `${streetLine}${barrio ? `, ${barrio}` : ""}, ${city}`
-          : data?.display_name?.split(",").slice(0, 3).join(",") ||
-            `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
+      await withLoading(
+        "Obteniendo ubicacion en el mapa...",
+        "Consultando calle y barrio del punto elegido...",
+        async () => {
+          try {
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${coords.lat}&lon=${coords.lng}&addressdetails=1`
+            );
+            if (res.ok) {
+              const data = await res.json();
+              const addr = data?.address || {};
+              const streetLine = [addr.road, addr.house_number]
+                .filter(Boolean)
+                .join(" ");
+              const city = addr.city || addr.town || "Santa Fe";
+              const barrio =
+                addr.suburb || addr.neighbourhood || addr.quarter || undefined;
+              const formattedAddr = streetLine
+                ? `${streetLine}${barrio ? `, ${barrio}` : ""}, ${city}`
+                : data?.display_name?.split(",").slice(0, 3).join(",") ||
+                  `${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)}`;
 
-        onLocationPicked({
-          coords,
-          address: formattedAddr,
-          barrio: barrio ? `${barrio} (${city})` : undefined,
-          suggestedName: suggestedName || addr.amenity || addr.building || undefined,
-        });
-        setMapsFeedback(`Ubicacion fijada: ${formattedAddr}`);
-        return;
-      }
-    } catch {
-      // Fallback below if Nominatim is unreachable
+              onLocationPicked({
+                coords,
+                address: formattedAddr,
+                barrio: barrio ? `${barrio} (${city})` : undefined,
+                suggestedName: suggestedName || addr.amenity || addr.building || undefined,
+              });
+              setMapsFeedback(`Ubicacion fijada: ${formattedAddr}`);
+              return;
+            }
+          } catch {
+            // Fallback below if Nominatim is unreachable
+          }
+          onLocationPicked({ coords, suggestedName });
+          setMapsFeedback(
+            `Ubicacion fijada en mapa (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})`
+          );
+        }
+      );
+    } finally {
+      busyRef.current = false;
     }
-    onLocationPicked({ coords, suggestedName });
-    setMapsFeedback(
-      `Ubicacion fijada en mapa (${coords.lat.toFixed(5)}, ${coords.lng.toFixed(5)})`
-    );
   };
 
   const handleSearchAddress = async () => {
     const q = searchQuery.trim();
-    if (!q) return;
+    if (!q || busyRef.current) return;
+    busyRef.current = true;
     setSearching(true);
     setMapsFeedback(null);
     try {
-      const fullQuery = q.toLowerCase().includes("santa fe")
-        ? q
-        : `${q}, Santa Fe, Argentina`;
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
-          fullQuery
-        )}&limit=4&addressdetails=1`
-      );
-      if (res.ok) {
-        const rows = (await res.json()) as NominatimHit[];
-        setSearchResults(rows);
-        if (rows.length > 0) {
-          const first = rows[0];
-          const coords = {
-            lat: Number(Number(first.lat).toFixed(6)),
-            lng: Number(Number(first.lon).toFixed(6)),
-          };
-          onLocationPicked({
-            coords,
-            address: first.display_name.split(",").slice(0, 3).join(",").trim(),
-            suggestedName: first.name || undefined,
-          });
-          setMapsFeedback(`Encontrado: ${first.display_name.split(",").slice(0, 2).join(",")}`);
-        } else {
-          setMapsFeedback("No hubo resultados exactos; hace clic directo en el mapa.");
+      await withLoading(
+        "Buscando direccion en Santa Fe...",
+        `Consultando "${q}" en el mapa...`,
+        async () => {
+          try {
+            const fullQuery = q.toLowerCase().includes("santa fe")
+              ? q
+              : `${q}, Santa Fe, Argentina`;
+            const res = await fetch(
+              `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+                fullQuery
+              )}&limit=4&addressdetails=1`
+            );
+            if (res.ok) {
+              const rows = (await res.json()) as NominatimHit[];
+              setSearchResults(rows);
+              if (rows.length > 0) {
+                const first = rows[0];
+                const coords = {
+                  lat: Number(Number(first.lat).toFixed(6)),
+                  lng: Number(Number(first.lon).toFixed(6)),
+                };
+                onLocationPicked({
+                  coords,
+                  address: first.display_name.split(",").slice(0, 3).join(",").trim(),
+                  suggestedName: first.name || undefined,
+                });
+                setMapsFeedback(`Encontrado: ${first.display_name.split(",").slice(0, 2).join(",")}`);
+              } else {
+                setMapsFeedback("No hubo resultados exactos; hace clic directo en el mapa.");
+              }
+            }
+          } catch {
+            setMapsFeedback("No se pudo buscar en este momento; elegi haciendo clic en el mapa.");
+          }
         }
-      }
-    } catch {
-      setMapsFeedback("No se pudo buscar en este momento; elegi haciendo clic en el mapa.");
+      );
     } finally {
+      busyRef.current = false;
       setSearching(false);
     }
   };

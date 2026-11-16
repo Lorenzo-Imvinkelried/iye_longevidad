@@ -94,6 +94,7 @@ export default function ModalDerivacionFamiliar({
     : null;
 
   const handleVincularClick = async (adultoId: string) => {
+    if (saving) return;
     setSubmitError(null);
     setSaving(true);
     try {
@@ -110,6 +111,7 @@ export default function ModalDerivacionFamiliar({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.nombreAdulto || !form.nombreFamiliar) return;
     setSubmitError(null);
     setSaving(true);

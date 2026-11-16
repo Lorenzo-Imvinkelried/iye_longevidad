@@ -434,25 +434,6 @@ export default function MapaCircuitoLeaflet({
           </div>
         </div>
       )}
-
-      <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto z-[400] bg-white/95 backdrop-blur px-2.5 py-1.5 rounded-lg shadow border border-slate-200 text-[10px] sm:text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
-        <span className="flex items-center gap-1.5 font-medium text-slate-700">
-          <span className="w-3 h-1 rounded bg-emerald-600 inline-block"></span>
-          Ruta segura
-        </span>
-        <span className="flex items-center gap-1.5 text-slate-700">
-          <span className="w-2 h-2 rounded-full bg-amber-600 inline-block"></span>
-          Esperando padrino
-        </span>
-        <span className="flex items-center gap-1.5 text-slate-700">
-          <span className="w-2 h-2 rounded-full bg-emerald-600 inline-block"></span>
-          Padrino confirmado
-        </span>
-        <span className="flex items-center gap-1.5 text-slate-700">
-          <span className="w-2 h-2 rounded-full bg-red-600 inline-block"></span>
-          Alerta / Sin acuse
-        </span>
-      </div>
     </div>
   );
 }

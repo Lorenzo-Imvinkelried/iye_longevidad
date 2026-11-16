@@ -43,7 +43,7 @@ export default function ModalSuspenderEvento({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!mensaje.trim()) return;
+    if (loading || !mensaje.trim()) return;
     await onConfirm(mensaje.trim());
     onClose();
   };
@@ -129,8 +129,9 @@ export default function ModalSuspenderEvento({
           <div className="flex items-center justify-end gap-2 pt-2 border-t border-[#eaeced]">
             <button
               type="button"
+              disabled={loading}
               onClick={onClose}
-              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium"
+              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium disabled:opacity-50"
             >
               Cancelar
             </button>

@@ -9,6 +9,7 @@ import {
   WhatsAppReplyButton,
 } from "@/types/domain";
 import BurbujaMensaje from "@/components/whatsapp/BurbujaMensaje";
+import { useGlobalLoading } from "@/components/modals/ModalCargando";
 import { Code2, Phone, Smartphone } from "lucide-react";
 
 interface SimuladorProps {
@@ -24,6 +25,8 @@ export default function SimuladorWhatsApp({
   onSelectPhoneId,
   onSnapshotUpdate,
 }: SimuladorProps) {
+  const { withLoading } = useGlobalLoading();
+  const sendingRef = useRef<boolean>(false);
   const [sendingButtonId, setSendingButtonId] = useState<string | null>(null);
   const [showWebhookInspector, setShowWebhookInspector] = useState<boolean>(false);
   const [lastWebhookPayload, setLastWebhookPayload] = useState<Record<string, unknown> | null>(
@@ -53,7 +56,8 @@ export default function SimuladorWhatsApp({
   };
 
   const handleTouchInteractiveButton = async (btn: WhatsAppReplyButton) => {
-    if (btn.disabled || sendingButtonId) return;
+    if (btn.disabled || sendingButtonId || sendingRef.current) return;
+    sendingRef.current = true;
     setSendingButtonId(btn.id);
 
     const metaGraphV21WebhookPayload = {
@@ -102,18 +106,25 @@ export default function SimuladorWhatsApp({
     setLastWebhookPayload(metaGraphV21WebhookPayload);
 
     try {
-      const res = await fetch("/api/whatsapp/webhook", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(metaGraphV21WebhookPayload),
-      });
-      const data = await res.json();
-      if (data?.snapshot) {
-        onSnapshotUpdate(data.snapshot);
-      }
+      await withLoading(
+        "Enviando respuesta de WhatsApp...",
+        `Procesando "${btn.title}" y actualizando el mapa del evento...`,
+        async () => {
+          const res = await fetch("/api/whatsapp/webhook", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(metaGraphV21WebhookPayload),
+          });
+          const data = await res.json();
+          if (data?.snapshot) {
+            onSnapshotUpdate(data.snapshot);
+          }
+        }
+      );
     } catch (error) {
       console.error("Error disparando webhook:", error);
     } finally {
+      sendingRef.current = false;
       setSendingButtonId(null);
     }
   };

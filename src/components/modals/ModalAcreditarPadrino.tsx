@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import { X } from "lucide-react";
 
 interface ModalPadrinoProps {
@@ -12,7 +12,7 @@ interface ModalPadrinoProps {
     dni: string;
     telefono: string;
     direccion: string;
-  }) => Promise<void>;
+  }) => Promise<{ ok: boolean; error?: string } | void>;
 }
 
 export default function ModalAcreditarPadrino({
@@ -20,6 +20,8 @@ export default function ModalAcreditarPadrino({
   onClose,
   onSubmit,
 }: ModalPadrinoProps) {
+  const submitRef = useRef(false);
+  const [submitting, setSubmitting] = useState(false);
   const [form, setForm] = useState({
     nombre: "",
     edad: 65,
@@ -32,9 +34,18 @@ export default function ModalAcreditarPadrino({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitRef.current || submitting) return;
     if (!form.nombre || !form.dni) return;
-    await onSubmit(form);
-    onClose();
+    submitRef.current = true;
+    setSubmitting(true);
+    try {
+      const res = await onSubmit(form);
+      if (res && res.ok === false) return;
+      onClose();
+    } finally {
+      submitRef.current = false;
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -111,16 +122,18 @@ export default function ModalAcreditarPadrino({
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
+              disabled={submitting}
               onClick={onClose}
-              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium"
+              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold px-5 py-2 rounded-full transition"
+              disabled={submitting}
+              className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-400 text-white font-semibold px-5 py-2 rounded-full transition"
             >
-              Emitir credencial
+              {submitting ? "Guardando..." : "Emitir credencial"}
             </button>
           </div>
         </form>

@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useRef, useState } from "react";
 import { Asistencia, Jornada, Participante } from "@/types/domain";
 import { QrCode, X } from "lucide-react";
 
@@ -11,7 +11,7 @@ interface ModalQrProps {
   jornada: Jornada;
   adultosActivos: Participante[];
   asistencias: Asistencia[];
-  onValidarParticipante: (participanteId: string) => void;
+  onValidarParticipante: (participanteId: string) => Promise<void> | void;
 }
 
 export default function ModalLectorQr({
@@ -23,7 +23,22 @@ export default function ModalLectorQr({
   asistencias,
   onValidarParticipante,
 }: ModalQrProps) {
+  const inFlightRef = useRef(false);
+  const [validatingId, setValidatingId] = useState<string | null>(null);
+
   if (!open) return null;
+
+  const handleClickValidar = async (participanteId: string) => {
+    if (inFlightRef.current || validatingId) return;
+    inFlightRef.current = true;
+    setValidatingId(participanteId);
+    try {
+      await onValidarParticipante(participanteId);
+    } finally {
+      inFlightRef.current = false;
+      setValidatingId(null);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
@@ -35,7 +50,11 @@ export default function ModalLectorQr({
               Lector QR de Recepcion en el Club
             </h3>
           </div>
-          <button onClick={onClose} className="text-slate-400 hover:text-slate-700">
+          <button
+            disabled={Boolean(validatingId)}
+            onClick={onClose}
+            className="text-slate-400 hover:text-slate-700 disabled:opacity-50"
+          >
             <X className="w-4 h-4" />
           </button>
         </div>
@@ -48,14 +67,15 @@ export default function ModalLectorQr({
           {adultosActivos.map((ad) => {
             const asis = asistencias.find((a) => a.participante_id === ad.id);
             const yaValidado = Boolean(asis?.presente_validado_en_club);
+            const isThisValidating = validatingId === ad.id;
 
             return (
               <button
                 key={ad.id}
-                disabled={yaValidado}
-                onClick={() => onValidarParticipante(ad.id)}
+                disabled={yaValidado || Boolean(validatingId)}
+                onClick={() => handleClickValidar(ad.id)}
                 className={`w-full p-3 rounded-lg border text-left flex items-center justify-between transition ${
-                  yaValidado
+                  yaValidado || validatingId
                     ? "bg-slate-50 border-slate-200 text-slate-400 cursor-not-allowed"
                     : "bg-white hover:bg-slate-50 border-slate-200 text-slate-900"
                 }`}
@@ -67,7 +87,11 @@ export default function ModalLectorQr({
                   </div>
                 </div>
                 <span className="text-xs font-bold text-[#0a4494]">
-                  {yaValidado ? "Ya validado" : "Validar QR"}
+                  {isThisValidating
+                    ? "Validando..."
+                    : yaValidado
+                    ? "Ya validado"
+                    : "Validar QR"}
                 </span>
               </button>
             );

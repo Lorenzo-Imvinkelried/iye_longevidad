@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
 import {
   getTutorCircuitos,
@@ -18,10 +18,80 @@ import ModalAcreditarPadrino from "@/components/modals/ModalAcreditarPadrino";
 import ModalAcreditarCoordinador from "@/components/modals/ModalAcreditarCoordinador";
 import ModalCrearEventoLugar from "@/components/modals/ModalCrearEventoLugar";
 import ModalSuspenderEvento from "@/components/modals/ModalSuspenderEvento";
+import {
+  GlobalLoadingProvider,
+  useGlobalLoading,
+} from "@/components/modals/ModalCargando";
 import SimuladorWhatsApp from "@/components/SimuladorWhatsApp";
 import { AlertTriangle, X } from "lucide-react";
 
 const SESSION_STORAGE_KEY = "sancor_tutor_session_v2";
+
+const ACTION_LOADING_MESSAGES: Record<
+  string,
+  { title: string; detail: string }
+> = {
+  login_tutor: {
+    title: "Verificando credenciales...",
+    detail: "Validando DNI acreditado y cargando tus eventos...",
+  },
+  seleccionar_evento: {
+    title: "Cargando evento y circuito...",
+    detail: "Actualizando mapa, paradas seguras y participantes...",
+  },
+  registrar_tutor_lugar: {
+    title: "Acreditando coordinador y sede...",
+    detail: "Guardando credencial, trazado de calles y registro inicial...",
+  },
+  crear_evento_lugar: {
+    title: "Guardando evento y sede...",
+    detail: "Calculando ruta segura por calles y registrando el encuentro...",
+  },
+  actualizar_ruta_circuito: {
+    title: "Guardando ruta segura...",
+    detail: "Persistiendo paradas y trazado de calles en la base...",
+  },
+  vincular_abuelo_evento: {
+    title: "Sumando adulto mayor al evento...",
+    detail: "Verificando disponibilidad horaria y guardando inscripcion...",
+  },
+  lanzar_convocatoria: {
+    title: "Enviando convocatoria por WhatsApp...",
+    detail: "Despachando mensajes a los adultos mayores del evento...",
+  },
+  suspender_emergencia: {
+    title: "Suspendiendo actividad...",
+    detail: "Enviando aviso por WhatsApp a los abuelos enlistados...",
+  },
+  reasignar_tutor: {
+    title: "Reasignando padrino...",
+    detail: "Actualizando acompanamiento y enviando ficha por WhatsApp...",
+  },
+  frenar_salida: {
+    title: "Enviando alerta de espera...",
+    detail: "Notificando al adulto mayor para evitar salida sin compania...",
+  },
+  validar_club: {
+    title: "Validando presencia en el club...",
+    detail: "Registrando asistencia confirmada en el encuentro...",
+  },
+  aprobar_solicitud_familiar: {
+    title: "Aprobando alta de participante...",
+    detail: "Activando adulto mayor y asignando padrino responsable...",
+  },
+  crear_solicitud_familiar: {
+    title: "Guardando inscripcion...",
+    detail: "Registrando al adulto mayor y verificando horarios...",
+  },
+  acreditar_padrino: {
+    title: "Emitiendo credencial de padrino...",
+    detail: "Guardando vecino acreditado en el padron de confianza...",
+  },
+  reset_demo: {
+    title: "Restaurando configuracion inicial...",
+    detail: "Sincronizando circuitos y participantes base...",
+  },
+};
 
 interface SessionData {
   tutorId: string;
@@ -33,6 +103,21 @@ export default function DashboardCoordinador({
 }: {
   initialSnapshot: SystemSnapshot;
 }) {
+  return (
+    <GlobalLoadingProvider>
+      <DashboardCoordinadorInner initialSnapshot={initialSnapshot} />
+    </GlobalLoadingProvider>
+  );
+}
+
+function DashboardCoordinadorInner({
+  initialSnapshot,
+}: {
+  initialSnapshot: SystemSnapshot;
+}) {
+  const { startTask } = useGlobalLoading();
+  const actionInFlightRef = useRef<boolean>(false);
+
   const [snapshot, setSnapshot] = useState<SystemSnapshot>(initialSnapshot);
   const [loggedInTutorId, setLoggedInTutorId] = useState<string | null>(null);
   const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(null);
@@ -80,6 +165,7 @@ export default function DashboardCoordinador({
 
   useEffect(() => {
     const interval = setInterval(async () => {
+      if (actionInFlightRef.current) return;
       try {
         const params = new URLSearchParams();
         if (loggedInTutorId) params.set("tutorId", loggedInTutorId);
@@ -87,7 +173,7 @@ export default function DashboardCoordinador({
         const query = params.toString() ? `?${params.toString()}` : "";
 
         const res = await fetch(`/api/state${query}`, { cache: "no-store" });
-        if (res.ok) {
+        if (res.ok && !actionInFlightRef.current) {
           const data = (await res.json()) as SystemSnapshot;
           setSnapshot(data);
         }
@@ -102,6 +188,15 @@ export default function DashboardCoordinador({
     actionName: string,
     payload: Record<string, unknown> = {}
   ): Promise<{ ok: boolean; error?: string; snapshot?: SystemSnapshot }> => {
+    if (actionInFlightRef.current) {
+      return { ok: false, error: "Ya hay una operacion en curso." };
+    }
+    actionInFlightRef.current = true;
+    const msgMeta = ACTION_LOADING_MESSAGES[actionName] || {
+      title: "Procesando informacion...",
+      detail: "Guardando cambios en el sistema...",
+    };
+    const stopLoading = startTask(msgMeta.title, msgMeta.detail);
     setLoadingAction(actionName);
     setActionError(null);
     try {
@@ -138,6 +233,8 @@ export default function DashboardCoordinador({
       setActionError(msg);
       return { ok: false, error: msg };
     } finally {
+      stopLoading();
+      actionInFlightRef.current = false;
       setLoadingAction(null);
     }
   };
@@ -396,7 +493,10 @@ export default function DashboardCoordinador({
         open={padrinoModalOpen}
         onClose={() => setPadrinoModalOpen(false)}
         onSubmit={async (payload) => {
-          await executeCoordinatorAction("acreditar_padrino", { payload });
+          const res = await executeCoordinatorAction("acreditar_padrino", {
+            payload,
+          });
+          return { ok: res.ok, error: res.error };
         }}
       />
 
@@ -428,6 +528,7 @@ export default function DashboardCoordinador({
             setSelectedJornadaId(res.snapshot.jornada.id);
             saveSession(loggedInTutorId, res.snapshot.jornada.id);
           }
+          return { ok: res.ok, error: res.error };
         }}
       />
 

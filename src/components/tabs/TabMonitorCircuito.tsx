@@ -1,10 +1,11 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import dynamic from "next/dynamic";
 import { ParadaSegura, SEED_IDS, SystemSnapshot } from "@/types/domain";
 import { getTutorJornadas } from "@/lib/domain-helpers";
 import { fetchStreetWalkingRoute } from "@/lib/street-routing";
+import { useGlobalLoading } from "@/components/modals/ModalCargando";
 import EditorRutaPanel, {
   EditableRouteNode,
 } from "@/components/mapa/EditorRutaPanel";
@@ -55,6 +56,9 @@ export default function TabMonitorCircuito({
   const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
     snapshot;
 
+  const { withLoading } = useGlobalLoading();
+  const routeActionRef = useRef<boolean>(false);
+
   const [isEditingRoute, setIsEditingRoute] = useState(false);
   const [clickTool, setClickTool] = useState<"via" | "parada">("via");
   const [draftNodes, setDraftNodes] = useState<EditableRouteNode[]>([]);
@@ -82,9 +86,15 @@ export default function TabMonitorCircuito({
     }
     setRoutingBusy(true);
     try {
-      const res = await fetchStreetWalkingRoute(waypoints);
-      setDraftPolyline(res.coords);
-      setDistanceMeters(res.distanceMeters);
+      await withLoading(
+        "Calculando ruta segura por calles...",
+        "Ajustando el recorrido peatonal sobre las calles de Santa Fe...",
+        async () => {
+          const res = await fetchStreetWalkingRoute(waypoints);
+          setDraftPolyline(res.coords);
+          setDistanceMeters(res.distanceMeters);
+        }
+      );
     } finally {
       setRoutingBusy(false);
     }
@@ -127,57 +137,67 @@ export default function TabMonitorCircuito({
   };
 
   const handleMapClickInEdit = async (lat: number, lng: number) => {
-    const newId =
-      clickTool === "parada"
-        ? `parada_${Date.now().toString(36)}`
-        : `via_${Date.now().toString(36)}`;
-    const nextParadaIdx =
-      draftNodes.filter((n) => n.kind === "parada").length + 1;
+    if (routeActionRef.current) return;
+    routeActionRef.current = true;
+    try {
+      const newId =
+        clickTool === "parada"
+          ? `parada_${Date.now().toString(36)}`
+          : `via_${Date.now().toString(36)}`;
+      const nextParadaIdx =
+        draftNodes.filter((n) => n.kind === "parada").length + 1;
 
-    const newNode: EditableRouteNode =
-      clickTool === "parada"
-        ? {
-            id: newId,
-            kind: "parada",
-            lat,
-            lng,
-            nombreEsquina: `Parada ${nextParadaIdx}: Punto en circuito`,
-            horarioPaso: `${jornada.hora_inicio_caminata || "16:00"} hs`,
-          }
-        : {
-            id: newId,
-            kind: "via",
-            lat,
-            lng,
-          };
+      const newNode: EditableRouteNode =
+        clickTool === "parada"
+          ? {
+              id: newId,
+              kind: "parada",
+              lat,
+              lng,
+              nombreEsquina: `Parada ${nextParadaIdx}: Punto en circuito`,
+              horarioPaso: `${jornada.hora_inicio_caminata || "16:00"} hs`,
+            }
+          : {
+              id: newId,
+              kind: "via",
+              lat,
+              lng,
+            };
 
-    const nextNodes = [...draftNodes, newNode];
-    setDraftNodes(nextNodes);
-    void recomputeStreetRoute(nextNodes);
+      const nextNodes = [...draftNodes, newNode];
+      setDraftNodes(nextNodes);
 
-    if (clickTool === "parada") {
-      try {
-        const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`
-        );
-        if (res.ok) {
-          const data = await res.json();
-          const road = data?.address?.road;
-          const num = data?.address?.house_number;
-          if (road) {
-            const label = `Parada ${nextParadaIdx}: ${[road, num]
-              .filter(Boolean)
-              .join(" ")}`;
-            setDraftNodes((prev) =>
-              prev.map((n) =>
-                n.id === newId ? { ...n, nombreEsquina: label } : n
-              )
-            );
-          }
-        }
-      } catch {
-        // Keep fallback name
-      }
+      await Promise.all([
+        recomputeStreetRoute(nextNodes),
+        clickTool === "parada"
+          ? (async () => {
+              try {
+                const res = await fetch(
+                  `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`
+                );
+                if (res.ok) {
+                  const data = await res.json();
+                  const road = data?.address?.road;
+                  const num = data?.address?.house_number;
+                  if (road) {
+                    const label = `Parada ${nextParadaIdx}: ${[road, num]
+                      .filter(Boolean)
+                      .join(" ")}`;
+                    setDraftNodes((prev) =>
+                      prev.map((n) =>
+                        n.id === newId ? { ...n, nombreEsquina: label } : n
+                      )
+                    );
+                  }
+                }
+              } catch {
+                // Keep fallback name
+              }
+            })()
+          : Promise.resolve(),
+      ]);
+    } finally {
+      routeActionRef.current = false;
     }
   };
 
@@ -206,35 +226,41 @@ export default function TabMonitorCircuito({
   };
 
   const handleSaveRoute = async () => {
-    const existingMap = new Map(
-      circuito.paradas_seguras.map((p) => [p.id, p])
-    );
-    const updatedParadas: ParadaSegura[] = draftNodes
-      .filter((n) => n.kind === "parada")
-      .map((n, idx) => {
-        const prev = existingMap.get(n.id);
-        return {
-          id: n.id,
-          nombre_esquina:
-            (n.nombreEsquina || "").trim() || `Parada ${idx + 1}`,
-          lat: n.lat,
-          lng: n.lng,
-          horario_paso:
-            (n.horarioPaso || "").trim() ||
-            `${jornada.hora_inicio_caminata} hs`,
-          estado_veredas:
-            prev?.estado_veredas || "Tramo validado en mapa por organizador",
-          tiene_rampa: prev?.tiene_rampa ?? true,
-          iluminacion_ok: prev?.iluminacion_ok ?? true,
-        };
-      });
+    if (routeActionRef.current) return;
+    routeActionRef.current = true;
+    try {
+      const existingMap = new Map(
+        circuito.paradas_seguras.map((p) => [p.id, p])
+      );
+      const updatedParadas: ParadaSegura[] = draftNodes
+        .filter((n) => n.kind === "parada")
+        .map((n, idx) => {
+          const prev = existingMap.get(n.id);
+          return {
+            id: n.id,
+            nombre_esquina:
+              (n.nombreEsquina || "").trim() || `Parada ${idx + 1}`,
+            lat: n.lat,
+            lng: n.lng,
+            horario_paso:
+              (n.horarioPaso || "").trim() ||
+              `${jornada.hora_inicio_caminata} hs`,
+            estado_veredas:
+              prev?.estado_veredas || "Tramo validado en mapa por organizador",
+            tiene_rampa: prev?.tiene_rampa ?? true,
+            iluminacion_ok: prev?.iluminacion_ok ?? true,
+          };
+        });
 
-    await onExecuteAction("actualizar_ruta_circuito", {
-      circuitoId: circuito.id,
-      paradasSeguras: updatedParadas,
-      rutaPolilinea: draftPolyline,
-    });
-    setIsEditingRoute(false);
+      await onExecuteAction("actualizar_ruta_circuito", {
+        circuitoId: circuito.id,
+        paradasSeguras: updatedParadas,
+        rutaPolilinea: draftPolyline,
+      });
+      setIsEditingRoute(false);
+    } finally {
+      routeActionRef.current = false;
+    }
   };
 
   const eventosDelTutor = getTutorJornadas(

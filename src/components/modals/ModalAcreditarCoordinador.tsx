@@ -55,6 +55,7 @@ export default function ModalAcreditarCoordinador({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (saving) return;
     if (!form.nombreTutor || !form.dniTutor || !form.claveTutor || !form.nombreLugar) {
       return;
     }
