@@ -1,10 +1,20 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
-import { SEED_IDS, SystemSnapshot } from "@/types/domain";
+import { ParadaSegura, SEED_IDS, SystemSnapshot } from "@/types/domain";
 import { getTutorJornadas } from "@/lib/domain-helpers";
-import { AlertTriangle, MapPin, PhoneCall, UserPlus } from "lucide-react";
+import { fetchStreetWalkingRoute } from "@/lib/street-routing";
+import EditorRutaPanel, {
+  EditableRouteNode,
+} from "@/components/mapa/EditorRutaPanel";
+import {
+  AlertTriangle,
+  MapPin,
+  Pencil,
+  PhoneCall,
+  UserPlus,
+} from "lucide-react";
 
 const MapaCircuitoLeaflet = dynamic(
   () => import("@/components/MapaCircuitoLeaflet"),
@@ -22,7 +32,10 @@ interface TabMonitorProps {
   snapshot: SystemSnapshot;
   loggedInTutorId: string;
   loadingAction: string | null;
-  onExecuteAction: (action: string, payload?: Record<string, unknown>) => void;
+  onExecuteAction: (
+    action: string,
+    payload?: Record<string, unknown>
+  ) => Promise<unknown> | void;
   onSelectEvento: (jornadaId: string) => void;
   onOpenPhone: (participanteId: string) => void;
   onOpenFamiliarModal: () => void;
@@ -41,6 +54,188 @@ export default function TabMonitorCircuito({
 }: TabMonitorProps) {
   const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
     snapshot;
+
+  const [isEditingRoute, setIsEditingRoute] = useState(false);
+  const [clickTool, setClickTool] = useState<"via" | "parada">("via");
+  const [draftNodes, setDraftNodes] = useState<EditableRouteNode[]>([]);
+  const [draftPolyline, setDraftPolyline] = useState<[number, number][]>([]);
+  const [routingBusy, setRoutingBusy] = useState(false);
+  const [distanceMeters, setDistanceMeters] = useState<number | undefined>(
+    undefined
+  );
+
+  useEffect(() => {
+    setIsEditingRoute(false);
+    setDraftNodes([]);
+    setDraftPolyline([]);
+    setDistanceMeters(undefined);
+  }, [circuito.id]);
+
+  const recomputeStreetRoute = async (nodes: EditableRouteNode[]) => {
+    const waypoints: [number, number][] = [
+      ...nodes.map((n) => [n.lat, n.lng] as [number, number]),
+      [circuito.coords_club.lat, circuito.coords_club.lng],
+    ];
+    if (waypoints.length < 2) {
+      setDraftPolyline([]);
+      return;
+    }
+    setRoutingBusy(true);
+    try {
+      const res = await fetchStreetWalkingRoute(waypoints);
+      setDraftPolyline(res.coords);
+      setDistanceMeters(res.distanceMeters);
+    } finally {
+      setRoutingBusy(false);
+    }
+  };
+
+  const handleStartEditRoute = () => {
+    const paradaNodes: EditableRouteNode[] = circuito.paradas_seguras.map(
+      (p) => ({
+        id: p.id,
+        kind: "parada",
+        lat: p.lat,
+        lng: p.lng,
+        nombreEsquina: p.nombre_esquina,
+        horarioPaso: p.horario_paso,
+      })
+    );
+
+    const firstPoly = circuito.ruta_polilinea?.[0];
+    const firstParada = paradaNodes[0];
+    const initialNodes: EditableRouteNode[] = [];
+    if (
+      firstPoly &&
+      firstParada &&
+      (Math.abs(firstPoly[0] - firstParada.lat) > 0.001 ||
+        Math.abs(firstPoly[1] - firstParada.lng) > 0.001)
+    ) {
+      initialNodes.push({
+        id: "via_inicio",
+        kind: "via",
+        lat: firstPoly[0],
+        lng: firstPoly[1],
+      });
+    }
+    initialNodes.push(...paradaNodes);
+
+    setDraftNodes(initialNodes);
+    setDraftPolyline(circuito.ruta_polilinea || []);
+    setIsEditingRoute(true);
+    void recomputeStreetRoute(initialNodes);
+  };
+
+  const handleMapClickInEdit = async (lat: number, lng: number) => {
+    const newId =
+      clickTool === "parada"
+        ? `parada_${Date.now().toString(36)}`
+        : `via_${Date.now().toString(36)}`;
+    const nextParadaIdx =
+      draftNodes.filter((n) => n.kind === "parada").length + 1;
+
+    const newNode: EditableRouteNode =
+      clickTool === "parada"
+        ? {
+            id: newId,
+            kind: "parada",
+            lat,
+            lng,
+            nombreEsquina: `Parada ${nextParadaIdx}: Punto en circuito`,
+            horarioPaso: `${jornada.hora_inicio_caminata || "16:00"} hs`,
+          }
+        : {
+            id: newId,
+            kind: "via",
+            lat,
+            lng,
+          };
+
+    const nextNodes = [...draftNodes, newNode];
+    setDraftNodes(nextNodes);
+    void recomputeStreetRoute(nextNodes);
+
+    if (clickTool === "parada") {
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}&addressdetails=1`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          const road = data?.address?.road;
+          const num = data?.address?.house_number;
+          if (road) {
+            const label = `Parada ${nextParadaIdx}: ${[road, num]
+              .filter(Boolean)
+              .join(" ")}`;
+            setDraftNodes((prev) =>
+              prev.map((n) =>
+                n.id === newId ? { ...n, nombreEsquina: label } : n
+              )
+            );
+          }
+        }
+      } catch {
+        // Keep fallback name
+      }
+    }
+  };
+
+  const handleDragNodeInEdit = (nodeId: string, lat: number, lng: number) => {
+    const nextNodes = draftNodes.map((n) =>
+      n.id === nodeId ? { ...n, lat, lng } : n
+    );
+    setDraftNodes(nextNodes);
+    void recomputeStreetRoute(nextNodes);
+  };
+
+  const handleMoveNodeOrder = (index: number, dir: -1 | 1) => {
+    const targetIdx = index + dir;
+    if (targetIdx < 0 || targetIdx >= draftNodes.length) return;
+    const copy = [...draftNodes];
+    const [moved] = copy.splice(index, 1);
+    copy.splice(targetIdx, 0, moved);
+    setDraftNodes(copy);
+    void recomputeStreetRoute(copy);
+  };
+
+  const handleRemoveNode = (id: string) => {
+    const nextNodes = draftNodes.filter((n) => n.id !== id);
+    setDraftNodes(nextNodes);
+    void recomputeStreetRoute(nextNodes);
+  };
+
+  const handleSaveRoute = async () => {
+    const existingMap = new Map(
+      circuito.paradas_seguras.map((p) => [p.id, p])
+    );
+    const updatedParadas: ParadaSegura[] = draftNodes
+      .filter((n) => n.kind === "parada")
+      .map((n, idx) => {
+        const prev = existingMap.get(n.id);
+        return {
+          id: n.id,
+          nombre_esquina:
+            (n.nombreEsquina || "").trim() || `Parada ${idx + 1}`,
+          lat: n.lat,
+          lng: n.lng,
+          horario_paso:
+            (n.horarioPaso || "").trim() ||
+            `${jornada.hora_inicio_caminata} hs`,
+          estado_veredas:
+            prev?.estado_veredas || "Tramo validado en mapa por organizador",
+          tiene_rampa: prev?.tiene_rampa ?? true,
+          iluminacion_ok: prev?.iluminacion_ok ?? true,
+        };
+      });
+
+    await onExecuteAction("actualizar_ruta_circuito", {
+      circuitoId: circuito.id,
+      paradasSeguras: updatedParadas,
+      rutaPolilinea: draftPolyline,
+    });
+    setIsEditingRoute(false);
+  };
 
   const eventosDelTutor = getTutorJornadas(
     jornadas || [jornada],
@@ -284,10 +479,36 @@ export default function TabMonitorCircuito({
         </div>
       )}
 
-      {/* Vista principal: 3 Anillos a la izquierda + Mapa a la derecha (sin scroll en desktop) */}
+      {/* Vista principal: 3 Anillos (o Editor de Ruta) a la izquierda + Mapa a la derecha (sin scroll en desktop) */}
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-2.5 items-stretch">
-        {/* Columna izquierda: 3 Anillos apilados */}
-        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 min-h-0 lg:overflow-y-auto pr-0.5">
+        {/* Columna izquierda */}
+        <div className="lg:col-span-4 min-h-0 flex flex-col">
+          {isEditingRoute ? (
+            <EditorRutaPanel
+              nodes={draftNodes}
+              clickTool={clickTool}
+              routingBusy={routingBusy}
+              saving={loadingAction === "actualizar_ruta_circuito"}
+              distanceMeters={distanceMeters}
+              onChangeClickTool={setClickTool}
+              onUpdateParadaText={(id, field, val) =>
+                setDraftNodes((prev) =>
+                  prev.map((n) => (n.id === id ? { ...n, [field]: val } : n))
+                )
+              }
+              onMoveNodeOrder={handleMoveNodeOrder}
+              onRemoveNode={handleRemoveNode}
+              onRecalculateStreets={() => void recomputeStreetRoute(draftNodes)}
+              onResetFromClub={() => {
+                const onlyParadas = draftNodes.filter((n) => n.kind === "parada");
+                setDraftNodes(onlyParadas);
+                void recomputeStreetRoute(onlyParadas);
+              }}
+              onCancel={() => setIsEditingRoute(false)}
+              onSave={() => void handleSaveRoute()}
+            />
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 min-h-0 lg:overflow-y-auto pr-0.5 flex-1">
           {/* Puerta a puerta */}
           <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#a70355]">
             <div className="flex items-center justify-between">
@@ -421,17 +642,31 @@ export default function TabMonitorCircuito({
               })}
             </div>
           </div>
+            </div>
+          )}
         </div>
 
         {/* Columna derecha: Mapa del circuito */}
         <div className="lg:col-span-8 bg-white rounded-xl p-2.5 border border-[#eaeced] flex flex-col gap-1.5 min-h-0">
-          <div className="flex flex-wrap items-center justify-between gap-1 shrink-0">
+          <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
             <h3 className="text-xs sm:text-sm font-bold text-[#363f48]">
               Mapa del Circuito: {circuito.nombre_barrio}
             </h3>
-            <span className="text-[11px] text-[#52606d]">
-              Actualizacion en vivo via WhatsApp
-            </span>
+            <div className="flex items-center gap-2.5">
+              <span className="hidden sm:inline text-[11px] text-[#52606d]">
+                Actualizacion en vivo via WhatsApp
+              </span>
+              {!isEditingRoute && (
+                <button
+                  type="button"
+                  onClick={handleStartEditRoute}
+                  className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white text-[11px] font-semibold px-3 py-1 rounded-full transition flex items-center gap-1"
+                >
+                  <Pencil className="w-3 h-3" />
+                  <span>Editar ruta segura</span>
+                </button>
+              )}
+            </div>
           </div>
 
           <div className="flex-1 min-h-0">
@@ -441,6 +676,11 @@ export default function TabMonitorCircuito({
               participantes={participantes}
               asistencias={asistencias}
               onSelectPhoneInSimulator={onOpenPhone}
+              editMode={isEditingRoute}
+              draftPolyline={draftPolyline}
+              draftNodes={draftNodes}
+              onMapClickInEdit={handleMapClickInEdit}
+              onDragNodeInEdit={handleDragNodeInEdit}
             />
           </div>
         </div>

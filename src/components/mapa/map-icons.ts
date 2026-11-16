@@ -23,20 +23,40 @@ export function createClubIcon(
   });
 }
 
-export function createParadaIcon(index: number, horario: string, count: number) {
-  const activeBg = count > 0 ? "#0f766e" : "#475569";
+export function createParadaIcon(
+  index: number,
+  horario: string,
+  count: number,
+  editable = false
+) {
+  const activeBg = editable ? "#a70355" : count > 0 ? "#0f766e" : "#475569";
 
   return L.divIcon({
     className: "custom-leaflet-marker",
     html: `
-      <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);">
+      <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);cursor:${editable ? "grab" : "pointer"};">
         <div style="background:${activeBg};color:white;padding:5px 9px;border-radius:8px;font-weight:600;font-size:11px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.22);border:2px solid #ffffff;display:flex;align-items:center;gap:6px;">
           <span>Parada ${index + 1} (${horario})</span>
           <span style="background:#ffffff;color:${activeBg};padding:1px 5px;border-radius:4px;font-size:10px;font-weight:800;">
-            ${count}
+            ${editable ? "Mover" : count}
           </span>
         </div>
         <div style="width:0;height:0;border-left:5px solid transparent;border-right:5px solid transparent;border-top:7px solid ${activeBg};"></div>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
+
+export function createViaWaypointIcon(index: number) {
+  return L.divIcon({
+    className: "custom-leaflet-marker",
+    html: `
+      <div style="transform:translate(-50%,-50%);cursor:grab;">
+        <div style="width:20px;height:20px;border-radius:999px;background:#0a4494;color:#ffffff;border:2.5px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.35);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">
+          ${index + 1}
+        </div>
       </div>
     `,
     iconSize: [0, 0],

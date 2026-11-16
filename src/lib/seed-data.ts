@@ -11,6 +11,10 @@ import {
 } from "@/types/domain";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
+import {
+  CANDIOTI_STREET_ROUTE,
+  GUADALUPE_STREET_ROUTE,
+} from "@/lib/street-routing";
 
 export function buildInitialState(): SystemSnapshot {
   const circuitoCandioti: CircuitoBarrial = {
@@ -18,15 +22,15 @@ export function buildInitialState(): SystemSnapshot {
     nombre_barrio: "Barrio Candioti Sur / Bv. Galvez (Santa Fe Capital)",
     nombre_club: 'Centro de Jubilados y Club Candioti "La Union"',
     direccion_club: "Ituzaingo 1945 (esq. Alberdi), Santa Fe Capital",
-    coords_club: { lat: -31.6388, lng: -60.6915 },
+    coords_club: { lat: -31.63882, lng: -60.691411 },
     poliza_sancor_activa: true,
     poliza_nro: `SANCOR-SALUD-RC-88412|tutor:${SEED_IDS.coordinadoraMarta}`,
     paradas_seguras: [
       {
         id: "parada_1",
         nombre_esquina: "Parada 1: Bv. Galvez y Sarmiento",
-        lat: -31.6362,
-        lng: -60.6882,
+        lat: -31.636713,
+        lng: -60.688538,
         horario_paso: "15:45 hs",
         estado_veredas: "Veredas niveladas sin baldosas flojas",
         tiene_rampa: true,
@@ -35,23 +39,15 @@ export function buildInitialState(): SystemSnapshot {
       {
         id: "parada_2",
         nombre_esquina: "Parada 2: Plaza Pueyrredon (Bv. Galvez y Alberdi)",
-        lat: -31.6366,
-        lng: -60.6928,
+        lat: -31.636758,
+        lng: -60.69284,
         horario_paso: "15:52 hs",
         estado_veredas: "Sendero perimetral liso con bancos de descanso",
         tiene_rampa: true,
         iluminacion_ok: true,
       },
     ],
-    ruta_polilinea: [
-      [-31.6342, -60.6878],
-      [-31.6345, -60.6875],
-      [-31.6362, -60.6882],
-      [-31.6364, -60.6905],
-      [-31.6366, -60.6928],
-      [-31.6378, -60.6922],
-      [-31.6388, -60.6915],
-    ],
+    ruta_polilinea: CANDIOTI_STREET_ROUTE,
   };
 
   const circuitoGuadalupe: CircuitoBarrial = {
@@ -59,15 +55,15 @@ export function buildInitialState(): SystemSnapshot {
     nombre_barrio: "Barrio Guadalupe / Costanera Este (Santa Fe Capital)",
     nombre_club: "Sala Vecinal y Centro de Dia Guadalupe",
     direccion_club: "Javier de la Rosa 650, Santa Fe Capital",
-    coords_club: { lat: -31.6015, lng: -60.6728 },
+    coords_club: { lat: -31.601512, lng: -60.672738 },
     poliza_sancor_activa: true,
     poliza_nro: `SANCOR-SALUD-RC-90210|tutor:${SEED_IDS.tutorRoberto}`,
     paradas_seguras: [
       {
         id: "parada_g1",
         nombre_esquina: "Parada 1: Av. Galicia y Gral. Paz",
-        lat: -31.6042,
-        lng: -60.6762,
+        lat: -31.604156,
+        lng: -60.676388,
         horario_paso: "10:15 hs",
         estado_veredas: "Esquina semaforizada con rampa nueva",
         tiene_rampa: true,
@@ -76,20 +72,15 @@ export function buildInitialState(): SystemSnapshot {
       {
         id: "parada_g2",
         nombre_esquina: "Parada 2: Plaza Del Folklore (Patricio Cullen)",
-        lat: -31.6025,
-        lng: -60.6738,
+        lat: -31.602536,
+        lng: -60.67302,
         horario_paso: "10:22 hs",
         estado_veredas: "Vereda ancha arbolada frente a la Basilica",
         tiene_rampa: true,
         iluminacion_ok: true,
       },
     ],
-    ruta_polilinea: [
-      [-31.6048, -60.677],
-      [-31.6042, -60.6762],
-      [-31.6025, -60.6738],
-      [-31.6015, -60.6728],
-    ],
+    ruta_polilinea: GUADALUPE_STREET_ROUTE,
   };
 
   const participantes: Participante[] = [

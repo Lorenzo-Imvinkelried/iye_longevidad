@@ -2,10 +2,18 @@ import crypto from "crypto";
 import {
   CircuitoBarrial,
   Jornada,
+  ParadaSegura,
   Participante,
   SEED_IDS,
   SystemSnapshot,
 } from "@/types/domain";
+import {
+  CANDIOTI_STREET_ROUTE,
+  CENTRO_STREET_ROUTE,
+  fetchStreetWalkingRoute,
+  GUADALUPE_STREET_ROUTE,
+  PARQUE_FEDERAL_STREET_ROUTE,
+} from "@/lib/street-routing";
 import {
   findExistingSeniorByDniOrPhone,
   findScheduleConflict,
@@ -91,71 +99,52 @@ export const BARRIOS_SANTA_FE_PRESETS: Record<
       lat: -31.6366,
       lng: -60.6928,
     },
-    ruta: [
-      [-31.6342, -60.6878],
-      [-31.6362, -60.6882],
-      [-31.6366, -60.6928],
-      [-31.6388, -60.6915],
-    ],
+    ruta: CANDIOTI_STREET_ROUTE,
   },
   guadalupe: {
     label: "Barrio Guadalupe / Costanera Este",
-    coordsClub: { lat: -31.6015, lng: -60.6728 },
+    coordsClub: { lat: -31.601512, lng: -60.672738 },
     parada1: {
       nombre: "Parada 1: Av. Galicia y Gral. Paz",
-      lat: -31.6042,
-      lng: -60.6762,
+      lat: -31.604156,
+      lng: -60.676388,
     },
     parada2: {
       nombre: "Parada 2: Plaza Del Folklore",
-      lat: -31.6025,
-      lng: -60.6738,
+      lat: -31.602536,
+      lng: -60.67302,
     },
-    ruta: [
-      [-31.6048, -60.677],
-      [-31.6042, -60.6762],
-      [-31.6025, -60.6738],
-      [-31.6015, -60.6728],
-    ],
+    ruta: GUADALUPE_STREET_ROUTE,
   },
   centro: {
     label: "Centro / Parque Sur (Santa Fe Capital)",
-    coordsClub: { lat: -31.6512, lng: -60.7085 },
+    coordsClub: { lat: -31.651324, lng: -60.708533 },
     parada1: {
       nombre: "Parada 1: Peatonal San Martin y Tucuman",
-      lat: -31.6468,
-      lng: -60.7062,
+      lat: -31.646921,
+      lng: -60.706242,
     },
     parada2: {
       nombre: "Parada 2: Plaza 25 de Mayo",
-      lat: -31.6562,
-      lng: -60.7098,
+      lat: -31.651415,
+      lng: -60.708065,
     },
-    ruta: [
-      [-31.645, -60.705],
-      [-31.6468, -60.7062],
-      [-31.6512, -60.7085],
-    ],
+    ruta: CENTRO_STREET_ROUTE,
   },
   parque_federal: {
     label: "Parque Federal / Sargento Cabral",
-    coordsClub: { lat: -31.6225, lng: -60.6912 },
+    coordsClub: { lat: -31.622503, lng: -60.691187 },
     parada1: {
       nombre: "Parada 1: Salvador del Carril y Alvear",
-      lat: -31.6198,
-      lng: -60.6885,
+      lat: -31.620064,
+      lng: -60.688566,
     },
     parada2: {
       nombre: "Parada 2: Mirador Parque Federal (Pedro Vittori)",
-      lat: -31.6242,
-      lng: -60.6938,
+      lat: -31.62418,
+      lng: -60.693893,
     },
-    ruta: [
-      [-31.6185, -60.687],
-      [-31.6198, -60.6885],
-      [-31.6242, -60.6938],
-      [-31.6225, -60.6912],
-    ],
+    ruta: PARQUE_FEDERAL_STREET_ROUTE,
   },
 };
 
@@ -243,7 +232,7 @@ export async function seleccionarEventoActivo(params: {
   return state;
 }
 
-function buildCircuitoFromLocation(input: {
+async function buildCircuitoFromLocation(input: {
   id: string;
   tutorId: string;
   nombreLugar: string;
@@ -253,7 +242,7 @@ function buildCircuitoFromLocation(input: {
   barrioCustom?: string;
   horaCaminata: string;
   horaEncuentro: string;
-}): CircuitoBarrial {
+}): Promise<CircuitoBarrial> {
   const preset =
     BARRIOS_SANTA_FE_PRESETS[input.zonaKey || "candioti"] ||
     BARRIOS_SANTA_FE_PRESETS.candioti;
@@ -285,14 +274,16 @@ function buildCircuitoFromLocation(input: {
       }
     : { lat: preset.parada2.lat, lng: preset.parada2.lng };
 
-  const ruta: [number, number][] = hasCustom
-    ? [
-        [Number((coordsClub.lat + 0.003).toFixed(6)), Number((coordsClub.lng - 0.0028).toFixed(6))],
-        [parada1Coords.lat, parada1Coords.lng],
-        [parada2Coords.lat, parada2Coords.lng],
-        [coordsClub.lat, coordsClub.lng],
-      ]
-    : preset.ruta;
+  let ruta: [number, number][] = preset.ruta;
+  if (hasCustom) {
+    const waypoints: [number, number][] = [
+      [parada1Coords.lat, parada1Coords.lng],
+      [parada2Coords.lat, parada2Coords.lng],
+      [coordsClub.lat, coordsClub.lng],
+    ];
+    const streetRes = await fetchStreetWalkingRoute(waypoints);
+    ruta = streetRes.coords;
+  }
 
   return {
     id: input.id,
@@ -366,7 +357,7 @@ export async function registrarNuevoTutorYLugar(input: {
   const pinHash = hashPin(input.claveTutor || "1234");
   const telefonoUnico = ensureUniquePhone(state.participantes, input.telefonoTutor);
 
-  const nuevoCircuito = buildCircuitoFromLocation({
+  const nuevoCircuito = await buildCircuitoFromLocation({
     id: circuitoId,
     tutorId,
     nombreLugar: input.nombreLugar,
@@ -491,7 +482,7 @@ export async function crearNuevoEventoOLugar(input: {
   let targetCircuito: CircuitoBarrial | undefined;
 
   if (input.modoLugar === "nuevo" && input.nombreNuevoLugar) {
-    targetCircuito = buildCircuitoFromLocation({
+    targetCircuito = await buildCircuitoFromLocation({
       id: generateUuid(),
       tutorId: input.tutorId || state.tutorActivoId,
       nombreLugar: input.nombreNuevoLugar,
@@ -597,6 +588,37 @@ export async function crearNuevoEventoOLugar(input: {
         : ""
     }`,
     omitidosPorConflicto.length > 0 ? "warning" : "success"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function actualizarRutaCircuito(input: {
+  circuitoId: string;
+  paradasSeguras: ParadaSegura[];
+  rutaPolilinea: [number, number][];
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const target = state.circuitos.find((c) => c.id === input.circuitoId);
+  if (!target) {
+    throw new Error("No se encontro la sede para actualizar la ruta.");
+  }
+
+  target.paradas_seguras = input.paradasSeguras;
+  target.ruta_polilinea = input.rutaPolilinea;
+
+  if (state.circuito.id === target.id) {
+    state.circuito = target;
+  }
+
+  addLog(
+    state,
+    target.nombre_club,
+    "Ruta Segura Actualizada",
+    `Se actualizo el recorrido por calles (${input.rutaPolilinea.length} puntos) y ${input.paradasSeguras.length} parada(s) segura(s) en ${target.nombre_club}.`,
+    "success"
   );
 
   writeState(state);

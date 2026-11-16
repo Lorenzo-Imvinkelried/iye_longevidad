@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   acreditarNuevoVecinoPadrino,
+  actualizarRutaCircuito,
   aprobarAltaDerivacionFamiliar,
   crearNuevoEventoOLugar,
   crearSolicitudNietoFamiliar,
@@ -125,6 +126,14 @@ export async function POST(req: NextRequest) {
           ok: true,
           snapshot: sanitizeSnapshotForClient(snapshot),
         });
+      }
+      case "actualizar_ruta_circuito": {
+        const snapshot = await actualizarRutaCircuito({
+          circuitoId: body.circuitoId,
+          paradasSeguras: body.paradasSeguras,
+          rutaPolilinea: body.rutaPolilinea,
+        });
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "vincular_abuelo_evento": {
         const snapshot = await vincularAbueloExistenteAEvento({
