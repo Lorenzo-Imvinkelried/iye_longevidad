@@ -1,11 +1,14 @@
 "use client";
 
 import React, { useState } from "react";
+import { CircuitoBarrial, Coords } from "@/types/domain";
+import SelectorMapaLugar from "@/components/mapa/SelectorMapaLugar";
 import { ShieldCheck, X } from "lucide-react";
 
 interface ModalCoordinadorProps {
   open: boolean;
   onClose: () => void;
+  circuitosExistentes?: CircuitoBarrial[];
   onSubmit: (payload: {
     nombreTutor: string;
     dniTutor: string;
@@ -15,6 +18,8 @@ interface ModalCoordinadorProps {
     nombreLugar: string;
     direccionLugar: string;
     zonaKey: string;
+    coordsCustom?: Coords | null;
+    barrioCustom?: string;
     actividadInicial: string;
     horaCaminata: string;
     horaEncuentro: string;
@@ -25,10 +30,13 @@ interface ModalCoordinadorProps {
 export default function ModalAcreditarCoordinador({
   open,
   onClose,
+  circuitosExistentes = [],
   onSubmit,
 }: ModalCoordinadorProps) {
   const [saving, setSaving] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [coordsCustom, setCoordsCustom] = useState<Coords | null>(null);
+  const [barrioCustom, setBarrioCustom] = useState<string | undefined>(undefined);
   const [form, setForm] = useState({
     nombreTutor: "",
     dniTutor: "",
@@ -55,6 +63,8 @@ export default function ModalAcreditarCoordinador({
     try {
       const res = await onSubmit({
         ...form,
+        coordsCustom,
+        barrioCustom,
         keepCurrentSession: true,
       });
       if (!res.ok) {
@@ -69,7 +79,7 @@ export default function ModalAcreditarCoordinador({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl border border-[#eaeced] space-y-4 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-xl border border-[#eaeced] space-y-4 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-[#eaeced] pb-3">
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-5 h-5 text-[#a70355]" />
@@ -172,6 +182,24 @@ export default function ModalAcreditarCoordinador({
           </div>
 
           <div className="border-t border-[#eaeced] pt-3 space-y-2.5">
+            <SelectorMapaLugar
+              mode="nuevo"
+              circuitos={circuitosExistentes}
+              pickedCoords={coordsCustom}
+              onLocationPicked={({ coords, address, barrio, suggestedName }) => {
+                setCoordsCustom(coords);
+                if (barrio) setBarrioCustom(barrio);
+                setForm((prev) => ({
+                  ...prev,
+                  direccionLugar: address || prev.direccionLugar,
+                  nombreLugar:
+                    !prev.nombreLugar && suggestedName
+                      ? suggestedName
+                      : prev.nombreLugar,
+                }));
+              }}
+            />
+
             <div>
               <label className="font-semibold text-[#363f48] block mb-1">
                 Sede / Lugar de Encuentro asignado *
@@ -186,40 +214,20 @@ export default function ModalAcreditarCoordinador({
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
-              <div>
-                <label className="font-semibold text-[#363f48] block mb-1">
-                  Direccion de la sede *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Bv. Galvez 2350"
-                  value={form.direccionLugar}
-                  onChange={(e) =>
-                    setForm({ ...form, direccionLugar: e.target.value })
-                  }
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
-                />
-              </div>
-
-              <div>
-                <label className="font-semibold text-[#363f48] block mb-1">
-                  Zona / Barrio en Mapa *
-                </label>
-                <select
-                  value={form.zonaKey}
-                  onChange={(e) => setForm({ ...form, zonaKey: e.target.value })}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
-                >
-                  <option value="candioti">Barrio Candioti Sur / Bv. Galvez</option>
-                  <option value="guadalupe">Barrio Guadalupe / Costanera Este</option>
-                  <option value="parque_federal">
-                    Parque Federal / Sargento Cabral
-                  </option>
-                  <option value="centro">Centro / Parque Sur</option>
-                </select>
-              </div>
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Direccion de la sede (autocompletada al tocar mapa o buscar) *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="Ej: Bv. Galvez 2350"
+                value={form.direccionLugar}
+                onChange={(e) =>
+                  setForm({ ...form, direccionLugar: e.target.value })
+                }
+                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
+              />
             </div>
           </div>
 

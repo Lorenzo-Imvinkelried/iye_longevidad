@@ -243,6 +243,95 @@ export async function seleccionarEventoActivo(params: {
   return state;
 }
 
+function buildCircuitoFromLocation(input: {
+  id: string;
+  tutorId: string;
+  nombreLugar: string;
+  direccionLugar: string;
+  zonaKey?: string;
+  coordsCustom?: { lat: number; lng: number } | null;
+  barrioCustom?: string;
+  horaCaminata: string;
+  horaEncuentro: string;
+}): CircuitoBarrial {
+  const preset =
+    BARRIOS_SANTA_FE_PRESETS[input.zonaKey || "candioti"] ||
+    BARRIOS_SANTA_FE_PRESETS.candioti;
+
+  const hasCustom = Boolean(
+    input.coordsCustom &&
+      Number.isFinite(input.coordsCustom.lat) &&
+      Number.isFinite(input.coordsCustom.lng)
+  );
+
+  const coordsClub = hasCustom
+    ? {
+        lat: Number(input.coordsCustom!.lat.toFixed(6)),
+        lng: Number(input.coordsCustom!.lng.toFixed(6)),
+      }
+    : preset.coordsClub;
+
+  const parada1Coords = hasCustom
+    ? {
+        lat: Number((coordsClub.lat + 0.0022).toFixed(6)),
+        lng: Number((coordsClub.lng - 0.002).toFixed(6)),
+      }
+    : { lat: preset.parada1.lat, lng: preset.parada1.lng };
+
+  const parada2Coords = hasCustom
+    ? {
+        lat: Number((coordsClub.lat + 0.0011).toFixed(6)),
+        lng: Number((coordsClub.lng - 0.0009).toFixed(6)),
+      }
+    : { lat: preset.parada2.lat, lng: preset.parada2.lng };
+
+  const ruta: [number, number][] = hasCustom
+    ? [
+        [Number((coordsClub.lat + 0.003).toFixed(6)), Number((coordsClub.lng - 0.0028).toFixed(6))],
+        [parada1Coords.lat, parada1Coords.lng],
+        [parada2Coords.lat, parada2Coords.lng],
+        [coordsClub.lat, coordsClub.lng],
+      ]
+    : preset.ruta;
+
+  return {
+    id: input.id,
+    nombre_barrio: input.barrioCustom?.trim() || preset.label,
+    nombre_club: input.nombreLugar,
+    direccion_club: input.direccionLugar || "Santa Fe Capital",
+    coords_club: coordsClub,
+    poliza_sancor_activa: true,
+    poliza_nro: `SANCOR-RC-${Math.floor(10000 + Math.random() * 89999)}|tutor:${input.tutorId}`,
+    paradas_seguras: [
+      {
+        id: "parada_1",
+        nombre_esquina: hasCustom
+          ? `Parada 1: Punto de encuentro cercano a ${input.nombreLugar}`
+          : preset.parada1.nombre,
+        lat: parada1Coords.lat,
+        lng: parada1Coords.lng,
+        horario_paso: `${input.horaCaminata || "16:00"} hs`,
+        estado_veredas: "Esquina relevada con acceso seguro",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+      {
+        id: "parada_2",
+        nombre_esquina: hasCustom
+          ? `Parada 2: Acceso principal (${input.direccionLugar || input.nombreLugar})`
+          : preset.parada2.nombre,
+        lat: parada2Coords.lat,
+        lng: parada2Coords.lng,
+        horario_paso: `${input.horaEncuentro || "16:20"} hs`,
+        estado_veredas: "Corredor seguro iluminado",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+    ],
+    ruta_polilinea: ruta,
+  };
+}
+
 export async function registrarNuevoTutorYLugar(input: {
   nombreTutor: string;
   dniTutor: string;
@@ -252,6 +341,8 @@ export async function registrarNuevoTutorYLugar(input: {
   nombreLugar: string;
   direccionLugar: string;
   zonaKey: string;
+  coordsCustom?: { lat: number; lng: number } | null;
+  barrioCustom?: string;
   actividadInicial: string;
   horaCaminata: string;
   horaEncuentro: string;
@@ -269,15 +360,23 @@ export async function registrarNuevoTutorYLugar(input: {
     );
   }
 
-  const preset =
-    BARRIOS_SANTA_FE_PRESETS[input.zonaKey] || BARRIOS_SANTA_FE_PRESETS.candioti;
-
   const tutorId = generateUuid();
   const circuitoId = generateUuid();
   const jornadaId = generateUuid();
   const pinHash = hashPin(input.claveTutor || "1234");
-
   const telefonoUnico = ensureUniquePhone(state.participantes, input.telefonoTutor);
+
+  const nuevoCircuito = buildCircuitoFromLocation({
+    id: circuitoId,
+    tutorId,
+    nombreLugar: input.nombreLugar,
+    direccionLugar: input.direccionLugar,
+    zonaKey: input.zonaKey,
+    coordsCustom: input.coordsCustom,
+    barrioCustom: input.barrioCustom,
+    horaCaminata: input.horaCaminata || "18:00",
+    horaEncuentro: input.horaEncuentro || "18:20",
+  });
 
   const nuevoTutor: Participante = {
     id: tutorId,
@@ -287,7 +386,7 @@ export async function registrarNuevoTutorYLugar(input: {
     telefono: telefonoUnico,
     rol: "coordinador",
     direccion: input.direccionLugar,
-    coords_domicilio: preset.coordsClub,
+    coords_domicilio: nuevoCircuito.coords_club,
     nivel_autonomia_habitual: 3,
     padrino_preferido_id: null,
     acreditado_por_club: true,
@@ -299,39 +398,6 @@ export async function registrarNuevoTutorYLugar(input: {
     estado_alta: "activo",
   };
 
-  const nuevoCircuito: CircuitoBarrial = {
-    id: circuitoId,
-    nombre_barrio: preset.label,
-    nombre_club: input.nombreLugar,
-    direccion_club: input.direccionLugar,
-    coords_club: preset.coordsClub,
-    poliza_sancor_activa: true,
-    poliza_nro: `SANCOR-RC-${Math.floor(10000 + Math.random() * 89999)}|tutor:${tutorId}`,
-    paradas_seguras: [
-      {
-        id: "parada_1",
-        nombre_esquina: preset.parada1.nombre,
-        lat: preset.parada1.lat,
-        lng: preset.parada1.lng,
-        horario_paso: `${input.horaCaminata || "18:00"} hs`,
-        estado_veredas: "Esquina relevada con rampa peatonal",
-        tiene_rampa: true,
-        iluminacion_ok: true,
-      },
-      {
-        id: "parada_2",
-        nombre_esquina: preset.parada2.nombre,
-        lat: preset.parada2.lat,
-        lng: preset.parada2.lng,
-        horario_paso: `${input.horaEncuentro || "18:20"} hs`,
-        estado_veredas: "Corredor seguro iluminado",
-        tiene_rampa: true,
-        iluminacion_ok: true,
-      },
-    ],
-    ruta_polilinea: preset.ruta,
-  };
-
   const nuevaJornada: Jornada = {
     id: jornadaId,
     circuito_id: circuitoId,
@@ -340,8 +406,8 @@ export async function registrarNuevoTutorYLugar(input: {
     hora_encuentro_club: input.horaEncuentro || "18:20",
     actividad_cierre:
       input.actividadInicial || "Encuentro Recreativo, Juegos de Mesa y Mateada",
-    monto_reintegro_asistencia: 2500,
-    plus_reintegro_padrino: 1500,
+    monto_reintegro_asistencia: 0,
+    plus_reintegro_padrino: 0,
     estado: "convocando",
     motivo_suspension: null,
     updated_at: new Date().toISOString(),
@@ -411,6 +477,8 @@ export async function crearNuevoEventoOLugar(input: {
   nombreNuevoLugar?: string;
   direccionNuevoLugar?: string;
   zonaKey?: string;
+  coordsCustom?: { lat: number; lng: number } | null;
+  barrioCustom?: string;
   actividad: string;
   fecha: string;
   horaCaminata: string;
@@ -423,44 +491,17 @@ export async function crearNuevoEventoOLugar(input: {
   let targetCircuito: CircuitoBarrial | undefined;
 
   if (input.modoLugar === "nuevo" && input.nombreNuevoLugar) {
-    const preset =
-      BARRIOS_SANTA_FE_PRESETS[input.zonaKey || "candioti"] ||
-      BARRIOS_SANTA_FE_PRESETS.candioti;
-    const nuevoCircuitoId = generateUuid();
-    targetCircuito = {
-      id: nuevoCircuitoId,
-      nombre_barrio: preset.label,
-      nombre_club: input.nombreNuevoLugar,
-      direccion_club: input.direccionNuevoLugar || "Santa Fe Capital",
-      coords_club: preset.coordsClub,
-      poliza_sancor_activa: true,
-      poliza_nro: `SANCOR-RC-${Math.floor(10000 + Math.random() * 89999)}|tutor:${
-        input.tutorId || state.tutorActivoId
-      }`,
-      paradas_seguras: [
-        {
-          id: "parada_1",
-          nombre_esquina: preset.parada1.nombre,
-          lat: preset.parada1.lat,
-          lng: preset.parada1.lng,
-          horario_paso: `${input.horaCaminata} hs`,
-          estado_veredas: "Esquina relevada con rampa peatonal",
-          tiene_rampa: true,
-          iluminacion_ok: true,
-        },
-        {
-          id: "parada_2",
-          nombre_esquina: preset.parada2.nombre,
-          lat: preset.parada2.lat,
-          lng: preset.parada2.lng,
-          horario_paso: `${input.horaEncuentro} hs`,
-          estado_veredas: "Corredor seguro iluminado",
-          tiene_rampa: true,
-          iluminacion_ok: true,
-        },
-      ],
-      ruta_polilinea: preset.ruta,
-    };
+    targetCircuito = buildCircuitoFromLocation({
+      id: generateUuid(),
+      tutorId: input.tutorId || state.tutorActivoId,
+      nombreLugar: input.nombreNuevoLugar,
+      direccionLugar: input.direccionNuevoLugar || "Santa Fe Capital",
+      zonaKey: input.zonaKey,
+      coordsCustom: input.coordsCustom,
+      barrioCustom: input.barrioCustom,
+      horaCaminata: input.horaCaminata || "16:00",
+      horaEncuentro: input.horaEncuentro || "16:20",
+    });
     state.circuitos.unshift(targetCircuito);
   } else {
     targetCircuito =
@@ -476,8 +517,8 @@ export async function crearNuevoEventoOLugar(input: {
     hora_encuentro_club: input.horaEncuentro || "16:20",
     actividad_cierre:
       input.actividad || "Torneo de Truco, Canasta y Bingo Recreativo",
-    monto_reintegro_asistencia: Number(input.montoReintegro) || 2500,
-    plus_reintegro_padrino: Number(input.plusPadrino) || 1500,
+    monto_reintegro_asistencia: Number(input.montoReintegro) || 0,
+    plus_reintegro_padrino: Number(input.plusPadrino) || 0,
     estado: "convocando",
     motivo_suspension: null,
     updated_at: new Date().toISOString(),

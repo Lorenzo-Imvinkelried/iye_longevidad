@@ -177,3 +177,62 @@ export function sanitizeSnapshotForClient(
     })),
   };
 }
+
+export interface ParsedMapsLocation {
+  lat: number;
+  lng: number;
+  placeName?: string;
+}
+
+/**
+ * Extrae latitud, longitud y opcionalmente nombre del lugar desde una URL de Google Maps
+ * o desde coordenadas directas ("-31.6388, -60.6915").
+ */
+export function parseGoogleMapsLocationInput(
+  rawInput: string
+): ParsedMapsLocation | null {
+  const input = (rawInput || "").trim();
+  if (!input) return null;
+
+  let placeName: string | undefined;
+  const placeMatch = input.match(/\/place\/([^/@]+)/i);
+  if (placeMatch && placeMatch[1]) {
+    try {
+      placeName = decodeURIComponent(placeMatch[1].replace(/\+/g, " ")).trim();
+    } catch {
+      placeName = placeMatch[1].replace(/\+/g, " ").trim();
+    }
+  }
+
+  // Prioridad 1: !3dLAT!4dLNG (pin exacto del lugar en Google Maps)
+  const bangMatch = input.match(/!3d(-?\d+\.\d+)!4d(-?\d+\.\d+)/);
+  if (bangMatch) {
+    const lat = Number(bangMatch[1]);
+    const lng = Number(bangMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng, placeName };
+    }
+  }
+
+  // Prioridad 2: @LAT,LNG en URL de Google Maps
+  const atMatch = input.match(/@(-?\d+\.\d+),(-?\d+\.\d+)/);
+  if (atMatch) {
+    const lat = Number(atMatch[1]);
+    const lng = Number(atMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng, placeName };
+    }
+  }
+
+  // Prioridad 3: ?q=LAT,LNG / ll=LAT,LNG / coordenadas crudas "LAT, LNG"
+  const coordMatch = input.match(/(-?\d{1,2}\.\d{3,})\s*[,\s]\s*(-?\d{1,3}\.\d{3,})/);
+  if (coordMatch) {
+    const lat = Number(coordMatch[1]);
+    const lng = Number(coordMatch[2]);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng, placeName };
+    }
+  }
+
+  return null;
+}

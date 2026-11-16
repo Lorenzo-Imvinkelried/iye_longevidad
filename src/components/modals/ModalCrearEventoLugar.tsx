@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { CircuitoBarrial } from "@/types/domain";
+import { CircuitoBarrial, Coords } from "@/types/domain";
+import SelectorMapaLugar from "@/components/mapa/SelectorMapaLugar";
 import { CalendarPlus, X } from "lucide-react";
 
 interface ModalEventoProps {
@@ -17,6 +18,8 @@ interface ModalEventoProps {
     nombreNuevoLugar?: string;
     direccionNuevoLugar?: string;
     zonaKey?: string;
+    coordsCustom?: Coords | null;
+    barrioCustom?: string;
     actividad: string;
     fecha: string;
     horaCaminata: string;
@@ -40,6 +43,8 @@ export default function ModalCrearEventoLugar({
   const [nombreNuevoLugar, setNombreNuevoLugar] = useState("");
   const [direccionNuevoLugar, setDireccionNuevoLugar] = useState("");
   const [zonaKey, setZonaKey] = useState("candioti");
+  const [coordsCustom, setCoordsCustom] = useState<Coords | null>(null);
+  const [barrioCustom, setBarrioCustom] = useState<string | undefined>(undefined);
   const [actividad, setActividad] = useState(
     "Caminata Activa, Torneo de Truco y Bingo"
   );
@@ -53,6 +58,8 @@ export default function ModalCrearEventoLugar({
   useEffect(() => {
     if (open) {
       setCircuitoId(circuitoActualId);
+      setCoordsCustom(null);
+      setBarrioCustom(undefined);
     }
   }, [open, circuitoActualId]);
 
@@ -68,6 +75,8 @@ export default function ModalCrearEventoLugar({
       nombreNuevoLugar,
       direccionNuevoLugar,
       zonaKey,
+      coordsCustom,
+      barrioCustom,
       actividad,
       fecha,
       horaCaminata,
@@ -81,7 +90,7 @@ export default function ModalCrearEventoLugar({
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl border border-[#eaeced] space-y-4 max-h-[92vh] overflow-y-auto">
+      <div className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-xl border border-[#eaeced] space-y-4 max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between border-b border-[#eaeced] pb-3">
           <div className="flex items-center gap-2">
             <CalendarPlus className="w-5 h-5 text-[#a70355]" />
@@ -90,7 +99,7 @@ export default function ModalCrearEventoLugar({
                 Gestion de Lugares y Eventos
               </div>
               <h3 className="font-bold text-sm text-[#363f48]">
-                Organizar Nuevo Evento o Registrar Otra Sede
+                Organizar Nuevo Evento o Ubicar Otra Sede en el Mapa
               </h3>
             </div>
           </div>
@@ -122,60 +131,88 @@ export default function ModalCrearEventoLugar({
                   : "text-[#52606d] hover:text-[#363f48]"
               }`}
             >
-              + Agregar nuevo lugar / sala
+              + Ubicar nuevo lugar en mapa
             </button>
           </div>
 
           {modoLugar === "existente" ? (
-            <div>
-              <label className="font-semibold text-[#363f48] block mb-1">
-                Seleccionar Sala / Club donde se organiza *
-              </label>
-              <select
-                value={circuitoId || circuitoActualId}
-                onChange={(e) => setCircuitoId(e.target.value)}
-                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white font-medium text-[#363f48]"
-              >
-                {circuitosDelTutor.map((c) => (
-                  <option key={c.id} value={c.id}>
-                    {c.nombre_club} — {c.direccion_club}
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2.5">
+              <div>
+                <label className="font-semibold text-[#363f48] block mb-1">
+                  Seleccionar Sala / Club donde se organiza *
+                </label>
+                <select
+                  value={circuitoId || circuitoActualId}
+                  onChange={(e) => setCircuitoId(e.target.value)}
+                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white font-medium text-[#363f48]"
+                >
+                  {circuitosDelTutor.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre_club} — {c.direccion_club}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <SelectorMapaLugar
+                mode="existente"
+                circuitos={circuitosDelTutor}
+                selectedCircuitoId={circuitoId || circuitoActualId}
+                pickedCoords={null}
+                onSelectCircuitoExistente={(id) => setCircuitoId(id)}
+                onLocationPicked={() => {}}
+              />
             </div>
           ) : (
             <div className="space-y-3 p-3 rounded-xl bg-[#fdf9fb] border border-[#edcddd]">
-              <div>
-                <label className="font-semibold text-[#363f48] block mb-1">
-                  Nombre de la nueva Sala / Club / Vecinal *
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Ej: Centro Cultural y Vecinal El Molino"
-                  value={nombreNuevoLugar}
-                  onChange={(e) => setNombreNuevoLugar(e.target.value)}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
-                />
-              </div>
+              <SelectorMapaLugar
+                mode="nuevo"
+                circuitos={circuitosDelTutor}
+                pickedCoords={coordsCustom}
+                onLocationPicked={({ coords, address, barrio, suggestedName }) => {
+                  setCoordsCustom(coords);
+                  if (barrio) setBarrioCustom(barrio);
+                  if (address) setDireccionNuevoLugar(address);
+                  if (suggestedName && !nombreNuevoLugar.trim()) {
+                    setNombreNuevoLugar(suggestedName);
+                  }
+                }}
+              />
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
                 <div>
                   <label className="font-semibold text-[#363f48] block mb-1">
-                    Direccion *
+                    Nombre de la Sala / Club / Vecinal *
                   </label>
                   <input
                     type="text"
                     required
-                    placeholder="Ej: Bv. Galvez 2350"
+                    placeholder="Ej: Vecinal Centro Cultural El Molino"
+                    value={nombreNuevoLugar}
+                    onChange={(e) => setNombreNuevoLugar(e.target.value)}
+                    className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#363f48] block mb-1">
+                    Direccion (se autocompleta desde el mapa) *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Bv. Galvez 2350 o hace clic en el mapa"
                     value={direccionNuevoLugar}
                     onChange={(e) => setDireccionNuevoLugar(e.target.value)}
                     className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
                   />
                 </div>
+              </div>
+
+              {!coordsCustom && (
                 <div>
                   <label className="font-semibold text-[#363f48] block mb-1">
-                    Zona en el Mapa *
+                    O elegir zona aproximada (si no picaste en el mapa)
                   </label>
                   <select
                     value={zonaKey}
@@ -190,7 +227,7 @@ export default function ModalCrearEventoLugar({
                     <option value="centro">Centro / Parque Sur</option>
                   </select>
                 </div>
-              </div>
+              )}
             </div>
           )}
 

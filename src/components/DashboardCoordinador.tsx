@@ -392,6 +392,7 @@ export default function DashboardCoordinador({
       <ModalAcreditarCoordinador
         open={coordinadorModalOpen}
         onClose={() => setCoordinadorModalOpen(false)}
+        circuitosExistentes={circuitos || [circuito]}
         onSubmit={async (payload) => {
           const res = await executeCoordinatorAction("registrar_tutor_lugar", {
             payload,
