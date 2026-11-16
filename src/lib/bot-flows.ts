@@ -33,9 +33,20 @@ export async function dispararConvocatoriaJornada(): Promise<SystemSnapshot> {
   state.jornada.estado = "convocando";
   state.jornada.motivo_suspension = null;
   state.jornada.updated_at = new Date().toISOString();
+  const jIdx = state.jornadas.findIndex((j) => j.id === state.jornada.id);
+  if (jIdx >= 0) state.jornadas[jIdx] = state.jornada;
+
+  // Enviar convocatoria a los adultos mayores inscriptos en este evento/lugar (o a todos los activos si no hay asistencias previas)
+  const asistenciasDelEvento = state.asistencias.filter(
+    (a) => a.jornada_id === state.jornada.id
+  );
+  const idsDelEvento = new Set(asistenciasDelEvento.map((a) => a.participante_id));
 
   const adultosActivos = state.participantes.filter(
-    (p) => p.rol === "adulto_mayor" && p.estado_alta === "activo"
+    (p) =>
+      p.rol === "adulto_mayor" &&
+      p.estado_alta === "activo" &&
+      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
   );
 
   for (const adulto of adultosActivos) {

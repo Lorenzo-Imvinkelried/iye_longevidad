@@ -1,14 +1,18 @@
 import L from "leaflet";
 
-export function createClubIcon(validadosCount: number, nivel3Count: number) {
+export function createClubIcon(
+  nombreCortoClub: string,
+  validadosCount: number,
+  nivel3Count: number
+) {
   return L.divIcon({
     className: "custom-leaflet-marker",
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);">
         <div style="background:#0a4494;color:white;padding:6px 10px;border-radius:999px;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 4px 12px rgba(10,68,148,0.35);border:2px solid #ffffff;display:flex;align-items:center;gap:6px;">
-          <span>Club Candioti</span>
+          <span>${nombreCortoClub}</span>
           <span style="background:#a70355;color:#ffffff;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;">
-            ${validadosCount > 0 ? `${validadosCount} en club` : `${nivel3Count} directos`}
+            ${validadosCount > 0 ? `${validadosCount} en lugar` : `${nivel3Count} directos`}
           </span>
         </div>
         <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #0a4494;"></div>

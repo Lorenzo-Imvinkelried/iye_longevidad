@@ -1,4 +1,6 @@
 import {
+  CircuitoBarrial,
+  Jornada,
   Participante,
   SEED_IDS,
   SystemSnapshot,
@@ -13,6 +15,421 @@ import {
   writeState,
 } from "@/lib/state-persistence";
 
+export const BARRIOS_SANTA_FE_PRESETS: Record<
+  string,
+  {
+    label: string;
+    coordsClub: { lat: number; lng: number };
+    parada1: { nombre: string; lat: number; lng: number };
+    parada2: { nombre: string; lat: number; lng: number };
+    ruta: [number, number][];
+  }
+> = {
+  candioti: {
+    label: "Barrio Candioti Sur / Bv. Galvez",
+    coordsClub: { lat: -31.6388, lng: -60.6915 },
+    parada1: {
+      nombre: "Parada 1: Bv. Galvez y Sarmiento",
+      lat: -31.6362,
+      lng: -60.6882,
+    },
+    parada2: {
+      nombre: "Parada 2: Plaza Pueyrredon",
+      lat: -31.6366,
+      lng: -60.6928,
+    },
+    ruta: [
+      [-31.6342, -60.6878],
+      [-31.6362, -60.6882],
+      [-31.6366, -60.6928],
+      [-31.6388, -60.6915],
+    ],
+  },
+  guadalupe: {
+    label: "Barrio Guadalupe / Costanera Este",
+    coordsClub: { lat: -31.6015, lng: -60.6728 },
+    parada1: {
+      nombre: "Parada 1: Av. Galicia y Gral. Paz",
+      lat: -31.6042,
+      lng: -60.6762,
+    },
+    parada2: {
+      nombre: "Parada 2: Plaza Del Folklore",
+      lat: -31.6025,
+      lng: -60.6738,
+    },
+    ruta: [
+      [-31.6048, -60.677],
+      [-31.6042, -60.6762],
+      [-31.6025, -60.6738],
+      [-31.6015, -60.6728],
+    ],
+  },
+  centro: {
+    label: "Centro / Parque Sur (Santa Fe Capital)",
+    coordsClub: { lat: -31.6512, lng: -60.7085 },
+    parada1: {
+      nombre: "Parada 1: Peatonal San Martin y Tucuman",
+      lat: -31.6468,
+      lng: -60.7062,
+    },
+    parada2: {
+      nombre: "Parada 2: Plaza 25 de Mayo",
+      lat: -31.6562,
+      lng: -60.7098,
+    },
+    ruta: [
+      [-31.645, -60.705],
+      [-31.6468, -60.7062],
+      [-31.6512, -60.7085],
+    ],
+  },
+  parque_federal: {
+    label: "Parque Federal / Sargento Cabral",
+    coordsClub: { lat: -31.6225, lng: -60.6912 },
+    parada1: {
+      nombre: "Parada 1: Salvador del Carril y Alvear",
+      lat: -31.6198,
+      lng: -60.6885,
+    },
+    parada2: {
+      nombre: "Parada 2: Mirador Parque Federal (Pedro Vittori)",
+      lat: -31.6242,
+      lng: -60.6938,
+    },
+    ruta: [
+      [-31.6185, -60.687],
+      [-31.6198, -60.6885],
+      [-31.6242, -60.6938],
+      [-31.6225, -60.6912],
+    ],
+  },
+};
+
+function syncActiveJornadaIntoArray(state: SystemSnapshot) {
+  const idx = state.jornadas.findIndex((j) => j.id === state.jornada.id);
+  if (idx >= 0) {
+    state.jornadas[idx] = state.jornada;
+  } else {
+    state.jornadas.unshift(state.jornada);
+  }
+}
+
+export async function seleccionarEventoActivo(params: {
+  jornadaId?: string;
+  tutorId?: string;
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+
+  if (params.tutorId) {
+    state.tutorActivoId = params.tutorId;
+  }
+
+  let targetJornada: Jornada | undefined;
+  if (params.jornadaId) {
+    targetJornada = state.jornadas.find((j) => j.id === params.jornadaId);
+  } else if (params.tutorId) {
+    // Buscar los lugares asociados a este tutor
+    const tutorCircuitos = state.circuitos
+      .filter((c) => (c.poliza_nro || "").includes(`tutor:${params.tutorId}`))
+      .map((c) => c.id);
+    targetJornada = state.jornadas.find((j) =>
+      tutorCircuitos.includes(j.circuito_id)
+    );
+  }
+
+  if (targetJornada) {
+    targetJornada.updated_at = new Date().toISOString();
+    state.jornada = targetJornada;
+    const circ = state.circuitos.find((c) => c.id === targetJornada!.circuito_id);
+    if (circ) {
+      state.circuito = circ;
+    }
+    syncActiveJornadaIntoArray(state);
+  }
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function registrarNuevoTutorYLugar(input: {
+  nombreTutor: string;
+  dniTutor: string;
+  telefonoTutor: string;
+  especialidad: string;
+  nombreLugar: string;
+  direccionLugar: string;
+  zonaKey: string;
+  actividadInicial: string;
+  horaCaminata: string;
+  horaEncuentro: string;
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const preset =
+    BARRIOS_SANTA_FE_PRESETS[input.zonaKey] || BARRIOS_SANTA_FE_PRESETS.candioti;
+
+  const tutorId = generateUuid();
+  const circuitoId = generateUuid();
+  const jornadaId = generateUuid();
+
+  const nuevoTutor: Participante = {
+    id: tutorId,
+    nombre: input.nombreTutor,
+    edad: 45,
+    dni: input.dniTutor || "25.100.200",
+    telefono:
+      input.telefonoTutor ||
+      `+5493424${Math.floor(100000 + Math.random() * 899999)}`,
+    rol: "coordinador",
+    direccion: input.direccionLugar,
+    coords_domicilio: preset.coordsClub,
+    nivel_autonomia_habitual: 3,
+    padrino_preferido_id: null,
+    acreditado_por_club: true,
+    credencial_nro: input.especialidad || "Profesional / Tutor",
+    saldo_reintegro_sancor: 0,
+    contacto_familiar_nombre: input.nombreLugar,
+    contacto_familiar_tel: input.telefonoTutor || "+5493424551234",
+    notas_vulnerabilidad: `Responsable de ${input.nombreLugar}`,
+    estado_alta: "activo",
+  };
+
+  const nuevoCircuito: CircuitoBarrial = {
+    id: circuitoId,
+    nombre_barrio: preset.label,
+    nombre_club: input.nombreLugar,
+    direccion_club: input.direccionLugar,
+    coords_club: preset.coordsClub,
+    poliza_sancor_activa: true,
+    poliza_nro: `SANCOR-RC-${Math.floor(10000 + Math.random() * 89999)}|tutor:${tutorId}`,
+    paradas_seguras: [
+      {
+        id: "parada_1",
+        nombre_esquina: preset.parada1.nombre,
+        lat: preset.parada1.lat,
+        lng: preset.parada1.lng,
+        horario_paso: input.horaCaminata || "16:00 hs",
+        estado_veredas: "Esquina relevada con rampa peatonal",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+      {
+        id: "parada_2",
+        nombre_esquina: preset.parada2.nombre,
+        lat: preset.parada2.lat,
+        lng: preset.parada2.lng,
+        horario_paso: input.horaEncuentro || "16:15 hs",
+        estado_veredas: "Corredor seguro iluminado",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+    ],
+    ruta_polilinea: preset.ruta,
+  };
+
+  const nuevaJornada: Jornada = {
+    id: jornadaId,
+    circuito_id: circuitoId,
+    fecha: new Date().toISOString().split("T")[0],
+    hora_inicio_caminata: input.horaCaminata || "16:00",
+    hora_encuentro_club: input.horaEncuentro || "16:30",
+    actividad_cierre:
+      input.actividadInicial || "Encuentro Recreativo, Juegos de Mesa y Mateada",
+    monto_reintegro_asistencia: 2500,
+    plus_reintegro_padrino: 1500,
+    estado: "convocando",
+    motivo_suspension: null,
+    updated_at: new Date().toISOString(),
+  };
+
+  state.participantes.push(nuevoTutor);
+  state.circuitos.unshift(nuevoCircuito);
+  state.jornadas.unshift(nuevaJornada);
+  state.tutorActivoId = tutorId;
+  state.circuito = nuevoCircuito;
+  state.jornada = nuevaJornada;
+
+  // Vincular a Rosa (para probar WhatsApp real) y a Jorge al nuevo lugar/evento por defecto
+  const adultosBase = [SEED_IDS.rosa, SEED_IDS.jorge];
+  for (const adId of adultosBase) {
+    const ad = state.participantes.find((p) => p.id === adId);
+    if (!ad) continue;
+    state.asistencias.push({
+      id: generateUuid(),
+      jornada_id: jornadaId,
+      participante_id: ad.id,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: ad.padrino_preferido_id || SEED_IDS.padrinoCarlos,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  addLog(
+    state,
+    nuevoTutor.nombre,
+    "Nuevo Perfil y Lugar Creado",
+    `Se registro ${nuevoTutor.nombre} con sede en ${nuevoCircuito.nombre_club}.`,
+    "success"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function crearNuevoEventoOLugar(input: {
+  tutorId: string;
+  modoLugar: "existente" | "nuevo";
+  circuitoExistenteId?: string;
+  nombreNuevoLugar?: string;
+  direccionNuevoLugar?: string;
+  zonaKey?: string;
+  actividad: string;
+  fecha: string;
+  horaCaminata: string;
+  horaEncuentro: string;
+  montoReintegro: number;
+  plusPadrino: number;
+  incluirAbuelosDelTutor: boolean;
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  let targetCircuito: CircuitoBarrial | undefined;
+
+  if (input.modoLugar === "nuevo" && input.nombreNuevoLugar) {
+    const preset =
+      BARRIOS_SANTA_FE_PRESETS[input.zonaKey || "candioti"] ||
+      BARRIOS_SANTA_FE_PRESETS.candioti;
+    const nuevoCircuitoId = generateUuid();
+    targetCircuito = {
+      id: nuevoCircuitoId,
+      nombre_barrio: preset.label,
+      nombre_club: input.nombreNuevoLugar,
+      direccion_club: input.direccionNuevoLugar || "Santa Fe Capital",
+      coords_club: preset.coordsClub,
+      poliza_sancor_activa: true,
+      poliza_nro: `SANCOR-RC-${Math.floor(10000 + Math.random() * 89999)}|tutor:${
+        input.tutorId || state.tutorActivoId
+      }`,
+      paradas_seguras: [
+        {
+          id: "parada_1",
+          nombre_esquina: preset.parada1.nombre,
+          lat: preset.parada1.lat,
+          lng: preset.parada1.lng,
+          horario_paso: `${input.horaCaminata} hs`,
+          estado_veredas: "Esquina relevada con rampa peatonal",
+          tiene_rampa: true,
+          iluminacion_ok: true,
+        },
+        {
+          id: "parada_2",
+          nombre_esquina: preset.parada2.nombre,
+          lat: preset.parada2.lat,
+          lng: preset.parada2.lng,
+          horario_paso: `${input.horaEncuentro} hs`,
+          estado_veredas: "Corredor seguro iluminado",
+          tiene_rampa: true,
+          iluminacion_ok: true,
+        },
+      ],
+      ruta_polilinea: preset.ruta,
+    };
+    state.circuitos.unshift(targetCircuito);
+  } else {
+    targetCircuito =
+      state.circuitos.find((c) => c.id === input.circuitoExistenteId) ||
+      state.circuito;
+  }
+
+  const nuevaJornada: Jornada = {
+    id: generateUuid(),
+    circuito_id: targetCircuito.id,
+    fecha: input.fecha || new Date().toISOString().split("T")[0],
+    hora_inicio_caminata: input.horaCaminata || "16:00",
+    hora_encuentro_club: input.horaEncuentro || "16:20",
+    actividad_cierre:
+      input.actividad || "Torneo de Truco, Canasta y Bingo Recreativo",
+    monto_reintegro_asistencia: Number(input.montoReintegro) || 2500,
+    plus_reintegro_padrino: Number(input.plusPadrino) || 1500,
+    estado: "convocando",
+    motivo_suspension: null,
+    updated_at: new Date().toISOString(),
+  };
+
+  state.jornadas.unshift(nuevaJornada);
+  state.jornada = nuevaJornada;
+  state.circuito = targetCircuito;
+
+  // Copiar el padron de adultos mayores activos de este lugar / tutor para este evento
+  const idsAdultosEnLugar = new Set<string>();
+  if (input.incluirAbuelosDelTutor) {
+    const jornadasDelMismoLugar = state.jornadas
+      .filter((j) => j.circuito_id === targetCircuito.id && j.id !== nuevaJornada.id)
+      .map((j) => j.id);
+    if (jornadasDelMismoLugar.length > 0) {
+      state.asistencias
+        .filter((a) => jornadasDelMismoLugar.includes(a.jornada_id))
+        .forEach((a) => idsAdultosEnLugar.add(a.participante_id));
+    } else {
+      const circuitosDelTutor = state.circuitos
+        .filter((c) => (c.poliza_nro || "").includes(input.tutorId || state.tutorActivoId))
+        .map((c) => c.id);
+      const jornadasTutor = state.jornadas
+        .filter((j) => circuitosDelTutor.includes(j.circuito_id) && j.id !== nuevaJornada.id)
+        .map((j) => j.id);
+      state.asistencias
+        .filter((a) => jornadasTutor.includes(a.jornada_id))
+        .forEach((a) => idsAdultosEnLugar.add(a.participante_id));
+    }
+  }
+
+  if (idsAdultosEnLugar.size === 0) {
+    idsAdultosEnLugar.add(SEED_IDS.rosa);
+    idsAdultosEnLugar.add(SEED_IDS.jorge);
+  }
+
+  const adultosParaInscribir = state.participantes.filter(
+    (p) =>
+      p.rol === "adulto_mayor" &&
+      p.estado_alta === "activo" &&
+      idsAdultosEnLugar.has(p.id)
+  );
+
+  for (const ad of adultosParaInscribir) {
+    state.asistencias.push({
+      id: generateUuid(),
+      jornada_id: nuevaJornada.id,
+      participante_id: ad.id,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: ad.padrino_preferido_id || SEED_IDS.padrinoCarlos,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  addLog(
+    state,
+    targetCircuito.nombre_club,
+    "Nuevo Evento Creado",
+    `Se programo "${nuevaJornada.actividad_cierre}" (${nuevaJornada.hora_inicio_caminata} hs) en ${targetCircuito.nombre_club}.`,
+    "success"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
 export async function suspenderJornadaPorEmergencia(
   motivo?: string
 ): Promise<SystemSnapshot> {
@@ -21,6 +438,7 @@ export async function suspenderJornadaPorEmergencia(
   state.jornada.motivo_suspension =
     motivo || "Condiciones climaticas adversas y riesgo de resbalones en veredas";
   state.jornada.updated_at = new Date().toISOString();
+  syncActiveJornadaIntoArray(state);
 
   const participantesNotificables = state.participantes.filter(
     (p) =>
@@ -41,7 +459,7 @@ export async function suspenderJornadaPorEmergencia(
     await appendBotMessage(
       state,
       part,
-      `*AVISO IMPORTANTE DEL CLUB:* ${primerNombre}, por condiciones climaticas y para cuidar tu seguridad en las veredas, *SE SUSPENDE el encuentro de hoy*. Quedate en casa. Por favor toca el boton de abajo para que sepamos que leiste este aviso.`,
+      `*AVISO IMPORTANTE (${state.circuito.nombre_club}):* ${primerNombre}, por condiciones climaticas y para cuidar tu seguridad en las veredas, *SE SUSPENDE el encuentro de hoy*. Quedate en casa. Por favor toca el boton de abajo para que sepamos que leiste este aviso.`,
       {
         esAlertaPrioritaria: true,
         buttons: [
@@ -57,7 +475,7 @@ export async function suspenderJornadaPorEmergencia(
 
   addLog(
     state,
-    "Coordinadora Marta Rios",
+    state.circuito.nombre_club,
     "Caso 4A: Jornada Suspendida por Clima",
     "Se enviaron alertas prioritarias con requerimiento de acuse de recibo a los participantes.",
     "danger"
@@ -97,7 +515,7 @@ export async function reasignarTutorManualCoordinador(
     await appendBotMessage(
       state,
       adulto,
-      `Confirmado, ${nombreAdulto}. La coordinadora del Club te asigno un Tutor Acreditado de reemplazo: hoy a las ${state.jornada.hora_inicio_caminata} hs pasa por tu puerta *${padrinoReemplazo.nombre}* (Padrino Acreditado del Club - Credencial ${padrinoReemplazo.credencial_nro}). A preparar el equipo de mate.`,
+      `Confirmado, ${nombreAdulto}. Te asignamos un Tutor Acreditado de reemplazo: hoy a las ${state.jornada.hora_inicio_caminata} hs pasa por tu puerta *${padrinoReemplazo.nombre}* (Credencial ${padrinoReemplazo.credencial_nro}). A preparar el equipo de mate.`,
       {
         fichaSeguridad: {
           padrinoNombre: padrinoReemplazo.nombre,
@@ -118,7 +536,7 @@ export async function reasignarTutorManualCoordinador(
 
     addLog(
       state,
-      "Coordinadora Marta Rios",
+      state.circuito.nombre_club,
       "Caso 4B Resuelto: Tutor Reasignado",
       `Se asigno a ${padrinoReemplazo.nombre} (${padrinoReemplazo.credencial_nro}) para buscar a ${adulto.nombre}.`,
       "success"
@@ -147,7 +565,7 @@ export async function frenarSalidaAdultoPorSeguridad(
     await appendBotMessage(
       state,
       adulto,
-      `*Cuidado Preventivo del Club:* Hola ${nombreAdulto}, hoy tu vecino padrino tuvo un imprevisto de ultimo momento. Por tu seguridad en las veredas, *te pedimos que hoy no salgas sola a la calle*. La coordinadora Marta te llamara en unos minutos.`,
+      `*Cuidado Preventivo (${state.circuito.nombre_club}):* Hola ${nombreAdulto}, hoy tu vecino padrino tuvo un imprevisto de ultimo momento. Por tu seguridad en las veredas, *te pedimos que hoy no salgas sola a la calle*. El coordinador te llamara en unos minutos.`,
       {
         esAlertaPrioritaria: true,
         buttons: [
@@ -162,7 +580,7 @@ export async function frenarSalidaAdultoPorSeguridad(
 
     addLog(
       state,
-      "Coordinadora Marta Rios",
+      state.circuito.nombre_club,
       "Caso 4B Resuelto: Salida Frenada",
       `Se freno preventivamente la salida de ${adulto.nombre} por falta de padrino.`,
       "warning"
@@ -219,9 +637,9 @@ export async function validarPresenciaEnClub(
     await appendBotMessage(
       state,
       adulto,
-      `Que linda tarde compartimos en el club, ${primerNombre}. Por tu participacion de hoy ya tenes acreditados *$${formatPesos(
+      `Que linda jornada compartimos en ${state.circuito.nombre_club}, ${primerNombre}. Por tu participacion de hoy ya tenes acreditados *$${formatPesos(
         montoAdulto
-      )} de reintegro directo en Farmacias adheridas del barrio*. Tu saldo acumulado en Sancor es de *$${formatPesos(
+      )} de reintegro directo en Farmacias adheridas*. Tu saldo acumulado en Sancor es de *$${formatPesos(
         adulto.saldo_reintegro_sancor
       )}*. Mostra este codigo en la farmacia: *${codigoCanje}*.`,
       {
@@ -255,7 +673,7 @@ export async function validarPresenciaEnClub(
         await appendBotMessage(
           state,
           padrino,
-          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en el Club tu llegada acompanando a *${adulto.nombre}*. Se acreditaron *$${formatPesos(
+          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en ${state.circuito.nombre_club} tu llegada acompanando a *${adulto.nombre}*. Se acreditaron *$${formatPesos(
             base
           )}* de asistencia + *$${formatPesos(
             plus
@@ -277,7 +695,7 @@ export async function validarPresenciaEnClub(
     addLog(
       state,
       adulto.nombre,
-      "Flujo 5: Llegada Validada en Club",
+      "Flujo 5: Llegada Validada",
       `Se acreditaron $${formatPesos(montoAdulto)} en Farmacias Sancor (Codigo ${codigoCanje}).`,
       "success"
     );
@@ -285,6 +703,7 @@ export async function validarPresenciaEnClub(
 
   state.jornada.estado = "en_club";
   state.jornada.updated_at = new Date().toISOString();
+  syncActiveJornadaIntoArray(state);
 
   writeState(state);
   await syncToSupabaseIfConfigured(state);
@@ -327,7 +746,7 @@ export async function aprobarAltaDerivacionFamiliar(
     await appendBotMessage(
       state,
       padrino,
-      `*Nueva Asignacion de Cercania:* Hola ${nombrePadrino}, la coordinadora Marta aprobo la incorporacion de tu vecino *${adulto.nombre}* (${adulto.direccion}), inscripto por su familiar (${adulto.contacto_familiar_nombre}). ¿Podes pasar a buscarlo hoy a las ${state.jornada.hora_inicio_caminata} hs para su primer encuentro?`,
+      `*Nueva Asignacion de Cercania:* Hola ${nombrePadrino}, se aprobo la incorporacion de tu vecino *${adulto.nombre}* (${adulto.direccion}) en ${state.circuito.nombre_club}. ¿Podes pasar a buscarlo hoy a las ${state.jornada.hora_inicio_caminata} hs para su primer encuentro?`,
       {
         buttons: [
           {
@@ -346,7 +765,7 @@ export async function aprobarAltaDerivacionFamiliar(
 
     addLog(
       state,
-      "Coordinadora Marta Rios",
+      state.circuito.nombre_club,
       "Solicitud Familiar Aprobada",
       `Se aprobo el alta de ${adulto.nombre} con el Padrino ${padrino.nombre} (${padrino.credencial_nro}).`,
       "success"
@@ -368,6 +787,7 @@ export async function crearSolicitudNietoFamiliar(input: {
   vinculo: string;
   telefonoFamiliar: string;
   notas: string;
+  aprobarDirecto?: boolean;
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
 
@@ -385,31 +805,47 @@ export async function crearSolicitudNietoFamiliar(input: {
     rol: "adulto_mayor",
     direccion: input.direccion || "Marcial Candioti 3510, Barrio Candioti",
     coords_domicilio: {
-      lat: Number((-31.6355 + jitterLat).toFixed(5)),
-      lng: Number((-60.6895 + jitterLng).toFixed(5)),
+      lat: Number((state.circuito.coords_club.lat - 0.002 + jitterLat).toFixed(5)),
+      lng: Number((state.circuito.coords_club.lng + 0.001 + jitterLng).toFixed(5)),
     },
     nivel_autonomia_habitual: 1,
-    padrino_preferido_id: null,
+    padrino_preferido_id: SEED_IDS.padrinoCarlos,
     acreditado_por_club: false,
     credencial_nro: null,
     saldo_reintegro_sancor: 0,
     contacto_familiar_nombre: `${input.nombreFamiliar} (${
-      input.vinculo || "Nieto/a"
+      input.vinculo || "Familiar"
     })`,
     contacto_familiar_tel: input.telefonoFamiliar || "+5493425998877",
     notas_vulnerabilidad:
       input.notas ||
-      "Inscripto desde el Formulario Familiar. Requiere acompanamiento puerta a puerta (Nivel 1).",
-    estado_alta: "pendiente_aprobacion",
+      "Inscripto al padron del lugar. Requiere acompanamiento puerta a puerta (Nivel 1).",
+    estado_alta: input.aprobarDirecto ? "activo" : "pendiente_aprobacion",
   };
 
   state.participantes.push(nuevo);
 
+  if (input.aprobarDirecto) {
+    state.asistencias.push({
+      id: generateUuid(),
+      jornada_id: state.jornada.id,
+      participante_id: nuevo.id,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: SEED_IDS.padrinoCarlos,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
   addLog(
     state,
     nuevo.contacto_familiar_nombre,
-    "Nueva Solicitud Familiar",
-    `Se cargo solicitud de incorporacion para ${nuevo.nombre} (${nuevo.direccion}).`,
+    input.aprobarDirecto ? "Adulto Mayor Sumado al Padron" : "Nueva Solicitud Familiar",
+    `Se incorporo a ${nuevo.nombre} (${nuevo.direccion}) en ${state.circuito.nombre_club}.`,
     "info"
   );
 
@@ -442,15 +878,15 @@ export async function acreditarNuevoVecinoPadrino(input: {
     rol: "padrino",
     direccion: input.direccion,
     coords_domicilio: {
-      lat: -31.6358,
-      lng: -60.6902,
+      lat: Number((state.circuito.coords_club.lat - 0.0025).toFixed(5)),
+      lng: Number((state.circuito.coords_club.lng + 0.0015).toFixed(5)),
     },
     nivel_autonomia_habitual: 3,
     padrino_preferido_id: null,
     acreditado_por_club: true,
     credencial_nro: nuevaCredencial,
     saldo_reintegro_sancor: 2500,
-    contacto_familiar_nombre: "Acreditacion Presencial Club Candioti",
+    contacto_familiar_nombre: `Acreditacion ${state.circuito.nombre_club}`,
     contacto_familiar_tel: "+5493424551234",
     notas_vulnerabilidad:
       "Vecino acreditado presencialmente verificando DNI y domicilio barrial.",
@@ -461,7 +897,7 @@ export async function acreditarNuevoVecinoPadrino(input: {
 
   addLog(
     state,
-    "Coordinadora Marta Rios",
+    state.circuito.nombre_club,
     "Nuevo Vecino Padrino Acreditado",
     `Se valido DNI ${nuevoPadrino.dni} de ${nuevoPadrino.nombre} con Credencial ${nuevaCredencial}.`,
     "success"

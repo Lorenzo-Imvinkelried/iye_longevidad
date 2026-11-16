@@ -1,0 +1,284 @@
+"use client";
+
+import React, { useState } from "react";
+import { CircuitoBarrial } from "@/types/domain";
+import { CalendarPlus, X } from "lucide-react";
+
+interface ModalEventoProps {
+  open: boolean;
+  onClose: () => void;
+  tutorId: string;
+  circuitosDelTutor: CircuitoBarrial[];
+  circuitoActualId: string;
+  onSubmit: (payload: {
+    tutorId: string;
+    modoLugar: "existente" | "nuevo";
+    circuitoExistenteId?: string;
+    nombreNuevoLugar?: string;
+    direccionNuevoLugar?: string;
+    zonaKey?: string;
+    actividad: string;
+    fecha: string;
+    horaCaminata: string;
+    horaEncuentro: string;
+    montoReintegro: number;
+    plusPadrino: number;
+    incluirAbuelosDelTutor: boolean;
+  }) => Promise<void>;
+}
+
+export default function ModalCrearEventoLugar({
+  open,
+  onClose,
+  tutorId,
+  circuitosDelTutor,
+  circuitoActualId,
+  onSubmit,
+}: ModalEventoProps) {
+  const [modoLugar, setModoLugar] = useState<"existente" | "nuevo">("existente");
+  const [circuitoId, setCircuitoId] = useState<string>(circuitoActualId);
+  const [nombreNuevoLugar, setNombreNuevoLugar] = useState("");
+  const [direccionNuevoLugar, setDireccionNuevoLugar] = useState("");
+  const [zonaKey, setZonaKey] = useState("candioti");
+  const [actividad, setActividad] = useState(
+    "Caminata Activa, Torneo de Truco y Bingo"
+  );
+  const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
+  const [horaCaminata, setHoraCaminata] = useState("16:00");
+  const [horaEncuentro, setHoraEncuentro] = useState("16:20");
+  const [montoReintegro, setMontoReintegro] = useState(2500);
+  const [plusPadrino, setPlusPadrino] = useState(1500);
+
+  if (!open) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (modoLugar === "nuevo" && !nombreNuevoLugar.trim()) return;
+    await onSubmit({
+      tutorId,
+      modoLugar,
+      circuitoExistenteId: circuitoId || circuitoActualId,
+      nombreNuevoLugar,
+      direccionNuevoLugar,
+      zonaKey,
+      actividad,
+      fecha,
+      horaCaminata,
+      horaEncuentro,
+      montoReintegro,
+      plusPadrino,
+      incluirAbuelosDelTutor: true,
+    });
+    onClose();
+  };
+
+  return (
+    <div className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-xl border border-[#eaeced] space-y-4 max-h-[92vh] overflow-y-auto">
+        <div className="flex items-center justify-between border-b border-[#eaeced] pb-3">
+          <div className="flex items-center gap-2">
+            <CalendarPlus className="w-5 h-5 text-[#a70355]" />
+            <div>
+              <div className="text-[10px] font-bold uppercase text-[#a70355]">
+                Gestion de Lugares y Eventos
+              </div>
+              <h3 className="font-bold text-sm text-[#363f48]">
+                Organizar Nuevo Evento o Registrar Otra Sede
+              </h3>
+            </div>
+          </div>
+          <button onClick={onClose} className="text-[#52606d] hover:text-[#363f48]">
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-3.5 text-xs">
+          {/* Selector: usar lugar guardado vs nuevo lugar */}
+          <div className="grid grid-cols-2 gap-2 p-1 bg-[#f6f6f7] rounded-full">
+            <button
+              type="button"
+              onClick={() => setModoLugar("existente")}
+              className={`py-1.5 px-3 rounded-full font-semibold transition ${
+                modoLugar === "existente"
+                  ? "bg-[#0a4494] text-white"
+                  : "text-[#52606d] hover:text-[#363f48]"
+              }`}
+            >
+              En un lugar guardado
+            </button>
+            <button
+              type="button"
+              onClick={() => setModoLugar("nuevo")}
+              className={`py-1.5 px-3 rounded-full font-semibold transition ${
+                modoLugar === "nuevo"
+                  ? "bg-[#a70355] text-white"
+                  : "text-[#52606d] hover:text-[#363f48]"
+              }`}
+            >
+              + Agregar nuevo lugar / sala
+            </button>
+          </div>
+
+          {modoLugar === "existente" ? (
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Seleccionar Sala / Club donde se organiza *
+              </label>
+              <select
+                value={circuitoId || circuitoActualId}
+                onChange={(e) => setCircuitoId(e.target.value)}
+                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white font-medium text-[#363f48]"
+              >
+                {circuitosDelTutor.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nombre_club} — {c.direccion_club}
+                  </option>
+                ))}
+              </select>
+            </div>
+          ) : (
+            <div className="space-y-3 p-3 rounded-xl bg-[#fdf9fb] border border-[#edcddd]">
+              <div>
+                <label className="font-semibold text-[#363f48] block mb-1">
+                  Nombre de la nueva Sala / Club / Vecinal *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Ej: Centro Cultural y Vecinal El Molino"
+                  value={nombreNuevoLugar}
+                  onChange={(e) => setNombreNuevoLugar(e.target.value)}
+                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                <div>
+                  <label className="font-semibold text-[#363f48] block mb-1">
+                    Direccion *
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="Ej: Bv. Galvez 2350"
+                    value={direccionNuevoLugar}
+                    onChange={(e) => setDireccionNuevoLugar(e.target.value)}
+                    className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-[#363f48] block mb-1">
+                    Zona en el Mapa *
+                  </label>
+                  <select
+                    value={zonaKey}
+                    onChange={(e) => setZonaKey(e.target.value)}
+                    className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
+                  >
+                    <option value="candioti">Barrio Candioti / Bv. Galvez</option>
+                    <option value="guadalupe">Barrio Guadalupe / Costanera</option>
+                    <option value="parque_federal">
+                      Parque Federal / Sargento Cabral
+                    </option>
+                    <option value="centro">Centro / Parque Sur</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+          )}
+
+          <div>
+            <label className="font-semibold text-[#363f48] block mb-1">
+              Actividad del Evento *
+            </label>
+            <input
+              type="text"
+              required
+              placeholder="Ej: Caminata Suave, Taller Cognitivo y Torneo de Truco"
+              value={actividad}
+              onChange={(e) => setActividad(e.target.value)}
+              className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
+            />
+          </div>
+
+          <div className="grid grid-cols-3 gap-2.5">
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Fecha
+              </label>
+              <input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2"
+              />
+            </div>
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Hora Caminata
+              </label>
+              <input
+                type="text"
+                value={horaCaminata}
+                onChange={(e) => setHoraCaminata(e.target.value)}
+                className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2"
+              />
+            </div>
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Hora en Sede
+              </label>
+              <input
+                type="text"
+                value={horaEncuentro}
+                onChange={(e) => setHoraEncuentro(e.target.value)}
+                className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-2.5">
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Reintegro Farmacia Sancor ($)
+              </label>
+              <input
+                type="number"
+                value={montoReintegro}
+                onChange={(e) => setMontoReintegro(Number(e.target.value))}
+                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="font-semibold text-[#363f48] block mb-1">
+                Plus Vecino Padrino ($)
+              </label>
+              <input
+                type="number"
+                value={plusPadrino}
+                onChange={(e) => setPlusPadrino(Number(e.target.value))}
+                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
+              />
+            </div>
+          </div>
+
+          <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#eaeced]">
+            <button
+              type="button"
+              onClick={onClose}
+              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold px-5 py-2 rounded-full transition"
+            >
+              Guardar y activar evento
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}

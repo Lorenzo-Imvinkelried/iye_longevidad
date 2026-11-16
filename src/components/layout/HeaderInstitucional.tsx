@@ -1,12 +1,13 @@
 "use client";
 
 import React from "react";
-import { RefreshCw, Smartphone } from "lucide-react";
+import { CalendarPlus, LogOut, RefreshCw, Smartphone } from "lucide-react";
 
 export type TabId = "tab1_monitor" | "tab2_club" | "tab3_confianza" | "tab4_impacto";
 
 interface HeaderProps {
   nombreClub: string;
+  nombreTutorActivo: string;
   activeTab: TabId;
   onSelectTab: (tab: TabId) => void;
   alertasCount: number;
@@ -17,10 +18,13 @@ interface HeaderProps {
   simulatorOpen: boolean;
   onResetDemo: () => void;
   onToggleSim: () => void;
+  onOpenCrearEvento: () => void;
+  onLogoutTutor: () => void;
 }
 
 export default function HeaderInstitucional({
   nombreClub,
+  nombreTutorActivo,
   activeTab,
   onSelectTab,
   alertasCount,
@@ -31,6 +35,8 @@ export default function HeaderInstitucional({
   simulatorOpen,
   onResetDemo,
   onToggleSim,
+  onOpenCrearEvento,
+  onLogoutTutor,
 }: HeaderProps) {
   const tabs: { id: TabId; label: string; badge?: string; isAlert?: boolean }[] = [
     {
@@ -41,12 +47,12 @@ export default function HeaderInstitucional({
     },
     {
       id: "tab2_club",
-      label: "Recepcion en el Club",
+      label: "Recepcion en el Lugar",
       badge: `${validadosCount}/${totalAdultos}`,
     },
     {
       id: "tab3_confianza",
-      label: "Padrinos y Familiares",
+      label: "Lista de Abuelos y Padrinos",
       badge: solicitudesCount > 0 ? `${solicitudesCount}` : undefined,
     },
     {
@@ -61,11 +67,20 @@ export default function HeaderInstitucional({
       <div className="bg-[#a70355] text-white text-[11px] font-medium">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-1 flex items-center justify-between gap-2">
           <span className="truncate">
-            Programa de Longevidad Activa • {nombreClub}
+            Cuenta activa: <strong>{nombreTutorActivo}</strong> • Sede: {nombreClub}
           </span>
-          <span className="hidden sm:inline text-pink-100 shrink-0">
-            Sancor Seguros • Sancor Salud
-          </span>
+          <div className="flex items-center gap-3 shrink-0">
+            <span className="hidden md:inline text-pink-100">
+              Sancor Seguros • Sancor Salud
+            </span>
+            <button
+              onClick={onLogoutTutor}
+              className="text-white hover:text-pink-100 underline font-semibold flex items-center gap-1"
+            >
+              <LogOut className="w-3 h-3" />
+              <span>Cambiar cuenta / lugar</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -78,26 +93,38 @@ export default function HeaderInstitucional({
             className="h-7 sm:h-8 w-auto shrink-0"
           />
           <span className="hidden sm:inline-block h-5 w-px bg-[#eaeced]" />
-          <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
-            Panel de Coordinacion Barrial
-          </h1>
+          <div className="min-w-0">
+            <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
+              {nombreClub}
+            </h1>
+            <p className="text-[10px] text-[#52606d] truncate hidden sm:block">
+              Organizador: {nombreTutorActivo}
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
+          <button
+            onClick={onOpenCrearEvento}
+            className="rounded-full bg-[#0a4494] hover:bg-[#08397c] text-white text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 transition flex items-center gap-1.5 shadow-xs"
+          >
+            <CalendarPlus className="w-3.5 h-3.5" />
+            <span>+ Nuevo Evento / Lugar</span>
+          </button>
+
           <button
             onClick={onResetDemo}
             disabled={loadingReset}
             className="rounded-full border border-[#c4c9cd] text-[#52606d] hover:border-[#0a4494] hover:text-[#0a4494] bg-white text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingReset ? "animate-spin" : ""}`} />
-            <span className="hidden sm:inline">Reiniciar demo</span>
-            <span className="sm:hidden">Reiniciar</span>
+            <span className="hidden sm:inline">Reiniciar</span>
           </button>
 
           <button
             onClick={onToggleSim}
             title="Abrir o cerrar Simulador de WhatsApp"
-            className={`rounded-full text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 transition flex items-center gap-1.5 border ${
+            className={`rounded-full text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5 border ${
               simulatorOpen
                 ? "bg-[#a70355] border-[#a70355] text-white"
                 : "border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white bg-white"

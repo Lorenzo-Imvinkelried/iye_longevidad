@@ -21,8 +21,16 @@ export default function TabRecepcionClub({
 }: TabRecepcionProps) {
   const { circuito, jornada, participantes, asistencias } = snapshot;
 
+  const asistenciasEvento = asistencias.filter(
+    (a) => a.jornada_id === jornada.id
+  );
+  const idsDelEvento = new Set(asistenciasEvento.map((a) => a.participante_id));
+
   const adultosActivos = participantes.filter(
-    (p) => p.rol === "adulto_mayor" && p.estado_alta === "activo"
+    (p) =>
+      p.rol === "adulto_mayor" &&
+      p.estado_alta === "activo" &&
+      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
   );
 
   return (
@@ -72,7 +80,7 @@ export default function TabRecepcionClub({
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
         <div className="divide-y divide-slate-200">
           {adultosActivos.map((adulto) => {
-            const asis = asistencias.find((a) => a.participante_id === adulto.id);
+            const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
             const padrino = participantes.find(
               (p) =>
                 p.id === (asis?.padrino_asignado_id || adulto.padrino_preferido_id)

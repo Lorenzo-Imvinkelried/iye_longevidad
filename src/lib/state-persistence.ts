@@ -34,10 +34,20 @@ export function formatPesos(amount: number): string {
 }
 
 export function readState(): SystemSnapshot {
+  const fallback = buildInitialState();
   try {
     if (fs.existsSync(STATE_FILE_PATH)) {
       const raw = fs.readFileSync(STATE_FILE_PATH, "utf-8");
       const parsed = JSON.parse(raw) as SystemSnapshot;
+      if (!parsed.circuitos || parsed.circuitos.length === 0) {
+        parsed.circuitos = fallback.circuitos;
+      }
+      if (!parsed.jornadas || parsed.jornadas.length === 0) {
+        parsed.jornadas = fallback.jornadas;
+      }
+      if (!parsed.tutorActivoId) {
+        parsed.tutorActivoId = SEED_IDS.coordinadoraMarta;
+      }
       parsed.modoConexion = isSupabaseConfigured()
         ? "supabase_realtime"
         : "memoria_reactiva_local";
@@ -47,14 +57,13 @@ export function readState(): SystemSnapshot {
   } catch {
     // Fallback to initial state
   }
-  const initial = buildInitialState();
-  writeState(initial);
-  return initial;
+  writeState(fallback);
+  return fallback;
 }
 
 /**
- * Lee el estado compartiendo la fuente de verdad en Supabase cuando esta configurado.
- * Esto permite que un webhook ejecutado en Vercel actualice inmediatamente la UI en Vercel y en localhost.
+ * Lee todos los circuitos (lugares), jornadas (eventos), participantes y asistencias desde Supabase.
+ * La jornada con `updated_at` mas reciente es la jornada activa del panel y del webhook de WhatsApp.
  */
 export async function readStateAsync(): Promise<SystemSnapshot> {
   const state = readState();
@@ -63,41 +72,64 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
 
   try {
     const [circRes, partRes, jorRes, asisRes] = await Promise.all([
-      supabase.from("circuitos_barriales").select("*").limit(1),
+      supabase.from("circuitos_barriales").select("*"),
       supabase.from("participantes").select("*"),
       supabase
         .from("jornadas")
         .select("*")
-        .eq("id", SEED_IDS.jornada)
-        .limit(1),
-      supabase
-        .from("asistencias")
-        .select("*")
-        .eq("jornada_id", SEED_IDS.jornada),
+        .order("updated_at", { ascending: false }),
+      supabase.from("asistencias").select("*"),
     ]);
 
     if (circRes.data && circRes.data.length > 0) {
-      state.circuito = circRes.data[0] as CircuitoBarrial;
+      const dbCircuitos = circRes.data as CircuitoBarrial[];
+      // Asegurar que la segunda sede semilla tambien exista
+      const mergedMap = new Map<string, CircuitoBarrial>();
+      for (const c of state.circuitos) mergedMap.set(c.id, c);
+      for (const c of dbCircuitos) mergedMap.set(c.id, c);
+      state.circuitos = Array.from(mergedMap.values());
     }
 
     if (partRes.data && partRes.data.length > 0) {
-      state.participantes = partRes.data.map((row) => ({
+      const dbParts = partRes.data.map((row) => ({
         ...(row as Participante),
         saldo_reintegro_sancor: Number(row.saldo_reintegro_sancor || 0),
       }));
+      const mergedParts = new Map<string, Participante>();
+      for (const p of state.participantes) mergedParts.set(p.id, p);
+      for (const p of dbParts) mergedParts.set(p.id, p);
+      state.participantes = Array.from(mergedParts.values());
     }
 
     if (jorRes.data && jorRes.data.length > 0) {
-      const j = jorRes.data[0];
-      state.jornada = {
+      const dbJornadas: Jornada[] = jorRes.data.map((j) => ({
         ...(j as Jornada),
         monto_reintegro_asistencia: Number(j.monto_reintegro_asistencia || 2500),
         plus_reintegro_padrino: Number(j.plus_reintegro_padrino || 1500),
-      };
+      }));
+      const mergedJor = new Map<string, Jornada>();
+      for (const j of state.jornadas) mergedJor.set(j.id, j);
+      for (const j of dbJornadas) mergedJor.set(j.id, j);
+      state.jornadas = Array.from(mergedJor.values()).sort(
+        (a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()
+      );
+
+      // La jornada mas recientemente actualizada es la activa
+      state.jornada = state.jornadas[0];
+      const activeCircuito = state.circuitos.find(
+        (c) => c.id === state.jornada.circuito_id
+      );
+      if (activeCircuito) {
+        state.circuito = activeCircuito;
+      }
     }
 
     if (asisRes.data && asisRes.data.length > 0) {
-      state.asistencias = asisRes.data as Asistencia[];
+      const dbAsis = asisRes.data as Asistencia[];
+      const mergedAsis = new Map<string, Asistencia>();
+      for (const a of state.asistencias) mergedAsis.set(a.id, a);
+      for (const a of dbAsis) mergedAsis.set(a.id, a);
+      state.asistencias = Array.from(mergedAsis.values());
       reconcileSimulatorMessagesFromSupabase(state);
     }
 
@@ -111,12 +143,11 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
   return state;
 }
 
-/**
- * Mantiene el panel lateral del simulador alineado cuando la respuesta entro por WhatsApp real
- * en otra instancia serverless de Vercel y se guardo en Supabase.
- */
 function reconcileSimulatorMessagesFromSupabase(state: SystemSnapshot) {
-  for (const asis of state.asistencias) {
+  const activeAsistencias = state.asistencias.filter(
+    (a) => a.jornada_id === state.jornada.id
+  );
+  for (const asis of activeAsistencias) {
     const part = state.participantes.find((p) => p.id === asis.participante_id);
     if (!part) continue;
 
@@ -204,11 +235,7 @@ export async function resetStateAsync(): Promise<SystemSnapshot> {
       const seedPartIds = fresh.participantes.map((p) => p.id);
       const seedAsisIds = fresh.asistencias.map((a) => a.id);
 
-      // Limpiar registros agregados durante pruebas
-      const { data: existingAsis } = await supabase
-        .from("asistencias")
-        .select("id")
-        .eq("jornada_id", SEED_IDS.jornada);
+      const { data: existingAsis } = await supabase.from("asistencias").select("id");
       if (existingAsis) {
         const extraAsis = existingAsis
           .map((r) => r.id as string)
@@ -218,9 +245,7 @@ export async function resetStateAsync(): Promise<SystemSnapshot> {
         }
       }
 
-      const { data: existingParts } = await supabase
-        .from("participantes")
-        .select("id");
+      const { data: existingParts } = await supabase.from("participantes").select("id");
       if (existingParts) {
         const extraParts = existingParts
           .map((r) => r.id as string)
@@ -325,19 +350,35 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
   if (!supabase) return;
 
   try {
-    await supabase.from("jornadas").upsert({
-      id: state.jornada.id,
-      circuito_id: state.jornada.circuito_id,
-      fecha: state.jornada.fecha,
-      hora_inicio_caminata: state.jornada.hora_inicio_caminata,
-      hora_encuentro_club: state.jornada.hora_encuentro_club,
-      actividad_cierre: state.jornada.actividad_cierre,
-      monto_reintegro_asistencia: state.jornada.monto_reintegro_asistencia,
-      plus_reintegro_padrino: state.jornada.plus_reintegro_padrino,
-      estado: state.jornada.estado,
-      motivo_suspension: state.jornada.motivo_suspension,
-      updated_at: new Date().toISOString(),
-    });
+    for (const c of state.circuitos) {
+      await supabase.from("circuitos_barriales").upsert({
+        id: c.id,
+        nombre_barrio: c.nombre_barrio,
+        nombre_club: c.nombre_club,
+        direccion_club: c.direccion_club,
+        coords_club: c.coords_club,
+        poliza_sancor_activa: c.poliza_sancor_activa,
+        poliza_nro: c.poliza_nro || "SANCOR-RC-ACTIVA",
+        paradas_seguras: c.paradas_seguras,
+        ruta_polilinea: c.ruta_polilinea,
+      });
+    }
+
+    for (const j of state.jornadas) {
+      await supabase.from("jornadas").upsert({
+        id: j.id,
+        circuito_id: j.circuito_id,
+        fecha: j.fecha,
+        hora_inicio_caminata: j.hora_inicio_caminata,
+        hora_encuentro_club: j.hora_encuentro_club,
+        actividad_cierre: j.actividad_cierre,
+        monto_reintegro_asistencia: j.monto_reintegro_asistencia,
+        plus_reintegro_padrino: j.plus_reintegro_padrino,
+        estado: j.estado,
+        motivo_suspension: j.motivo_suspension,
+        updated_at: j.updated_at,
+      });
+    }
 
     for (const p of state.participantes) {
       await supabase.from("participantes").upsert({
@@ -373,7 +414,7 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         acuse_suspension_leido: a.acuse_suspension_leido,
         presente_validado_en_club: a.presente_validado_en_club,
         codigo_canje_farmacia: a.codigo_canje_farmacia,
-        updated_at: new Date().toISOString(),
+        updated_at: a.updated_at,
       });
     }
   } catch (err) {

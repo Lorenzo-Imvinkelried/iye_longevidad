@@ -13,14 +13,14 @@ import { isSupabaseConfigured } from "@/lib/supabase";
 import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
 
 export function buildInitialState(): SystemSnapshot {
-  const circuito: CircuitoBarrial = {
+  const circuitoCandioti: CircuitoBarrial = {
     id: SEED_IDS.circuito,
     nombre_barrio: "Barrio Candioti Sur / Bv. Galvez (Santa Fe Capital)",
     nombre_club: 'Centro de Jubilados y Club Candioti "La Union"',
     direccion_club: "Ituzaingo 1945 (esq. Alberdi), Santa Fe Capital",
     coords_club: { lat: -31.6388, lng: -60.6915 },
     poliza_sancor_activa: true,
-    poliza_nro: "SANCOR-SALUD-RC-88412",
+    poliza_nro: `SANCOR-SALUD-RC-88412|tutor:${SEED_IDS.coordinadoraMarta}`,
     paradas_seguras: [
       {
         id: "parada_1",
@@ -54,6 +54,44 @@ export function buildInitialState(): SystemSnapshot {
     ],
   };
 
+  const circuitoGuadalupe: CircuitoBarrial = {
+    id: SEED_IDS.circuitoGuadalupe,
+    nombre_barrio: "Barrio Guadalupe / Costanera Este (Santa Fe Capital)",
+    nombre_club: "Sala Vecinal y Centro de Dia Guadalupe",
+    direccion_club: "Javier de la Rosa 650, Santa Fe Capital",
+    coords_club: { lat: -31.6015, lng: -60.6728 },
+    poliza_sancor_activa: true,
+    poliza_nro: `SANCOR-SALUD-RC-90210|tutor:${SEED_IDS.tutorRoberto}`,
+    paradas_seguras: [
+      {
+        id: "parada_g1",
+        nombre_esquina: "Parada 1: Av. Galicia y Gral. Paz",
+        lat: -31.6042,
+        lng: -60.6762,
+        horario_paso: "10:15 hs",
+        estado_veredas: "Esquina semaforizada con rampa nueva",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+      {
+        id: "parada_g2",
+        nombre_esquina: "Parada 2: Plaza Del Folklore (Patricio Cullen)",
+        lat: -31.6025,
+        lng: -60.6738,
+        horario_paso: "10:22 hs",
+        estado_veredas: "Vereda ancha arbolada frente a la Basilica",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+    ],
+    ruta_polilinea: [
+      [-31.6048, -60.677],
+      [-31.6042, -60.6762],
+      [-31.6025, -60.6738],
+      [-31.6015, -60.6728],
+    ],
+  };
+
   const participantes: Participante[] = [
     {
       id: SEED_IDS.coordinadoraMarta,
@@ -62,16 +100,35 @@ export function buildInitialState(): SystemSnapshot {
       dni: "16.402.881",
       telefono: "+5493424000000",
       rol: "coordinador",
-      direccion: "Ituzaingo 1945, Santa Fe",
+      direccion: "Ituzaingo 1945, Barrio Candioti",
       coords_domicilio: { lat: -31.6388, lng: -60.6915 },
       nivel_autonomia_habitual: 3,
       padrino_preferido_id: null,
       acreditado_por_club: true,
-      credencial_nro: "COORD-01",
+      credencial_nro: "Coordinadora Club Candioti",
       saldo_reintegro_sancor: 0,
       contacto_familiar_nombre: "Comision Directiva Club Candioti",
       contacto_familiar_tel: "+5493424551234",
       notas_vulnerabilidad: "Coordinadora Barrial habilitada por Sancor Salud y el Club.",
+      estado_alta: "activo",
+    },
+    {
+      id: SEED_IDS.tutorRoberto,
+      nombre: "Dr. Roberto Sanchez",
+      edad: 42,
+      dni: "28.920.411",
+      telefono: "+5493424000002",
+      rol: "coordinador",
+      direccion: "Javier de la Rosa 650, Barrio Guadalupe",
+      coords_domicilio: { lat: -31.6015, lng: -60.6728 },
+      nivel_autonomia_habitual: 3,
+      padrino_preferido_id: null,
+      acreditado_por_club: true,
+      credencial_nro: "Kinesiologo / Tutor Sancor",
+      saldo_reintegro_sancor: 0,
+      contacto_familiar_nombre: "Sala Vecinal Guadalupe",
+      contacto_familiar_tel: "+5493424601122",
+      notas_vulnerabilidad: "Profesional de rehabilitacion motora y longevidad activa.",
       estado_alta: "activo",
     },
     {
@@ -228,7 +285,7 @@ export function buildInitialState(): SystemSnapshot {
     },
   ];
 
-  const jornada: Jornada = {
+  const jornadaCandioti: Jornada = {
     id: SEED_IDS.jornada,
     circuito_id: SEED_IDS.circuito,
     fecha: new Date().toISOString().split("T")[0],
@@ -240,6 +297,20 @@ export function buildInitialState(): SystemSnapshot {
     estado: "convocando",
     motivo_suspension: null,
     updated_at: new Date().toISOString(),
+  };
+
+  const jornadaGuadalupe: Jornada = {
+    id: SEED_IDS.jornadaGuadalupe,
+    circuito_id: SEED_IDS.circuitoGuadalupe,
+    fecha: new Date().toISOString().split("T")[0],
+    hora_inicio_caminata: "10:10",
+    hora_encuentro_club: "10:30",
+    actividad_cierre: "Caminata Costanera, Kinesiologia Suave y Mateada",
+    monto_reintegro_asistencia: 3000,
+    plus_reintegro_padrino: 1800,
+    estado: "programada",
+    motivo_suspension: null,
+    updated_at: new Date(Date.now() - 60000).toISOString(),
   };
 
   const asistencias: Asistencia[] = [
@@ -308,6 +379,33 @@ export function buildInitialState(): SystemSnapshot {
       codigo_canje_farmacia: null,
       updated_at: new Date().toISOString(),
     },
+    // Asistencias vinculadas al segundo lugar (Sala Vecinal Guadalupe)
+    {
+      id: "66666666-6666-4666-8666-666666666006",
+      jornada_id: SEED_IDS.jornadaGuadalupe,
+      participante_id: SEED_IDS.rosa,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: SEED_IDS.padrinoCarlos,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: "66666666-6666-4666-8666-666666666007",
+      jornada_id: SEED_IDS.jornadaGuadalupe,
+      participante_id: SEED_IDS.jorge,
+      modalidad_elegida: "nivel_2_esquina",
+      parada_esquina_id: "parada_g1",
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    },
   ];
 
   const convocatoriaButtons: WhatsAppReplyButton[] = [
@@ -349,16 +447,19 @@ export function buildInitialState(): SystemSnapshot {
     {
       id: "log-init-1",
       timestamp: "09:30",
-      actor: "Sistema Club Candioti",
-      evento: "Circuito Barrial Inicializado",
-      detalle: "Poliza Sancor RC #88412 activa. Esperando confirmacion de Rosa y Jorge por WhatsApp.",
+      actor: "Sistema Sancor",
+      evento: "Plataforma Multi-Sede Inicializada",
+      detalle: "Sedes y tutores cargados. Esperando confirmaciones por WhatsApp.",
       tipo: "info",
     },
   ];
 
   return {
-    circuito,
-    jornada,
+    circuito: circuitoCandioti,
+    jornada: jornadaCandioti,
+    circuitos: [circuitoCandioti, circuitoGuadalupe],
+    jornadas: [jornadaCandioti, jornadaGuadalupe],
+    tutorActivoId: SEED_IDS.coordinadoraMarta,
     participantes,
     asistencias,
     mensajes,

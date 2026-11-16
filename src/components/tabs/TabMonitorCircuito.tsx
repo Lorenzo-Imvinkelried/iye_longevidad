@@ -3,7 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
-import { AlertTriangle, PhoneCall } from "lucide-react";
+import { AlertTriangle, MapPin, PhoneCall, UserPlus } from "lucide-react";
 
 const MapaCircuitoLeaflet = dynamic(
   () => import("@/components/MapaCircuitoLeaflet"),
@@ -22,6 +22,7 @@ interface TabMonitorProps {
   loadingAction: string | null;
   onExecuteAction: (action: string, payload?: Record<string, unknown>) => void;
   onOpenPhone: (participanteId: string) => void;
+  onOpenFamiliarModal: () => void;
 }
 
 export default function TabMonitorCircuito({
@@ -29,23 +30,33 @@ export default function TabMonitorCircuito({
   loadingAction,
   onExecuteAction,
   onOpenPhone,
+  onOpenFamiliarModal,
 }: TabMonitorProps) {
-  const { circuito, jornada, participantes, asistencias } = snapshot;
+  const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
+    snapshot;
+
+  const asistenciasEvento = asistencias.filter(
+    (a) => a.jornada_id === jornada.id
+  );
+  const idsDelEvento = new Set(asistenciasEvento.map((a) => a.participante_id));
 
   const adultosActivos = participantes.filter(
-    (p) => p.rol === "adulto_mayor" && p.estado_alta === "activo"
+    (p) =>
+      p.rol === "adulto_mayor" &&
+      p.estado_alta === "activo" &&
+      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
   );
 
-  const asistenciasNivel1 = asistencias.filter(
+  const asistenciasNivel1 = asistenciasEvento.filter(
     (a) => a.modalidad_elegida === "nivel_1_puerta"
   );
-  const asistenciasNivel2 = asistencias.filter(
+  const asistenciasNivel2 = asistenciasEvento.filter(
     (a) => a.modalidad_elegida === "nivel_2_esquina"
   );
-  const asistenciasNivel3 = asistencias.filter(
+  const asistenciasNivel3 = asistenciasEvento.filter(
     (a) => a.modalidad_elegida === "nivel_3_directo"
   );
-  const alertasPadrinoCaido = asistencias.filter(
+  const alertasPadrinoCaido = asistenciasEvento.filter(
     (a) =>
       a.modalidad_elegida === "nivel_1_puerta" &&
       a.estado_padrino === "rechazado_buscando_reemplazo"
@@ -53,52 +64,73 @@ export default function TabMonitorCircuito({
 
   return (
     <div className="space-y-3">
-      {/* Barra de control compacta estilo Sancor */}
-      <div className="bg-white rounded-xl px-4 py-2.5 border border-[#eaeced] flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-xs">
-        <div className="min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-[#52606d]">
-              Jornada {jornada.hora_inicio_caminata} hs:
-            </span>
-            {jornada.estado === "suspendida_emergencia" ? (
-              <span className="text-xs font-bold text-[#bf2020] bg-[#f2d2d2]/40 px-2.5 py-0.5 rounded-full border border-[#e5a6a6]">
-                Suspendida por clima
-              </span>
-            ) : (
-              <span className="text-xs font-bold text-[#168003] bg-[#d0e6cd]/40 px-2.5 py-0.5 rounded-full border border-[#a2cc9a]">
-                Activa ({jornada.actividad_cierre})
-              </span>
-            )}
-          </div>
-          <p className="text-[11px] sm:text-xs text-[#52606d] mt-0.5 truncate">
-            Reintegro:{" "}
-            <strong className="text-[#363f48]">
-              ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
-            </strong>{" "}
-            • Plus Padrino:{" "}
-            <strong className="text-[#363f48]">
-              +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
-            </strong>{" "}
-            • WhatsApp:{" "}
-            <strong
-              className={
-                snapshot.whatsappCloudConfigurado
-                  ? "text-[#168003]"
-                  : "text-[#a70355]"
+      {/* Barra de control compacta estilo Sancor con selector de Evento / Lugar */}
+      <div className="bg-white rounded-xl px-4 py-2.5 border border-[#eaeced] flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 shadow-xs">
+        <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2.5">
+          <div className="flex items-center gap-1.5 bg-[#f6f6f7] border border-[#eaeced] rounded-lg px-2.5 py-1.5">
+            <MapPin className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
+            <label htmlFor="selector-evento-activo" className="text-[11px] font-bold text-[#363f48] shrink-0">
+              Evento / Lugar:
+            </label>
+            <select
+              id="selector-evento-activo"
+              value={jornada.id}
+              onChange={(e) =>
+                onExecuteAction("seleccionar_evento", { jornadaId: e.target.value })
               }
+              className="bg-transparent text-xs font-bold text-[#0a4494] focus:outline-hidden max-w-[260px] sm:max-w-[340px] truncate cursor-pointer"
             >
-              {snapshot.whatsappCloudConfigurado
-                ? "Conectado (Meta API)"
-                : "Solo simulador"}
-            </strong>
-          </p>
+              {(jornadas || [jornada]).map((j) => {
+                const c =
+                  (circuitos || [circuito]).find((ci) => ci.id === j.circuito_id) ||
+                  circuito;
+                return (
+                  <option key={j.id} value={j.id}>
+                    {c.nombre_club} — {j.actividad_cierre} ({j.hora_inicio_caminata} hs)
+                  </option>
+                );
+              })}
+            </select>
+          </div>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              {jornada.estado === "suspendida_emergencia" ? (
+                <span className="text-[11px] font-bold text-[#bf2020] bg-[#f2d2d2]/40 px-2.5 py-0.5 rounded-full border border-[#e5a6a6]">
+                  Suspendida por clima
+                </span>
+              ) : (
+                <span className="text-[11px] font-bold text-[#168003] bg-[#d0e6cd]/40 px-2.5 py-0.5 rounded-full border border-[#a2cc9a]">
+                  Activa ({adultosActivos.length} abuelos en lista)
+                </span>
+              )}
+              <span className="text-[11px] text-[#52606d] truncate">
+                Reintegro:{" "}
+                <strong className="text-[#363f48]">
+                  ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
+                </strong>{" "}
+                • Plus Padrino:{" "}
+                <strong className="text-[#363f48]">
+                  +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
+                </strong>
+              </span>
+            </div>
+          </div>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
+            onClick={onOpenFamiliarModal}
+            className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+          >
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>+ Sumar Abuelo</span>
+          </button>
+
+          <button
             onClick={() => onExecuteAction("lanzar_convocatoria")}
             disabled={loadingAction === "lanzar_convocatoria"}
-            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full transition shadow-xs"
+            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition shadow-xs"
           >
             {loadingAction === "lanzar_convocatoria"
               ? "Enviando..."
@@ -112,7 +144,7 @@ export default function TabMonitorCircuito({
               })
             }
             disabled={loadingAction === "suspender_emergencia"}
-            className="bg-[#bf2020] hover:bg-[#991919] text-white font-semibold text-xs px-4 py-2 rounded-full transition"
+            className="bg-[#bf2020] hover:bg-[#991919] text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition"
           >
             Suspender por lluvia
           </button>
@@ -186,14 +218,14 @@ export default function TabMonitorCircuito({
             </div>
             <div className="text-xs font-semibold text-slate-700">
               Confirmados en casa:{" "}
-              {asistencias.filter((a) => a.acuse_suspension_leido).length}/
+              {asistenciasEvento.filter((a) => a.acuse_suspension_leido).length}/
               {adultosActivos.length}
             </div>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
             {adultosActivos.map((adulto) => {
-              const asis = asistencias.find((a) => a.participante_id === adulto.id);
+              const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
               const leido = Boolean(asis?.acuse_suspension_leido);
 
               return (

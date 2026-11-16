@@ -17,6 +17,7 @@ interface ModalFamiliarProps {
     vinculo: string;
     telefonoFamiliar: string;
     notas: string;
+    aprobarDirecto: boolean;
   }) => Promise<void>;
 }
 
@@ -31,11 +32,12 @@ export default function ModalDerivacionFamiliar({
     edad: 77,
     dni: "",
     telefonoAdulto: "+5493424889900",
-    direccion: "Sarmiento 3485, Barrio Candioti",
-    nombreFamiliar: "",
-    vinculo: "Nieto/a",
+    direccion: "Sarmiento 3485, Santa Fe",
+    nombreFamiliar: "Inscripcion directa por Tutor",
+    vinculo: "Coordinacion / Familiar",
     telefonoFamiliar: "+5493425443322",
     notas: "Requiere acompanamiento puerta a puerta para salir con tranquilidad.",
+    aprobarDirecto: true,
   });
 
   if (!open) return null;
@@ -171,6 +173,18 @@ export default function ModalDerivacionFamiliar({
             />
           </div>
 
+          <label className="flex items-start gap-2 bg-[#f6f6f7] p-3 rounded-lg border border-[#eaeced] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={form.aprobarDirecto}
+              onChange={(e) => setForm({ ...form, aprobarDirecto: e.target.checked })}
+              className="mt-0.5 rounded border-[#c4c9cd] text-[#0a4494]"
+            />
+            <span className="text-[11px] text-[#363f48]">
+              <strong>Incorporar directamente a la lista activa de {nombreClub}</strong> (si lo desmarcas, quedara como solicitud pendiente de aprobacion familiar).
+            </span>
+          </label>
+
           <div className="flex items-center justify-end gap-2 pt-2">
             <button
               type="button"
@@ -183,7 +197,7 @@ export default function ModalDerivacionFamiliar({
               type="submit"
               className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold px-5 py-2 rounded-full transition"
             >
-              Enviar solicitud
+              {form.aprobarDirecto ? "Sumar a la lista del lugar" : "Enviar solicitud"}
             </button>
           </div>
         </form>

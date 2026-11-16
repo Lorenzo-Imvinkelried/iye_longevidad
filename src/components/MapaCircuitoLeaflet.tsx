@@ -35,13 +35,14 @@ function MapBoundsController({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     map.invalidateSize();
+    map.setView(center, 15, { animate: true });
     const container = map.getContainer();
     const ro = new ResizeObserver(() => {
       map.invalidateSize();
     });
     ro.observe(container);
     return () => ro.disconnect();
-  }, [map, center]);
+  }, [map, center[0], center[1]]);
   return null;
 }
 
@@ -52,19 +53,37 @@ export default function MapaCircuitoLeaflet({
   asistencias,
   onSelectPhoneInSimulator,
 }: MapaProps) {
-  const center: [number, number] = [-31.6365, -60.6902];
+  const center: [number, number] = [
+    circuito.coords_club.lat,
+    circuito.coords_club.lng,
+  ];
+
+  const asistenciasEvento = asistencias.filter(
+    (a) => a.jornada_id === jornada.id
+  );
+  const idsDelEvento = new Set(asistenciasEvento.map((a) => a.participante_id));
 
   const adultosActivos = participantes.filter(
-    (p) => p.rol === "adulto_mayor" && p.estado_alta === "activo"
+    (p) =>
+      p.rol === "adulto_mayor" &&
+      p.estado_alta === "activo" &&
+      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
   );
   const padrinosActivos = participantes.filter(
     (p) => p.rol === "padrino" && p.acreditado_por_club
   );
 
-  const validadosCount = asistencias.filter((a) => a.presente_validado_en_club).length;
-  const nivel3Count = asistencias.filter(
+  const validadosCount = asistenciasEvento.filter(
+    (a) => a.presente_validado_en_club
+  ).length;
+  const nivel3Count = asistenciasEvento.filter(
     (a) => a.modalidad_elegida === "nivel_3_directo"
   ).length;
+
+  const nombreCortoLugar =
+    circuito.nombre_club.length > 24
+      ? `${circuito.nombre_club.slice(0, 22)}...`
+      : circuito.nombre_club;
 
   return (
     <div className="relative w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-225px)] lg:min-h-[380px] lg:max-h-[700px] rounded-xl overflow-hidden border border-[#eaeced] bg-[#f6f6f7]">
@@ -102,7 +121,7 @@ export default function MapaCircuitoLeaflet({
         />
 
         {adultosActivos.map((adulto) => {
-          const asis = asistencias.find((a) => a.participante_id === adulto.id);
+          const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
           if (!asis || asis.modalidad_elegida !== "nivel_1_puerta") return null;
           const padrino = participantes.find((p) => p.id === asis.padrino_asignado_id);
           if (!padrino) return null;
@@ -133,14 +152,14 @@ export default function MapaCircuitoLeaflet({
 
         <Marker
           position={[circuito.coords_club.lat, circuito.coords_club.lng]}
-          icon={createClubIcon(validadosCount, nivel3Count)}
+          icon={createClubIcon(nombreCortoLugar, validadosCount, nivel3Count)}
         >
           <Popup>
             <div className="p-1 min-w-[210px] space-y-1 text-xs">
               <div className="font-bold text-slate-900 text-sm">{circuito.nombre_club}</div>
               <div className="text-slate-600">{circuito.direccion_club}</div>
               <div className="pt-1 border-t border-slate-100 text-emerald-700 font-semibold">
-                Poliza Sancor RC Activa ({circuito.poliza_nro})
+                Poliza Sancor RC Activa ({(circuito.poliza_nro || "SANCOR-RC").split("|")[0]})
               </div>
               <div className="text-slate-700">
                 Encuentro {jornada.hora_encuentro_club} hs: {jornada.actividad_cierre}
@@ -150,7 +169,7 @@ export default function MapaCircuitoLeaflet({
         </Marker>
 
         {circuito.paradas_seguras.map((parada, idx) => {
-          const abuelosEnEsquina = asistencias
+          const abuelosEnEsquina = asistenciasEvento
             .filter(
               (a) =>
                 a.modalidad_elegida === "nivel_2_esquina" &&
@@ -227,7 +246,7 @@ export default function MapaCircuitoLeaflet({
         ))}
 
         {adultosActivos.map((adulto) => {
-          const asis = asistencias.find((a) => a.participante_id === adulto.id);
+          const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
           const padrino = participantes.find((p) => p.id === asis?.padrino_asignado_id);
           const primerNombre = adulto.nombre.split(" ")[0];
 

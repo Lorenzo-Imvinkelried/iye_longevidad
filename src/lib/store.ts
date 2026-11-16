@@ -11,6 +11,9 @@ export {
   procesarEventoWebhookWhatsApp,
 } from "@/lib/bot-flows";
 export {
+  seleccionarEventoActivo,
+  registrarNuevoTutorYLugar,
+  crearNuevoEventoOLugar,
   suspenderJornadaPorEmergencia,
   reasignarTutorManualCoordinador,
   frenarSalidaAdultoPorSeguridad,

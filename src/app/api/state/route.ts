@@ -2,12 +2,15 @@ import { NextRequest, NextResponse } from "next/server";
 import {
   acreditarNuevoVecinoPadrino,
   aprobarAltaDerivacionFamiliar,
+  crearNuevoEventoOLugar,
   crearSolicitudNietoFamiliar,
   dispararConvocatoriaJornada,
   frenarSalidaAdultoPorSeguridad,
   readStateAsync,
   reasignarTutorManualCoordinador,
+  registrarNuevoTutorYLugar,
   resetStateAsync,
+  seleccionarEventoActivo,
   suspenderJornadaPorEmergencia,
   validarPresenciaEnClub,
 } from "@/lib/store";
@@ -25,6 +28,21 @@ export async function POST(req: NextRequest) {
     const { action } = body;
 
     switch (action) {
+      case "seleccionar_evento": {
+        const snapshot = await seleccionarEventoActivo({
+          jornadaId: body.jornadaId,
+          tutorId: body.tutorId,
+        });
+        return NextResponse.json({ ok: true, snapshot });
+      }
+      case "registrar_tutor_lugar": {
+        const snapshot = await registrarNuevoTutorYLugar(body.payload);
+        return NextResponse.json({ ok: true, snapshot });
+      }
+      case "crear_evento_lugar": {
+        const snapshot = await crearNuevoEventoOLugar(body.payload);
+        return NextResponse.json({ ok: true, snapshot });
+      }
       case "lanzar_convocatoria": {
         const snapshot = await dispararConvocatoriaJornada();
         return NextResponse.json({ ok: true, snapshot });

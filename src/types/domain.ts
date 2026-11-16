@@ -1,7 +1,10 @@
 export const SEED_IDS = {
   circuito: "11111111-1111-4111-8111-111111111111",
+  circuitoGuadalupe: "11111111-1111-4111-8111-111111111112",
   jornada: "55555555-5555-4555-8555-555555555001",
+  jornadaGuadalupe: "55555555-5555-4555-8555-555555555002",
   coordinadoraMarta: "22222222-2222-4222-8222-222222222200",
+  tutorRoberto: "22222222-2222-4222-8222-222222222201",
   padrinoCarlos: "33333333-3333-4333-8333-333333333104",
   padrinoHector: "33333333-3333-4333-8333-333333333108",
   rosa: "44444444-4444-4444-8444-444444444001",
@@ -162,6 +165,9 @@ export interface WebhookEventLog {
 export interface SystemSnapshot {
   circuito: CircuitoBarrial;
   jornada: Jornada;
+  circuitos: CircuitoBarrial[];
+  jornadas: Jornada[];
+  tutorActivoId: string;
   participantes: Participante[];
   asistencias: Asistencia[];
   mensajes: WhatsAppMessage[];

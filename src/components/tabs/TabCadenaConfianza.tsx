@@ -23,7 +23,19 @@ export default function TabCadenaConfianza({
     Record<string, string>
   >({});
 
-  const { participantes, asistencias } = snapshot;
+  const { circuito, jornada, participantes, asistencias } = snapshot;
+
+  const asistenciasEvento = asistencias.filter(
+    (a) => a.jornada_id === jornada.id
+  );
+  const idsDelEvento = new Set(asistenciasEvento.map((a) => a.participante_id));
+
+  const adultosDelLugar = participantes.filter(
+    (p) =>
+      p.rol === "adulto_mayor" &&
+      p.estado_alta === "activo" &&
+      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+  );
 
   const padrinosAcreditados = participantes.filter(
     (p) => p.rol === "padrino" && p.acreditado_por_club
@@ -35,13 +47,13 @@ export default function TabCadenaConfianza({
   return (
     <div className="space-y-4">
       {/* Cabecera de acciones */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-xl p-4 border border-[#eaeced] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-900">
-            Cadena de Confianza y Derivaciones Familiares
+          <h2 className="text-base font-bold text-[#363f48]">
+            Padron Guardado en {circuito.nombre_club}
           </h2>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Los familiares solicitan la incorporacion de un adulto mayor y la coordinadora le asigna un vecino padrino acreditado con DNI.
+          <p className="text-xs text-[#52606d] mt-0.5">
+            En tu perfil de organizador queda guardada la lista de abuelos de este lugar junto con los vecinos padrinos acreditados.
           </p>
         </div>
 
@@ -51,7 +63,7 @@ export default function TabCadenaConfianza({
             className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>Inscribir abuelo / familiar</span>
+            <span>+ Sumar abuelo a este lugar</span>
           </button>
 
           <button
@@ -61,6 +73,69 @@ export default function TabCadenaConfianza({
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Acreditar nuevo padrino</span>
           </button>
+        </div>
+      </div>
+
+      {/* Lista de Adultos Mayores guardados en este lugar */}
+      <div className="bg-white rounded-xl border border-[#eaeced] overflow-hidden">
+        <div className="px-4 py-3 bg-[#f6f6f7] border-b border-[#eaeced] flex items-center justify-between">
+          <h3 className="text-xs font-bold uppercase tracking-wide text-[#363f48]">
+            Lista de Abuelos en {circuito.nombre_club} ({adultosDelLugar.length})
+          </h3>
+          <span className="text-[11px] text-[#52606d]">
+            Reciben la convocatoria por WhatsApp al iniciar un evento en esta sede
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
+          {adultosDelLugar.map((adulto) => {
+            const padrinoPref = participantes.find(
+              (p) => p.id === adulto.padrino_preferido_id
+            );
+            return (
+              <div
+                key={adulto.id}
+                className="border border-[#eaeced] rounded-xl p-3.5 flex flex-col justify-between gap-2 hover:border-[#0a4494]/40 transition"
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="font-bold text-sm text-[#363f48]">
+                      {adulto.nombre} ({adulto.edad} anos)
+                    </span>
+                    <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] px-2.5 py-0.5 rounded-full">
+                      Nivel habitual {adulto.nivel_autonomia_habitual}
+                    </span>
+                  </div>
+                  <div className="text-xs text-[#52606d]">
+                    DNI {adulto.dni} • {adulto.direccion}
+                  </div>
+                  <div className="text-xs text-[#52606d]">
+                    WhatsApp: <strong className="text-[#363f48]">{adulto.telefono}</strong> • Familiar: {adulto.contacto_familiar_nombre}
+                  </div>
+                  {padrinoPref && (
+                    <div className="text-[11px] text-[#0a4494] font-semibold">
+                      Padrino habitual: {padrinoPref.nombre} ({padrinoPref.credencial_nro})
+                    </div>
+                  )}
+                </div>
+
+                <div className="pt-2 border-t border-[#eaeced] flex items-center justify-between text-xs">
+                  <span className="text-[#52606d]">
+                    Saldo Farmacia:{" "}
+                    <strong className="text-[#363f48]">
+                      ${adulto.saldo_reintegro_sancor.toLocaleString("es-AR")}
+                    </strong>
+                  </span>
+                  <button
+                    onClick={() => onOpenPhone(adulto.id)}
+                    className="text-[#0a4494] hover:underline font-semibold"
+                  >
+                    Ver chat WhatsApp
+                  </button>
+                </div>
+              </div>
+            );
+          })}
         </div>
       </div>
 
