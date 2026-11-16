@@ -59,7 +59,7 @@ export default function ModalDerivacionFamiliar({
     dni: "",
     telefonoAdulto: "",
     direccion: "Sarmiento 3485, Santa Fe",
-    nombreFamiliar: "Inscripcion directa por Tutor",
+    nombreFamiliar: "Inscripcion directa por Coordinador",
     vinculo: "Coordinacion / Familiar",
     telefonoFamiliar: "+5493425443322",
     notas: "Requiere acompanamiento puerta a puerta para salir con tranquilidad.",

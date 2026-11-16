@@ -617,7 +617,7 @@ export default function TabMonitorCircuito({
                 }
                 className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg"
               >
-                Reasignar Tutor (#108)
+                Reasignar Padrino (#108)
               </button>
 
               <button

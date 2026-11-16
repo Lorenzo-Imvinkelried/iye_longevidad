@@ -100,7 +100,7 @@ export default function HeaderInstitucional({
               {nombreClub}
             </h1>
             <p className="text-[10px] text-[#52606d] truncate hidden sm:block leading-tight">
-              Organizador: {nombreTutorActivo}
+              Coordinador: {nombreTutorActivo}
             </p>
           </div>
         </div>

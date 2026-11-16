@@ -49,6 +49,7 @@ export default function PantallaLoginTutor({
     return (
       t.nombre.toLowerCase().includes(q) ||
       (t.credencial_nro || "").toLowerCase().includes(q) ||
+      (t.notas_vulnerabilidad || "").toLowerCase().includes(q) ||
       sedes.includes(q)
     );
   });
@@ -104,7 +105,7 @@ export default function PantallaLoginTutor({
               </h1>
             </div>
             <span className="hidden md:inline text-[11px] text-[#52606d]">
-              Acceso exclusivo para coordinadores y referentes acreditados
+              Acceso exclusivo para coordinadores acreditados
             </span>
           </div>
 
@@ -187,7 +188,7 @@ export default function PantallaLoginTutor({
             <div className="min-w-0">
               <h2 className="text-sm font-bold text-[#363f48] flex items-center gap-2">
                 <Users className="w-4 h-4 text-[#a70355] shrink-0" />
-                <span>Coordinadores y Referentes Actuales ({tutores.length})</span>
+                <span>Coordinadores Actuales ({tutores.length})</span>
               </h2>
               <p className="text-[11px] text-[#52606d] truncate">
                 Consulta quienes coordinan cada club, sala o punto de encuentro barrial.
@@ -213,6 +214,9 @@ export default function PantallaLoginTutor({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {tutoresFiltrados.map((tutor) => {
                   const sedes = getCircuitosDeTutor(tutor.id);
+                  const perfilCoordinador = (tutor.credencial_nro || "")
+                    .replace(/\s*\/\s*Tutor(\s+Sancor)?/gi, "")
+                    .trim();
 
                   return (
                     <div
@@ -222,11 +226,22 @@ export default function PantallaLoginTutor({
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
                           <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full">
-                            {tutor.credencial_nro || "Coordinador Acreditado"}
+                            Coordinador
                           </span>
                           <h3 className="text-sm font-bold text-[#363f48] mt-1 truncate">
                             {tutor.nombre}
                           </h3>
+                          {(perfilCoordinador || tutor.notas_vulnerabilidad) && (
+                            <p className="text-[11px] text-[#52606d] mt-0.5 leading-snug">
+                              {perfilCoordinador && (
+                                <span className="font-semibold text-[#0a4494]">
+                                  {perfilCoordinador}
+                                </span>
+                              )}
+                              {perfilCoordinador && tutor.notas_vulnerabilidad && " • "}
+                              {tutor.notas_vulnerabilidad}
+                            </p>
+                          )}
                         </div>
                         <span className="text-[10px] font-semibold text-[#168003] bg-[#d0e6cd]/40 border border-[#a2cc9a] px-2 py-0.5 rounded-full shrink-0">
                           Acreditado

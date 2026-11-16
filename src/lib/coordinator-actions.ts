@@ -385,7 +385,7 @@ export async function registrarNuevoTutorYLugar(input: {
     nivel_autonomia_habitual: 3,
     padrino_preferido_id: null,
     acreditado_por_club: true,
-    credencial_nro: input.especialidad || "Profesional / Tutor",
+    credencial_nro: input.especialidad || "Encargado de Club / Sala",
     saldo_reintegro_sancor: 0,
     contacto_familiar_nombre: input.nombreLugar,
     contacto_familiar_tel: input.telefonoTutor || "+5493424551234",

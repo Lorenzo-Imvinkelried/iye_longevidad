@@ -43,7 +43,7 @@ export default function ModalAcreditarCoordinador({
     dniTutor: "",
     claveTutor: "",
     telefonoTutor: "",
-    especialidad: "Adulto Mayor Referente",
+    especialidad: "Encargado de Club / Sala",
     nombreLugar: "",
     direccionLugar: "",
     zonaKey: "candioti",
@@ -90,7 +90,7 @@ export default function ModalAcreditarCoordinador({
                 Validacion Presencial Sancor / Club
               </div>
               <h3 className="font-bold text-sm text-[#363f48]">
-                Acreditar Nuevo Coordinador / Referente y Sede
+                Acreditar Nuevo Coordinador y Sede
               </h3>
             </div>
           </div>
@@ -179,7 +179,7 @@ export default function ModalAcreditarCoordinador({
 
             <div>
               <label className="font-semibold text-[#363f48] block mb-1">
-                Perfil / Rol acreditado *
+                Que es / Profesion u ocupacion en la sede *
               </label>
               <select
                 value={form.especialidad}
@@ -188,17 +188,17 @@ export default function ModalAcreditarCoordinador({
                 }
                 className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white"
               >
-                <option value="Adulto Mayor Referente">
-                  Adulto Mayor Referente
-                </option>
                 <option value="Encargado de Club / Sala">
                   Encargado de Club / Sala
                 </option>
-                <option value="Profesional de Salud / Tutor">
-                  Profesional de Salud / Tutor
+                <option value="Kinesiologo / Profesional de Salud">
+                  Kinesiologo / Profesional de Salud
                 </option>
-                <option value="Vecino Padrino Coordinador">
-                  Vecino Padrino Coordinador
+                <option value="Adulto Mayor Referente">
+                  Adulto Mayor Referente
+                </option>
+                <option value="Vecino Coordinador">
+                  Vecino Coordinador
                 </option>
               </select>
             </div>
