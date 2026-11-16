@@ -129,7 +129,7 @@ export default function ModalCrearEventoLugar({
               onClick={() => setModoLugar("existente")}
               className={`py-1.5 px-3 rounded-full font-semibold transition ${
                 modoLugar === "existente"
-                  ? "bg-[#0a4494] text-white"
+                  ? "bg-[#363f48] text-white"
                   : "text-[#52606d] hover:text-[#363f48]"
               }`}
             >
@@ -299,7 +299,7 @@ export default function ModalCrearEventoLugar({
               type="checkbox"
               checked={incluirAbuelosDelTutor}
               onChange={(e) => setIncluirAbuelosDelTutor(e.target.checked)}
-              className="mt-0.5 rounded border-[#c4c9cd] text-[#0a4494]"
+              className="mt-0.5 rounded border-[#c4c9cd] text-[#a70355] accent-[#a70355]"
             />
             <span className="text-[11px] text-[#363f48]">
               <strong>Copiar mi lista guardada de abuelos de esta sede</strong> (los que ya tengan otro evento en la misma fecha y horario se omiten automaticamente para evitar superposiciones).
@@ -318,7 +318,7 @@ export default function ModalCrearEventoLugar({
             <button
               type="submit"
               disabled={submitting}
-              className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-400 text-white font-semibold px-5 py-2 rounded-full transition"
+              className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-400 text-white font-semibold px-5 py-2 rounded-full transition"
             >
               {submitting ? "Guardando..." : "Guardar y activar evento"}
             </button>

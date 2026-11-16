@@ -62,7 +62,7 @@ export default function TabCadenaConfianza({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={onOpenFamiliarModal}
-            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
+            className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>+ Sumar abuelo a este lugar</span>
@@ -111,7 +111,7 @@ export default function TabCadenaConfianza({
             return (
               <div
                 key={adulto.id}
-                className="border border-[#eaeced] rounded-xl p-3.5 flex flex-col justify-between gap-2 hover:border-[#0a4494]/40 transition"
+                className="border border-[#eaeced] rounded-xl p-3.5 flex flex-col justify-between gap-2 hover:border-[#a70355]/40 transition"
               >
                 <div className="space-y-1">
                   <div className="flex items-center justify-between gap-2">
@@ -133,7 +133,7 @@ export default function TabCadenaConfianza({
                     WhatsApp: <strong className="text-[#363f48]">{adulto.telefono}</strong> • Familiar: {adulto.contacto_familiar_nombre}
                   </div>
                   {padrinoPref && (
-                    <div className="text-[11px] text-[#0a4494] font-semibold">
+                    <div className="text-[11px] text-[#363f48] font-semibold">
                       Padrino habitual: {padrinoPref.nombre} ({padrinoPref.credencial_nro})
                     </div>
                   )}
@@ -141,11 +141,11 @@ export default function TabCadenaConfianza({
 
                 <div className="pt-2 border-t border-[#eaeced] flex items-center justify-between text-xs">
                   <span className="text-[#52606d]">
-                    Estado: <strong className="text-[#168003]">Activo en la sede</strong>
+                    Estado: <strong className="text-[#a70355]">Activo en la sede</strong>
                   </span>
                   <button
                     onClick={() => onOpenPhone(adulto.id)}
-                    className="text-[#0a4494] hover:underline font-semibold"
+                    className="text-[#a70355] hover:underline font-semibold"
                   >
                     Ver chat WhatsApp
                   </button>
@@ -282,7 +282,7 @@ export default function TabCadenaConfianza({
                   </span>
                   <button
                     onClick={() => onOpenPhone(pad.id)}
-                    className="text-[#004b87] hover:underline font-semibold"
+                    className="text-[#a70355] hover:underline font-semibold"
                   >
                     Ver chat
                   </button>

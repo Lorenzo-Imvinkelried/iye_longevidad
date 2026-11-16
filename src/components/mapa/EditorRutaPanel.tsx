@@ -68,14 +68,14 @@ export default function EditorRutaPanel({
           </span>
         </div>
         {distanceMeters ? (
-          <span className="text-[10px] font-bold bg-[#d0e6cd]/50 text-[#168003] px-2 py-0.5 rounded-full">
+          <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2 py-0.5 rounded-full">
             {(distanceMeters / 1000).toFixed(2)} km
           </span>
         ) : null}
       </div>
 
       <p className="text-[11px] text-[#52606d] leading-snug shrink-0">
-        Toca el mapa para agregar puntos o <strong>arrastra los marcadores</strong>. La linea verde sigue automaticamente las calles reales hasta la sede.
+        Toca el mapa para agregar puntos o <strong>arrastra los marcadores</strong>. La linea magenta sigue automaticamente las calles reales hasta la sede.
       </p>
 
       {/* Selector de que agrega al hacer clic en el mapa */}
@@ -85,7 +85,7 @@ export default function EditorRutaPanel({
           onClick={() => onChangeClickTool("via")}
           className={`py-1 px-2 rounded-full font-semibold transition ${
             clickTool === "via"
-              ? "bg-[#0a4494] text-white"
+              ? "bg-[#363f48] text-white"
               : "text-[#52606d] hover:text-[#363f48]"
           }`}
         >
@@ -126,7 +126,7 @@ export default function EditorRutaPanel({
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
                       className={`w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center shrink-0 ${
-                        isParada ? "bg-[#a70355]" : "bg-[#0a4494]"
+                        isParada ? "bg-[#a70355]" : "bg-[#52606d]"
                       }`}
                     >
                       {idx + 1}
@@ -202,7 +202,7 @@ export default function EditorRutaPanel({
                   </div>
                 ) : (
                   <div className="text-[10px] text-[#52606d] flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-[#0a4494]" />
+                    <MapPin className="w-3 h-3 text-[#a70355]" />
                     <span>
                       {node.lat.toFixed(5)}, {node.lng.toFixed(5)} (arrastrable)
                     </span>
@@ -220,7 +220,7 @@ export default function EditorRutaPanel({
             type="button"
             disabled={routingBusy}
             onClick={onRecalculateStreets}
-            className="flex-1 border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white text-[11px] font-semibold py-1.5 px-2.5 rounded-full transition flex items-center justify-center gap-1"
+            className="flex-1 border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white text-[11px] font-semibold py-1.5 px-2.5 rounded-full transition flex items-center justify-center gap-1"
           >
             <RefreshCw
               className={`w-3 h-3 ${routingBusy ? "animate-spin" : ""}`}

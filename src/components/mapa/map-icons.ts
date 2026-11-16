@@ -9,13 +9,13 @@ export function createClubIcon(
     className: "custom-leaflet-marker",
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);">
-        <div style="background:#0a4494;color:white;padding:6px 10px;border-radius:999px;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 4px 12px rgba(10,68,148,0.35);border:2px solid #ffffff;display:flex;align-items:center;gap:6px;">
+        <div style="background:#a70355;color:white;padding:6px 10px;border-radius:999px;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 4px 12px rgba(167,3,85,0.32);border:2px solid #ffffff;display:flex;align-items:center;gap:6px;">
           <span>${nombreCortoClub}</span>
-          <span style="background:#a70355;color:#ffffff;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:700;">
+          <span style="background:#ffffff;color:#a70355;padding:1px 7px;border-radius:999px;font-size:10px;font-weight:800;">
             ${validadosCount > 0 ? `${validadosCount} en lugar` : `${nivel3Count} directos`}
           </span>
         </div>
-        <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #0a4494;"></div>
+        <div style="width:0;height:0;border-left:6px solid transparent;border-right:6px solid transparent;border-top:8px solid #a70355;"></div>
       </div>
     `,
     iconSize: [0, 0],
@@ -29,7 +29,7 @@ export function createParadaIcon(
   count: number,
   editable = false
 ) {
-  const activeBg = editable ? "#a70355" : count > 0 ? "#0f766e" : "#475569";
+  const activeBg = editable ? "#a70355" : count > 0 ? "#363f48" : "#52606d";
 
   return L.divIcon({
     className: "custom-leaflet-marker",
@@ -54,7 +54,7 @@ export function createViaWaypointIcon(index: number) {
     className: "custom-leaflet-marker",
     html: `
       <div style="transform:translate(-50%,-50%);cursor:grab;">
-        <div style="width:20px;height:20px;border-radius:999px;background:#0a4494;color:#ffffff;border:2.5px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.35);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">
+        <div style="width:20px;height:20px;border-radius:999px;background:#52606d;color:#ffffff;border:2.5px solid #ffffff;box-shadow:0 2px 6px rgba(0,0,0,0.35);font-size:9px;font-weight:800;display:flex;align-items:center;justify-content:center;">
           ${index + 1}
         </div>
       </div>
@@ -98,9 +98,9 @@ export function createPadrinoIcon(nombreCorto: string, credencial: string) {
     className: "custom-leaflet-marker",
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);">
-        <div style="background:#3730a3;color:white;padding:3px 8px;border-radius:6px;font-weight:600;font-size:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:1.5px solid #ffffff;display:flex;align-items:center;gap:4px;">
+        <div style="background:#363f48;color:white;padding:3px 8px;border-radius:6px;font-weight:600;font-size:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:1.5px solid #ffffff;display:flex;align-items:center;gap:4px;">
           <span>Busca: ${nombreCorto}</span>
-          <span style="background:#e0e7ff;color:#1e1b4b;padding:0px 4px;border-radius:3px;font-weight:800;font-size:9px;">
+          <span style="background:#faf0f5;color:#a70355;padding:0px 4px;border-radius:3px;font-weight:800;font-size:9px;">
             ${credencial}
           </span>
         </div>

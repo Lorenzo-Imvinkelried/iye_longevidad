@@ -87,7 +87,7 @@ export default function PantallaLoginTutor({
               Panel de Coordinacion Barrial
             </span>
           </div>
-          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#0a4494] bg-[#cedaea]/35 px-3 py-1 rounded-full">
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#a70355] bg-[#faf0f5] border border-[#f4e1eb] px-3 py-1 rounded-full">
             <ShieldCheck className="w-3.5 h-3.5" />
             Red Acreditada Sancor
           </span>
@@ -154,7 +154,7 @@ export default function PantallaLoginTutor({
                     onClick={() => setMostrarClave((v) => !v)}
                     aria-label={mostrarClave ? "Ocultar clave" : "Ver clave"}
                     title={mostrarClave ? "Ocultar clave" : "Ver clave"}
-                    className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#52606d] hover:text-[#0a4494] transition"
+                    className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#52606d] hover:text-[#a70355] transition"
                   >
                     {mostrarClave ? (
                       <EyeOff className="w-4 h-4" />
@@ -169,7 +169,7 @@ export default function PantallaLoginTutor({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs py-2 px-4 rounded-full transition flex items-center justify-center gap-1.5"
+                  className="w-full bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs py-2 px-4 rounded-full transition flex items-center justify-center gap-1.5"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>{loading ? "Verificando..." : "Ingresar"}</span>
@@ -202,7 +202,7 @@ export default function PantallaLoginTutor({
               placeholder="Buscar por nombre, barrio o sede..."
               value={busquedaCoord}
               onChange={(e) => setBusquedaCoord(e.target.value)}
-              className="border border-[#c4c9cd] rounded-full px-3.5 py-1.5 text-xs text-[#363f48] w-full sm:w-64 shrink-0 focus:outline-none focus:border-[#0a4494]"
+              className="border border-[#c4c9cd] rounded-full px-3.5 py-1.5 text-xs text-[#363f48] w-full sm:w-64 shrink-0 focus:outline-none focus:border-[#a70355]"
             />
           </div>
 
@@ -235,7 +235,7 @@ export default function PantallaLoginTutor({
                           {(perfilCoordinador || tutor.notas_vulnerabilidad) && (
                             <p className="text-[11px] text-[#52606d] mt-0.5 leading-snug">
                               {perfilCoordinador && (
-                                <span className="font-semibold text-[#0a4494]">
+                                <span className="font-semibold text-[#363f48]">
                                   {perfilCoordinador}
                                 </span>
                               )}
@@ -244,7 +244,7 @@ export default function PantallaLoginTutor({
                             </p>
                           )}
                         </div>
-                        <span className="text-[10px] font-semibold text-[#168003] bg-[#d0e6cd]/40 border border-[#a2cc9a] px-2 py-0.5 rounded-full shrink-0">
+                        <span className="text-[10px] font-semibold text-[#52606d] bg-white border border-[#c4c9cd] px-2 py-0.5 rounded-full shrink-0">
                           Acreditado
                         </span>
                       </div>
@@ -252,14 +252,14 @@ export default function PantallaLoginTutor({
                       <div className="space-y-1 pt-1.5 border-t border-[#eaeced] text-xs text-[#52606d]">
                         {sedes.length === 0 ? (
                           <div className="text-[11px] flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-[#0a4494] shrink-0" />
+                            <MapPin className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
                             <span className="truncate">{tutor.direccion}</span>
                           </div>
                         ) : (
                           sedes.map((s) => (
                             <div key={s.id} className="space-y-0.5">
                               <div className="font-semibold text-[#363f48] text-xs flex items-center gap-1.5">
-                                <Building2 className="w-3.5 h-3.5 text-[#0a4494] shrink-0" />
+                                <Building2 className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
                                 <span className="truncate">{s.nombre_club}</span>
                               </div>
                               <div className="pl-5 text-[11px] text-[#52606d] truncate">

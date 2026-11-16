@@ -479,7 +479,7 @@ export default function TabMonitorCircuito({
               id="selector-evento-activo"
               value={jornada.id}
               onChange={(e) => onSelectEvento(e.target.value)}
-              className="flex-1 min-w-0 w-full bg-transparent text-xs font-bold text-[#0a4494] focus:outline-hidden truncate cursor-pointer"
+              className="flex-1 min-w-0 w-full bg-transparent text-xs font-bold text-[#a70355] focus:outline-hidden truncate cursor-pointer"
             >
               {listaEventos.map((j) => {
                 const c =
@@ -511,7 +511,7 @@ export default function TabMonitorCircuito({
               type="button"
               onClick={() => setListaAbuelosOpen(true)}
               title="Ver lista de abuelos en este evento"
-              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#168003] bg-[#d0e6cd]/40 hover:bg-[#d0e6cd]/75 px-2.5 py-1 rounded-full border border-[#a2cc9a] whitespace-nowrap transition cursor-pointer"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#363f48] bg-[#f6f6f7] hover:bg-[#faf0f5] hover:text-[#a70355] hover:border-[#dc9abb] px-2.5 py-1 rounded-full border border-[#c4c9cd] whitespace-nowrap transition cursor-pointer"
             >
               <span>
                 Activa ({adultosActivos.length} {adultosActivos.length === 1 ? "abuelo" : "abuelos"} en lista)
@@ -528,7 +528,7 @@ export default function TabMonitorCircuito({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={onOpenFamiliarModal}
-            className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>+ Sumar Abuelo</span>
@@ -543,7 +543,7 @@ export default function TabMonitorCircuito({
               onClick={() => setConfirmReenviarOpen(true)}
               disabled={loadingAction === "lanzar_convocatoria"}
               title="La convocatoria ya fue enviada. Hace clic para volver a enviarla."
-              className="border border-[#168003] bg-[#d0e6cd]/45 hover:bg-[#d0e6cd]/75 text-[#168003] font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+              className="border border-[#dc9abb] bg-[#faf0f5] hover:bg-[#f4e1eb] text-[#a70355] font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
             >
               <CheckCircle2 className="w-3.5 h-3.5" />
               <span>
@@ -562,7 +562,7 @@ export default function TabMonitorCircuito({
                 })
               }
               disabled={loadingAction === "lanzar_convocatoria"}
-              className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition shadow-xs flex items-center gap-1.5"
+              className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition shadow-xs flex items-center gap-1.5"
             >
               <Send className="w-3.5 h-3.5" />
               <span>
@@ -615,7 +615,7 @@ export default function TabMonitorCircuito({
                     nuevoPadrinoId: SEED_IDS.padrinoHector,
                   })
                 }
-                className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg"
+                className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-3 py-2 rounded-lg"
               >
                 Reasignar Padrino (#108)
               </button>
@@ -670,7 +670,7 @@ export default function TabMonitorCircuito({
                   key={adulto.id}
                   className={`p-3 rounded-lg border flex items-center justify-between gap-2 ${
                     leido
-                      ? "bg-emerald-50/60 border-emerald-200"
+                      ? "bg-[#f6f6f7] border-[#eaeced]"
                       : "bg-red-50/70 border-red-200"
                   }`}
                 >
@@ -682,7 +682,7 @@ export default function TabMonitorCircuito({
                     <span
                       className={`inline-block mt-1 text-[10px] font-bold px-2 py-0.5 rounded ${
                         leido
-                          ? "bg-emerald-100 text-emerald-800"
+                          ? "bg-[#faf0f5] text-[#a70355]"
                           : "bg-red-100 text-red-800"
                       }`}
                     >
@@ -767,10 +767,10 @@ export default function TabMonitorCircuito({
                   if (!ad) return null;
 
                   let estadoLabel = "Esperando";
-                  let badgeClass = "text-amber-800 bg-amber-50";
+                  let badgeClass = "text-[#52606d] bg-[#f6f6f7]";
                   if (a.estado_padrino === "confirmado") {
                     estadoLabel = "Confirmado";
-                    badgeClass = "text-[#168003] bg-[#d0e6cd]/40";
+                    badgeClass = "text-[#a70355] bg-[#faf0f5]";
                   } else if (a.estado_padrino === "rechazado_buscando_reemplazo") {
                     estadoLabel = "Sin padrino";
                     badgeClass = "text-[#bf2020] bg-[#f2d2d2]/40";
@@ -791,7 +791,7 @@ export default function TabMonitorCircuito({
                         </div>
                         <div className="text-[10px] text-[#52606d] truncate">
                           Busca:{" "}
-                          <strong className="text-[#0a4494]">
+                          <strong className="text-[#a70355]">
                             {pad ? `${pad.nombre} (${pad.credencial_nro || ""})` : "Sin asignar"}
                           </strong>
                         </div>
@@ -809,12 +809,12 @@ export default function TabMonitorCircuito({
           </div>
 
           {/* Paradas seguras */}
-          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
+          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#c4c9cd]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
                 Paradas seguras
               </span>
-              <span className="text-base font-bold text-[#0a4494]">
+              <span className="text-base font-bold text-[#363f48]">
                 {asistenciasNivel2.length}
               </span>
             </div>
@@ -834,7 +834,7 @@ export default function TabMonitorCircuito({
                     <span className="text-[#52606d] truncate">
                       Parada {idx + 1} ({parada.horario_paso})
                     </span>
-                    <span className="font-semibold text-[#0a4494] bg-[#cedaea]/40 px-2 py-0.5 rounded-full text-[10px] shrink-0">
+                    <span className="font-semibold text-[#363f48] bg-[#f6f6f7] border border-[#eaeced] px-2 py-0.5 rounded-full text-[10px] shrink-0">
                       {count === 1 ? "1 anotado" : `${count} anotados`}
                     </span>
                   </div>
@@ -844,12 +844,12 @@ export default function TabMonitorCircuito({
           </div>
 
           {/* Directo al club */}
-          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
+          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#52606d]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
                 Directo al club
               </span>
-              <span className="text-base font-bold text-[#0a4494]">
+              <span className="text-base font-bold text-[#363f48]">
                 {asistenciasNivel3.length}
               </span>
             </div>
@@ -907,12 +907,12 @@ export default function TabMonitorCircuito({
                   }
                 }}
                 title={`Copiar link para sumarse al chat de WhatsApp (${WHATSAPP_BOT_DISPLAY_PHONE})`}
-                className="border border-[#168003] bg-[#d0e6cd]/30 hover:bg-[#d0e6cd]/60 text-[#168003] text-[11px] font-semibold px-2.5 py-1 rounded-full transition flex items-center gap-1"
+                className="border border-[#c4c9cd] bg-white hover:border-[#a70355] hover:text-[#a70355] text-[#363f48] text-[11px] font-semibold px-2.5 py-1 rounded-full transition flex items-center gap-1"
               >
                 {linkCopiado ? (
                   <>
-                    <Check className="w-3 h-3" />
-                    <span>Link copiado!</span>
+                    <Check className="w-3 h-3 text-[#a70355]" />
+                    <span className="text-[#a70355]">Link copiado!</span>
                   </>
                 ) : (
                   <>
@@ -925,7 +925,7 @@ export default function TabMonitorCircuito({
                 <button
                   type="button"
                   onClick={handleStartEditRoute}
-                  className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white text-[11px] font-semibold px-3 py-1 rounded-full transition flex items-center gap-1"
+                  className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white text-[11px] font-semibold px-3 py-1 rounded-full transition flex items-center gap-1"
                 >
                   <Pencil className="w-3 h-3" />
                   <span>Editar ruta segura</span>
@@ -974,7 +974,7 @@ export default function TabMonitorCircuito({
                       setEditingAdultoId(null);
                       setEditAdultoError(null);
                     }}
-                    className="text-[#0a4494] hover:bg-[#cedaea]/40 rounded-full p-1 transition shrink-0"
+                    className="text-[#a70355] hover:bg-[#faf0f5] rounded-full p-1 transition shrink-0"
                   >
                     <ArrowLeft className="w-4 h-4" />
                   </button>
@@ -1249,7 +1249,7 @@ export default function TabMonitorCircuito({
                   <button
                     type="submit"
                     disabled={loadingAction === "actualizar_participante_adulto"}
-                    className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-400 text-white font-semibold px-5 py-2 rounded-full transition"
+                    className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-400 text-white font-semibold px-5 py-2 rounded-full transition"
                   >
                     {loadingAction === "actualizar_participante_adulto"
                       ? "Guardando..."
@@ -1290,24 +1290,24 @@ export default function TabMonitorCircuito({
                         }`;
                         estadoBadgeClass =
                           asis.estado_padrino === "confirmado"
-                            ? "bg-[#d0e6cd]/45 text-[#168003] border-[#a2cc9a]"
+                            ? "bg-[#faf0f5] text-[#a70355] border-[#e1a9c5]"
                             : asis.estado_padrino === "rechazado_buscando_reemplazo"
                             ? "bg-red-50 text-red-700 border-red-200"
-                            : "bg-amber-50 text-amber-800 border-amber-200";
+                            : "bg-[#f6f6f7] text-[#52606d] border-[#c4c9cd]";
                       } else if (asis?.modalidad_elegida === "nivel_2_esquina") {
                         estadoTexto = `Parada segura • ${
                           parada?.nombre_esquina || "Esquina elegida"
                         } (${parada?.horario_paso || jornada.hora_inicio_caminata})`;
                         estadoBadgeClass =
-                          "bg-[#d0e6cd]/45 text-[#168003] border-[#a2cc9a]";
+                          "bg-[#faf0f5] text-[#7d0240] border-[#e1a9c5]";
                       } else if (asis?.modalidad_elegida === "nivel_3_directo") {
                         estadoTexto = "Directo al club";
                         estadoBadgeClass =
-                          "bg-[#cedaea]/45 text-[#0a4494] border-[#b7c9e2]";
+                          "bg-[#f6f6f7] text-[#363f48] border-[#c4c9cd]";
                       } else if (asis?.modalidad_elegida === "no_asiste") {
                         estadoTexto = "No asiste hoy";
                         estadoBadgeClass =
-                          "bg-slate-100 text-slate-500 border-slate-200";
+                          "bg-[#f6f6f7] text-[#67717c] border-[#eaeced]";
                       }
 
                       return (
@@ -1324,7 +1324,7 @@ export default function TabMonitorCircuito({
                                 ({ad.edad} anos • DNI {ad.dni})
                               </span>
                               {asis?.presente_validado_en_club && (
-                                <span className="text-[10px] font-bold bg-[#d0e6cd]/60 text-[#168003] px-2 py-0.5 rounded-full whitespace-nowrap">
+                                <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2 py-0.5 rounded-full whitespace-nowrap">
                                   Presente en sede
                                 </span>
                               )}
@@ -1370,7 +1370,7 @@ export default function TabMonitorCircuito({
                         setListaAbuelosOpen(false);
                         onOpenFamiliarModal();
                       }}
-                      className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+                      className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
                       <span>+ Sumar Abuelo</span>
@@ -1379,7 +1379,7 @@ export default function TabMonitorCircuito({
                       href={buildWhatsAppInviteLink("Hola")}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="border border-[#168003] bg-[#d0e6cd]/30 hover:bg-[#d0e6cd]/60 text-[#168003] font-semibold text-xs px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5"
+                      className="border border-[#c4c9cd] bg-white hover:border-[#a70355] hover:text-[#a70355] text-[#363f48] font-semibold text-xs px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5"
                     >
                       <ExternalLink className="w-3.5 h-3.5" />
                       <span>Ir al chat ({WHATSAPP_BOT_DISPLAY_PHONE})</span>
@@ -1388,7 +1388,7 @@ export default function TabMonitorCircuito({
                   <button
                     type="button"
                     onClick={() => setListaAbuelosOpen(false)}
-                    className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
+                    className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
                   >
                     Cerrar
                   </button>
@@ -1410,9 +1410,9 @@ export default function TabMonitorCircuito({
           >
             <div className="flex items-center justify-between border-b border-[#eaeced] pb-3">
               <div className="flex items-center gap-2">
-                <CheckCircle2 className="w-5 h-5 text-[#168003]" />
+                <CheckCircle2 className="w-5 h-5 text-[#a70355]" />
                 <div>
-                  <div className="text-[10px] font-bold uppercase text-[#168003]">
+                  <div className="text-[10px] font-bold uppercase text-[#a70355]">
                     Convocatoria ya enviada
                   </div>
                   <h3 className="font-bold text-sm text-[#363f48]">
@@ -1472,7 +1472,7 @@ export default function TabMonitorCircuito({
                     forceResend: true,
                   });
                 }}
-                className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-400 text-white font-semibold px-4 py-2 rounded-full text-xs flex items-center gap-1.5 transition"
+                className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-400 text-white font-semibold px-4 py-2 rounded-full text-xs flex items-center gap-1.5 transition"
               >
                 <Send className="w-3.5 h-3.5" />
                 <span>Si, reenviar convocatoria</span>

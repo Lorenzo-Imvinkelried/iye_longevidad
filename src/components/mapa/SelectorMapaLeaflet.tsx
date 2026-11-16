@@ -23,7 +23,7 @@ interface SelectorLeafletProps {
 }
 
 function createPinIcon(label: string, active: boolean, isPickedPin: boolean) {
-  const bg = isPickedPin ? "#a70355" : active ? "#0a4494" : "#475569";
+  const bg = isPickedPin ? "#a70355" : active ? "#a70355" : "#52606d";
   return L.divIcon({
     className: "custom-selector-pin",
     html: `

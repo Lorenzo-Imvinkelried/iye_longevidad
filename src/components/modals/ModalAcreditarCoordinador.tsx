@@ -166,7 +166,7 @@ export default function ModalAcreditarCoordinador({
                   onClick={() => setMostrarClave((v) => !v)}
                   aria-label={mostrarClave ? "Ocultar clave" : "Ver clave"}
                   title={mostrarClave ? "Ocultar clave" : "Ver clave"}
-                  className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#52606d] hover:text-[#0a4494] transition"
+                  className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#52606d] hover:text-[#a70355] transition"
                 >
                   {mostrarClave ? (
                     <EyeOff className="w-4 h-4" />

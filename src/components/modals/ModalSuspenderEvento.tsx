@@ -95,7 +95,7 @@ export default function ModalSuspenderEvento({
               placeholder="Ej: Hoy no abrimos por lluvia!!"
               value={mensaje}
               onChange={(e) => setMensaje(e.target.value)}
-              className="w-full border border-[#c4c9cd] rounded-xl px-3 py-2 text-[#363f48] focus:outline-none focus:border-[#0a4494]"
+              className="w-full border border-[#c4c9cd] rounded-xl px-3 py-2 text-[#363f48] focus:outline-none focus:border-[#a70355]"
             />
 
             <div className="flex flex-wrap gap-1.5 mt-2">

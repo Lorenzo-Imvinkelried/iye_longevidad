@@ -163,9 +163,9 @@ export default function MapaCircuitoLeaflet({
         <Polyline
           positions={activeRoutePositions}
           pathOptions={{
-            color: editMode ? "#a70355" : "#34d399",
+            color: editMode ? "#dc9abb" : "#e1a9c5",
             weight: 12,
-            opacity: 0.25,
+            opacity: 0.35,
             lineCap: "round",
             lineJoin: "round",
           }}
@@ -176,10 +176,10 @@ export default function MapaCircuitoLeaflet({
           pathOptions={{
             color:
               jornada.estado === "suspendida_emergencia"
-                ? "#dc2626"
+                ? "#bf2020"
                 : editMode
-                ? "#a70355"
-                : "#059669",
+                ? "#7d0240"
+                : "#a70355",
             weight: 4.5,
             opacity: 0.92,
             dashArray: jornada.estado === "suspendida_emergencia" ? "8, 8" : undefined,
@@ -194,10 +194,10 @@ export default function MapaCircuitoLeaflet({
 
           const lineColor =
             asis.estado_padrino === "confirmado"
-              ? "#059669"
+              ? "#a70355"
               : asis.estado_padrino === "esperando_confirmacion"
-              ? "#d97706"
-              : "#dc2626";
+              ? "#67717c"
+              : "#bf2020";
 
           return (
             <Polyline
@@ -224,7 +224,7 @@ export default function MapaCircuitoLeaflet({
             <div className="p-1 min-w-[210px] space-y-1 text-xs">
               <div className="font-bold text-slate-900 text-sm">{circuito.nombre_club}</div>
               <div className="text-slate-600">{circuito.direccion_club}</div>
-              <div className="pt-1 border-t border-slate-100 text-emerald-700 font-semibold">
+              <div className="pt-1 border-t border-slate-100 text-[#a70355] font-semibold">
                 Poliza Sancor RC Activa ({(circuito.poliza_nro || "SANCOR-RC").split("|")[0]})
               </div>
               <div className="text-slate-700">
@@ -297,7 +297,7 @@ export default function MapaCircuitoLeaflet({
                     <div className="text-slate-600">
                       Horario de paso: <strong>{parada.horario_paso}</strong>
                     </div>
-                    <div className="text-emerald-700">{parada.estado_veredas}</div>
+                    <div className="text-[#52606d]">{parada.estado_veredas}</div>
                     <div className="pt-1 border-t border-slate-100">
                       <div className="font-semibold text-slate-700">
                         Esperando en esta esquina ({abuelosEnEsquina.length}):
@@ -356,46 +356,46 @@ export default function MapaCircuitoLeaflet({
           const padrino = participantes.find((p) => p.id === asis?.padrino_asignado_id);
           const primerNombre = adulto.nombre.split(" ")[0];
 
-          let colorHex = "#64748b";
+          let colorHex = "#67717c";
           let etiquetaEstado = "Pendiente";
           let isAlert = false;
 
           if (jornada.estado === "suspendida_emergencia") {
             if (asis?.acuse_suspension_leido) {
-              colorHex = "#059669";
+              colorHex = "#363f48";
               etiquetaEstado = "En casa";
             } else {
-              colorHex = "#dc2626";
+              colorHex = "#bf2020";
               etiquetaEstado = "Sin acuse";
               isAlert = true;
             }
           } else if (asis) {
             if (asis.presente_validado_en_club) {
-              colorHex = "#0284c7";
+              colorHex = "#363f48";
               etiquetaEstado = "En club";
             } else if (asis.modalidad_elegida === "nivel_1_puerta") {
               if (asis.estado_padrino === "esperando_confirmacion") {
-                colorHex = "#d97706";
+                colorHex = "#67717c";
                 etiquetaEstado = "Esp. padrino";
               } else if (asis.estado_padrino === "confirmado") {
-                colorHex = "#059669";
+                colorHex = "#a70355";
                 etiquetaEstado = `Con ${padrino?.nombre?.split(" ")[0] || padrino?.credencial_nro || "padrino"}`;
               } else if (asis.estado_padrino === "rechazado_buscando_reemplazo") {
-                colorHex = "#dc2626";
+                colorHex = "#bf2020";
                 etiquetaEstado = "Sin padrino";
                 isAlert = true;
               } else if (asis.estado_padrino === "sin_padrino_frenado") {
-                colorHex = "#475569";
+                colorHex = "#45515c";
                 etiquetaEstado = "Salida frenada";
               }
             } else if (asis.modalidad_elegida === "nivel_2_esquina") {
-              colorHex = "#0f766e";
+              colorHex = "#7d0240";
               etiquetaEstado = "En esquina";
             } else if (asis.modalidad_elegida === "nivel_3_directo") {
-              colorHex = "#0284c7";
+              colorHex = "#45515c";
               etiquetaEstado = "Va directo";
             } else if (asis.modalidad_elegida === "no_asiste") {
-              colorHex = "#94a3b8";
+              colorHex = "#9ea6ad";
               etiquetaEstado = "No asiste";
             }
           }
@@ -421,14 +421,14 @@ export default function MapaCircuitoLeaflet({
                     Estado: <strong>{etiquetaEstado}</strong>
                   </div>
                   {asis?.modalidad_elegida === "nivel_1_puerta" && padrino && (
-                    <div className="text-emerald-700 font-semibold">
+                    <div className="text-[#a70355] font-semibold">
                       Pasa a buscar: {padrino.nombre} ({padrino.credencial_nro})
                     </div>
                   )}
                   {onSelectPhoneInSimulator && (
                     <button
                       onClick={() => onSelectPhoneInSimulator(adulto.id)}
-                      className="w-full bg-[#004b87] hover:bg-[#003966] text-white text-xs font-semibold py-1.5 px-2.5 rounded-lg"
+                      className="w-full bg-[#a70355] hover:bg-[#8c0347] text-white text-xs font-semibold py-1.5 px-2.5 rounded-lg"
                     >
                       Ver chat en simulador
                     </button>

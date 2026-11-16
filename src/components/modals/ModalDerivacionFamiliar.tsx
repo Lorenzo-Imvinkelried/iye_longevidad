@@ -154,7 +154,7 @@ export default function ModalDerivacionFamiliar({
             }}
             className={`py-1.5 px-3 rounded-full font-semibold transition flex items-center justify-center gap-1.5 ${
               modo === "existente"
-                ? "bg-[#0a4494] text-white"
+                ? "bg-[#363f48] text-white"
                 : "text-[#52606d] hover:text-[#363f48]"
             }`}
           >
@@ -239,8 +239,8 @@ export default function ModalDerivacionFamiliar({
                             <span>{conflicto.mensaje}</span>
                           </div>
                         ) : (
-                          <div className="text-[11px] font-semibold text-[#168003] flex items-center gap-1 pt-0.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                          <div className="text-[11px] font-semibold text-[#52606d] flex items-center gap-1 pt-0.5">
+                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[#a70355]" />
                             <span>Disponible para sumar sin superposicion</span>
                           </div>
                         )}
@@ -253,7 +253,7 @@ export default function ModalDerivacionFamiliar({
                         className={`shrink-0 px-4 py-1.5 rounded-full font-semibold text-[11px] transition ${
                           conflicto
                             ? "bg-slate-200 text-slate-500 cursor-not-allowed"
-                            : "bg-[#0a4494] hover:bg-[#08397c] text-white"
+                            : "bg-[#a70355] hover:bg-[#8c0347] text-white"
                         }`}
                       >
                         {conflicto ? "Horario ocupado" : "Vincular al lugar"}
@@ -325,7 +325,7 @@ export default function ModalDerivacionFamiliar({
                 className={`p-2.5 rounded-lg border text-[11px] font-medium ${
                   conflictoForm
                     ? "bg-red-50 border-red-200 text-red-700"
-                    : "bg-blue-50 border-blue-200 text-[#0a4494]"
+                    : "bg-[#fdf9fb] border-[#edcddd] text-[#a70355]"
                 }`}
               >
                 {conflictoForm
@@ -393,7 +393,7 @@ export default function ModalDerivacionFamiliar({
                 onChange={(e) =>
                   setForm({ ...form, aprobarDirecto: e.target.checked })
                 }
-                className="mt-0.5 rounded border-[#c4c9cd] text-[#0a4494]"
+                className="mt-0.5 rounded border-[#c4c9cd] text-[#a70355] accent-[#a70355]"
               />
               <span className="text-[11px] text-[#363f48]">
                 <strong>Incorporar directamente a la lista activa de {nombreClub}</strong>{" "}
@@ -412,7 +412,7 @@ export default function ModalDerivacionFamiliar({
               <button
                 type="submit"
                 disabled={Boolean(conflictoForm) || saving}
-                className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-300 text-white font-semibold px-5 py-2 rounded-full transition"
+                className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-300 text-white font-semibold px-5 py-2 rounded-full transition"
               >
                 {saving
                   ? "Guardando..."

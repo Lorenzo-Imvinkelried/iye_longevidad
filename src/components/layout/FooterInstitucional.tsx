@@ -10,7 +10,7 @@ export default function FooterInstitucional({
   maxWidthClass = "max-w-[1600px]",
 }: FooterInstitucionalProps) {
   return (
-    <footer className="bg-white border-t border-[#eaeced] shrink-0">
+    <footer className="bg-[#f6f6f7] border-t border-[#eaeced] shrink-0">
       <div
         className={`${maxWidthClass} mx-auto px-3 sm:px-5 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2.5`}
       >
@@ -29,7 +29,7 @@ export default function FooterInstitucional({
               href="https://www.sancorseguros.com.ar/terminos-condiciones"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#0a4494] hover:underline font-medium"
+              className="text-[#a70355] hover:underline font-medium"
             >
               Términos y condiciones
             </a>{" "}
@@ -39,7 +39,7 @@ export default function FooterInstitucional({
               href="https://www.sancorseguros.com.ar/politicas-privacidad"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-[#0a4494] hover:underline font-medium"
+              className="text-[#a70355] hover:underline font-medium"
             >
               Políticas de privacidad
             </a>{" "}
@@ -50,30 +50,30 @@ export default function FooterInstitucional({
           </p>
         </div>
 
-        <div className="flex items-center gap-2.5 shrink-0">
+        <div className="flex items-center gap-3 shrink-0">
           <img
-            src="/logos/logo-QR.svg"
+            src="/logos/logo-QR.png"
             title="logo QR"
             alt="Logo QR"
-            width={28}
-            height={35}
+            width={26}
+            height={36}
             className="h-8 w-auto"
           />
           <img
-            src="/logos/logo-PDP.svg"
+            src="/logos/logo-PDP.jpg"
             title="logo PDP"
             alt="Logo PDP"
-            width={102}
-            height={34}
-            className="h-8 w-auto"
+            width={26}
+            height={36}
+            className="h-8 w-auto mix-blend-multiply"
           />
           <img
             src="/logos/logo_SSN.svg"
             title="logo SSN"
             alt="Logo SSN"
-            width={116}
-            height={34}
-            className="h-8 w-auto"
+            width={160}
+            height={23}
+            className="h-6 sm:h-7 w-auto"
           />
         </div>
       </div>

@@ -80,7 +80,7 @@ function ModalCargandoOverlay({ task }: { task: LoadingTask }) {
             </p>
           )}
         </div>
-        <div className="text-[11px] font-medium text-[#0a4494] bg-[#cedaea]/30 px-3 py-1 rounded-full">
+        <div className="text-[11px] font-medium text-[#a70355] bg-[#faf0f5] border border-[#f4e1eb] px-3 py-1 rounded-full">
           Aguarda un instante mientras se procesa...
         </div>
       </div>

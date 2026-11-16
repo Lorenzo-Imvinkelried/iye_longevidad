@@ -208,7 +208,7 @@ export default function SelectorMapaLugar({
               type="button"
               disabled={searching}
               onClick={handleSearchAddress}
-              className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
+              className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center gap-1 shrink-0"
             >
               <Search className="w-3.5 h-3.5" />
               <span>{searching ? "..." : "Buscar"}</span>
@@ -220,7 +220,7 @@ export default function SelectorMapaLugar({
             target="_blank"
             rel="noopener noreferrer"
             title="Abre Google Maps en tu navegador con tu sesion iniciada para ver tus lugares guardados"
-            className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 shrink-0 transition"
+            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3 py-1.5 rounded-lg flex items-center justify-center gap-1.5 shrink-0 transition"
           >
             <ExternalLink className="w-3.5 h-3.5" />
             <span>Abrir Google Maps</span>
@@ -245,7 +245,7 @@ export default function SelectorMapaLugar({
                   suggestedName: hit.name || undefined,
                 });
               }}
-              className="text-[10px] px-2.5 py-1 rounded-full bg-white border border-[#c4c9cd] hover:border-[#0a4494] text-[#363f48] truncate max-w-[230px]"
+              className="text-[10px] px-2.5 py-1 rounded-full bg-white border border-[#c4c9cd] hover:border-[#a70355] text-[#363f48] truncate max-w-[230px]"
             >
               <MapPin className="w-2.5 h-2.5 inline mr-1 text-[#a70355]" />
               {hit.display_name.split(",").slice(0, 2).join(",")}
@@ -270,7 +270,7 @@ export default function SelectorMapaLugar({
               Importar desde tu Google Maps (pega la URL del navegador o lat, lng):
             </label>
             {pickedCoords && (
-              <span className="text-[10px] font-mono text-[#168003] font-semibold">
+              <span className="text-[10px] font-mono text-[#a70355] font-semibold">
                 {pickedCoords.lat.toFixed(5)}, {pickedCoords.lng.toFixed(5)}
               </span>
             )}
@@ -283,7 +283,7 @@ export default function SelectorMapaLugar({
             className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-1.5 text-[11px] bg-[#f6f6f7]"
           />
           {mapsFeedback && (
-            <p className="text-[10px] text-[#0a4494] font-medium">{mapsFeedback}</p>
+            <p className="text-[10px] text-[#a70355] font-medium">{mapsFeedback}</p>
           )}
         </div>
       )}

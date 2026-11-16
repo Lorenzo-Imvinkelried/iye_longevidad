@@ -49,7 +49,7 @@ export default function TabRecepcionClub({
             <h2 className="text-base font-bold text-slate-900">
               Recepcion en {circuito.nombre_club}
             </h2>
-            <span className="text-[11px] font-bold bg-[#cedaea]/45 text-[#0a4494] px-2.5 py-0.5 rounded-full">
+            <span className="text-[11px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2.5 py-0.5 rounded-full">
               Presentes: {validadosCount} / {adultosActivos.length}
             </span>
           </div>
@@ -98,7 +98,7 @@ export default function TabRecepcionClub({
               adultosActivos.length === 0 ||
               !hayPendientes
             }
-            className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-300 text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
+            className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-300 text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>
@@ -159,7 +159,7 @@ export default function TabRecepcionClub({
                     {adulto.direccion} • DNI {adulto.dni}
                   </div>
                   {validado && (
-                    <div className="text-xs font-semibold text-emerald-700">
+                    <div className="text-xs font-semibold text-[#a70355]">
                       Presencia registrada en el encuentro de hoy
                     </div>
                   )}
@@ -168,14 +168,14 @@ export default function TabRecepcionClub({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => onOpenPhone(adulto.id)}
-                    className="border border-[#c4c9cd] text-[#52606d] hover:border-[#0a4494] hover:text-[#0a4494] text-xs font-medium px-3 py-1.5 rounded-full transition"
+                    className="border border-[#c4c9cd] text-[#52606d] hover:border-[#a70355] hover:text-[#a70355] text-xs font-medium px-3 py-1.5 rounded-full transition"
                   >
                     Ver chat
                   </button>
 
                   {validado ? (
                     <div className="flex items-center gap-1.5">
-                      <span className="bg-[#d0e6cd]/50 text-[#168003] border border-[#a2cc9a] font-semibold text-xs px-3 py-1.5 rounded-full inline-flex items-center gap-1">
+                      <span className="bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] font-semibold text-xs px-3 py-1.5 rounded-full inline-flex items-center gap-1">
                         <UserCheck className="w-3.5 h-3.5" />
                         <span>Presente</span>
                       </span>
@@ -205,7 +205,7 @@ export default function TabRecepcionClub({
                         })
                       }
                       disabled={loadingAction === "validar_club"}
-                      className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
+                      className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
                     >
                       Validar presencia
                     </button>

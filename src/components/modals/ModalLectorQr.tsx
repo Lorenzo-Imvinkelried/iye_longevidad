@@ -86,7 +86,7 @@ export default function ModalLectorQr({
                     DNI {ad.dni} • {jornada.hora_encuentro_club} hs
                   </div>
                 </div>
-                <span className="text-xs font-bold text-[#0a4494]">
+                <span className="text-xs font-bold text-[#a70355]">
                   {isThisValidating
                     ? "Validando..."
                     : yaValidado

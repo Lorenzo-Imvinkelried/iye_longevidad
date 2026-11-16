@@ -104,7 +104,7 @@ export default function HeaderInstitucional({
         <div className="flex flex-wrap items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={onOpenCrearEvento}
-            className="rounded-full bg-[#0a4494] hover:bg-[#08397c] text-white text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 transition flex items-center gap-1.5 shadow-xs"
+            className="rounded-full bg-[#a70355] hover:bg-[#8c0347] text-white text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 transition flex items-center gap-1.5 shadow-xs"
           >
             <CalendarPlus className="w-3.5 h-3.5" />
             <span>+ Nuevo Evento / Lugar</span>
@@ -115,7 +115,7 @@ export default function HeaderInstitucional({
             disabled={loadingReset}
             aria-label="Reiniciar configuracion inicial"
             title="Reiniciar configuracion inicial"
-            className="rounded-full border border-[#c4c9cd] text-[#52606d] hover:border-[#0a4494] hover:text-[#0a4494] bg-white text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5"
+            className="rounded-full border border-[#c4c9cd] text-[#52606d] hover:border-[#a70355] hover:text-[#a70355] bg-white text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingReset ? "animate-spin" : ""}`} />
             <span className="hidden sm:inline">Reiniciar</span>
@@ -126,8 +126,8 @@ export default function HeaderInstitucional({
             title="Abrir o cerrar Simulador de WhatsApp"
             className={`rounded-full text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5 border ${
               simulatorOpen
-                ? "bg-[#a70355] border-[#a70355] text-white"
-                : "border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white bg-white"
+                ? "bg-[#363f48] border-[#363f48] text-white"
+                : "border-[#c4c9cd] text-[#363f48] hover:border-[#a70355] hover:text-[#a70355] bg-white"
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -147,7 +147,7 @@ export default function HeaderInstitucional({
               className={`px-3 sm:px-4 py-1.5 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
                 active
                   ? "border-[#a70355] text-[#a70355] bg-white"
-                  : "border-transparent text-[#52606d] hover:text-[#0a4494]"
+                  : "border-transparent text-[#52606d] hover:text-[#a70355]"
               }`}
             >
               <span>{t.label}</span>
