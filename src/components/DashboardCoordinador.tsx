@@ -241,8 +241,19 @@ export default function DashboardCoordinador({
     setSimulatorOpen(true);
   };
 
+  const lockViewportDesktop =
+    activeTab === "tab1_monitor" &&
+    jornada.estado !== "suspendida_emergencia" &&
+    alertasPadrinoCaido.length === 0;
+
   return (
-    <div className="min-h-screen bg-[#f6f6f7] text-[#363f48] flex flex-col">
+    <div
+      className={
+        lockViewportDesktop
+          ? "min-h-screen lg:h-screen bg-[#f6f6f7] text-[#363f48] flex flex-col lg:overflow-hidden"
+          : "min-h-screen bg-[#f6f6f7] text-[#363f48] flex flex-col"
+      }
+    >
       <HeaderInstitucional
         nombreClub={circuito.nombre_club}
         nombreTutorActivo={tutorActivo?.nombre || "Coordinacion Barrial"}
@@ -267,9 +278,9 @@ export default function DashboardCoordinador({
         onLogoutTutor={handleLogoutTutor}
       />
 
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 py-3 space-y-3">
+      <main className="flex-1 min-h-0 max-w-[1600px] w-full mx-auto px-3 sm:px-5 py-2 flex flex-col gap-2">
         {actionError && (
-          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2 text-xs font-semibold text-red-700">
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2 flex items-center justify-between gap-2 text-xs font-semibold text-red-700 shrink-0">
             <div className="flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{actionError}</span>
@@ -283,7 +294,7 @@ export default function DashboardCoordinador({
           </div>
         )}
 
-        <div>
+        <div className="flex-1 min-h-0 flex flex-col">
           {activeTab === "tab1_monitor" && (
             <TabMonitorCircuito
               snapshot={vistaActual}

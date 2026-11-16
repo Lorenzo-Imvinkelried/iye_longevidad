@@ -65,7 +65,7 @@ export default function HeaderInstitucional({
     <header className="bg-white border-b border-[#eaeced] sticky top-0 z-30 shadow-xs">
       {/* Franja superior institucional estilo Sancor Seguros */}
       <div className="bg-[#a70355] text-white text-[11px] font-medium">
-        <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-1 flex items-center justify-between gap-2">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-0.5 flex items-center justify-between gap-2">
           <span className="truncate">
             Cuenta activa: <strong>{nombreTutorActivo}</strong> • Sede: {nombreClub}
           </span>
@@ -85,19 +85,19 @@ export default function HeaderInstitucional({
       </div>
 
       {/* Navbar principal blanco con logo oficial Sancor Seguros */}
-      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-1.5 flex flex-wrap items-center justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0">
           <img
             src="/sancor-logo.svg"
             alt="Sancor Seguros"
-            className="h-7 sm:h-8 w-auto shrink-0"
+            className="h-6 sm:h-7 w-auto shrink-0"
           />
           <span className="hidden sm:inline-block h-5 w-px bg-[#eaeced]" />
           <div className="min-w-0">
             <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
               {nombreClub}
             </h1>
-            <p className="text-[10px] text-[#52606d] truncate hidden sm:block">
+            <p className="text-[10px] text-[#52606d] truncate hidden sm:block leading-tight">
               Organizador: {nombreTutorActivo}
             </p>
           </div>
@@ -144,7 +144,7 @@ export default function HeaderInstitucional({
             <button
               key={t.id}
               onClick={() => onSelectTab(t.id)}
-              className={`px-3.5 sm:px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
+              className={`px-3 sm:px-4 py-1.5 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
                 active
                   ? "border-[#a70355] text-[#a70355] bg-white"
                   : "border-transparent text-[#52606d] hover:text-[#0a4494]"

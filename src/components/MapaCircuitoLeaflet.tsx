@@ -86,7 +86,7 @@ export default function MapaCircuitoLeaflet({
       : circuito.nombre_club;
 
   return (
-    <div className="relative w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-225px)] lg:min-h-[380px] lg:max-h-[700px] rounded-xl overflow-hidden border border-[#eaeced] bg-[#f6f6f7]">
+    <div className="relative w-full h-[300px] sm:h-[360px] lg:h-full rounded-xl overflow-hidden border border-[#eaeced] bg-[#f6f6f7]">
       <MapContainer
         center={center}
         zoom={16}

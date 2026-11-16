@@ -11,7 +11,7 @@ const MapaCircuitoLeaflet = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-215px)] rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-medium">
+      <div className="w-full h-[300px] sm:h-[360px] lg:h-full rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-medium">
         Cargando mapa del circuito barrial...
       </div>
     ),
@@ -78,9 +78,9 @@ export default function TabMonitorCircuito({
   );
 
   return (
-    <div className="space-y-3">
+    <div className="flex-1 min-h-0 flex flex-col gap-2">
       {/* Barra de control compacta estilo Sancor con selector de Evento / Lugar */}
-      <div className="bg-white rounded-xl px-4 py-2.5 border border-[#eaeced] flex flex-col xl:flex-row xl:items-center justify-between gap-2.5 shadow-xs">
+      <div className="bg-white rounded-xl px-3 py-1.5 border border-[#eaeced] flex flex-col lg:flex-row lg:items-center justify-between gap-2 shadow-xs shrink-0">
         <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2.5">
           <div className="flex items-center gap-1.5 bg-[#f6f6f7] border border-[#eaeced] rounded-lg px-2.5 py-1.5">
             <MapPin className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
@@ -285,11 +285,11 @@ export default function TabMonitorCircuito({
       )}
 
       {/* Vista principal: 3 Anillos a la izquierda + Mapa a la derecha (sin scroll en desktop) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+      <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-2.5 items-stretch">
         {/* Columna izquierda: 3 Anillos apilados */}
-        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 lg:max-h-[calc(100vh-175px)] lg:overflow-y-auto pr-0.5">
+        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 min-h-0 lg:overflow-y-auto pr-0.5">
           {/* Nivel 1 */}
-          <div className="bg-white rounded-xl p-3 border border-[#eaeced] border-t-2 border-t-[#a70355]">
+          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#a70355]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
                 Nivel 1: Puerta a puerta
@@ -301,7 +301,7 @@ export default function TabMonitorCircuito({
             <p className="text-[11px] text-[#52606d]">
               Padrino acreditado pasa por el domicilio.
             </p>
-            <div className="mt-2 pt-1.5 border-t border-[#eaeced] space-y-1">
+            <div className="mt-1.5 pt-1 border-t border-[#eaeced] space-y-0.5">
               {asistenciasNivel1.length === 0 ? (
                 <div className="text-[11px] text-[#9ea6ad]">Sin solicitudes aun.</div>
               ) : (
@@ -345,7 +345,7 @@ export default function TabMonitorCircuito({
           </div>
 
           {/* Nivel 2 */}
-          <div className="bg-white rounded-xl p-3 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
+          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
                 Nivel 2: Paradas seguras
@@ -357,7 +357,7 @@ export default function TabMonitorCircuito({
             <p className="text-[11px] text-[#52606d]">
               Esquinas relevadas con horario de paso.
             </p>
-            <div className="mt-2 pt-1.5 border-t border-[#eaeced] space-y-1">
+            <div className="mt-1.5 pt-1 border-t border-[#eaeced] space-y-0.5">
               {circuito.paradas_seguras.map((parada, idx) => {
                 const count = asistenciasNivel2.filter(
                   (a) => a.parada_esquina_id === parada.id
@@ -365,7 +365,7 @@ export default function TabMonitorCircuito({
                 return (
                   <div
                     key={parada.id}
-                    className="flex items-center justify-between text-xs py-1 px-1.5"
+                    className="flex items-center justify-between text-xs py-0.5 px-1.5"
                   >
                     <span className="text-[#52606d] truncate">
                       Parada {idx + 1} ({parada.horario_paso})
@@ -380,7 +380,7 @@ export default function TabMonitorCircuito({
           </div>
 
           {/* Nivel 3 */}
-          <div className="bg-white rounded-xl p-3 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
+          <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
                 Nivel 3: Directo al club
@@ -392,7 +392,7 @@ export default function TabMonitorCircuito({
             <p className="text-[11px] text-[#52606d]">
               Asisten a las {jornada.hora_encuentro_club} hs para los juegos.
             </p>
-            <div className="mt-2 pt-1.5 border-t border-[#eaeced] space-y-1">
+            <div className="mt-1.5 pt-1 border-t border-[#eaeced] space-y-0.5">
               {asistenciasNivel3.map((a) => {
                 const ad = participantes.find((p) => p.id === a.participante_id);
                 if (!ad) return null;
@@ -400,7 +400,7 @@ export default function TabMonitorCircuito({
                   <div
                     key={a.id}
                     onClick={() => onOpenPhone(ad.id)}
-                    className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-[#fdf9fb] cursor-pointer"
+                    className="flex items-center justify-between text-xs py-0.5 px-1.5 rounded hover:bg-[#fdf9fb] cursor-pointer"
                   >
                     <span className="font-medium text-[#363f48] truncate">
                       {ad.nombre}
@@ -416,8 +416,8 @@ export default function TabMonitorCircuito({
         </div>
 
         {/* Columna derecha: Mapa del circuito */}
-        <div className="lg:col-span-8 bg-white rounded-xl p-3 border border-[#eaeced] flex flex-col gap-2">
-          <div className="flex flex-wrap items-center justify-between gap-1">
+        <div className="lg:col-span-8 bg-white rounded-xl p-2.5 border border-[#eaeced] flex flex-col gap-1.5 min-h-0">
+          <div className="flex flex-wrap items-center justify-between gap-1 shrink-0">
             <h3 className="text-xs sm:text-sm font-bold text-[#363f48]">
               Mapa del Circuito: {circuito.nombre_barrio}
             </h3>
@@ -426,13 +426,15 @@ export default function TabMonitorCircuito({
             </span>
           </div>
 
-          <MapaCircuitoLeaflet
-            circuito={circuito}
-            jornada={jornada}
-            participantes={participantes}
-            asistencias={asistencias}
-            onSelectPhoneInSimulator={onOpenPhone}
-          />
+          <div className="flex-1 min-h-0">
+            <MapaCircuitoLeaflet
+              circuito={circuito}
+              jornada={jornada}
+              participantes={participantes}
+              asistencias={asistencias}
+              onSelectPhoneInSimulator={onOpenPhone}
+            />
+          </div>
         </div>
       </div>
     </div>
