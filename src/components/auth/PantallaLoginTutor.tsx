@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { CircuitoBarrial, Participante } from "@/types/domain";
+import FooterInstitucional from "@/components/layout/FooterInstitucional";
 import {
   Building2,
   Eye,
@@ -276,6 +277,8 @@ export default function PantallaLoginTutor({
           </div>
         </section>
       </main>
+
+      <FooterInstitucional maxWidthClass="max-w-[1200px]" />
     </div>
   );
 }

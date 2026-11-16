@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 216 72" width="102" height="34">
+  <rect x="1.5" y="1.5" width="213" height="69" rx="8" fill="#ffffff" stroke="#c4c9cd" stroke-width="2"/>
+  <rect x="8" y="8" width="54" height="56" rx="6" fill="#0a4494"/>
+  <text x="35" y="33" text-anchor="middle" fill="#ffffff" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="14">AAIP</text>
+  <line x1="16" y1="39" x2="54" y2="39" stroke="#ffffff" stroke-opacity="0.4" stroke-width="1"/>
+  <text x="35" y="53" text-anchor="middle" fill="#cedaea" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="12">PDP</text>
+  <text x="72" y="26" fill="#363f48" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="11.5">PROTECCION DE</text>
+  <text x="72" y="41" fill="#363f48" font-family="Montserrat, Arial, sans-serif" font-weight="700" font-size="11.5">DATOS PERSONALES</text>
+  <text x="72" y="56" fill="#52606d" font-family="Montserrat, Arial, sans-serif" font-weight="600" font-size="10">Registro Nacional • Ley 25.326</text>
+</svg>

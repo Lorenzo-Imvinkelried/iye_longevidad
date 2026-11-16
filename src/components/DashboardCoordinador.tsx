@@ -7,6 +7,7 @@ import {
   projectSnapshotForTutor,
 } from "@/lib/domain-helpers";
 import HeaderInstitucional, { TabId } from "@/components/layout/HeaderInstitucional";
+import FooterInstitucional from "@/components/layout/FooterInstitucional";
 import PantallaLoginTutor from "@/components/auth/PantallaLoginTutor";
 import TabMonitorCircuito from "@/components/tabs/TabMonitorCircuito";
 import TabRecepcionClub from "@/components/tabs/TabRecepcionClub";
@@ -474,6 +475,8 @@ function DashboardCoordinadorInner({
           {activeTab === "tab4_impacto" && <TabMetricasImpacto />}
         </div>
       </main>
+
+      <FooterInstitucional />
 
       {simulatorOpen && (
         <aside className="fixed inset-3 sm:inset-auto sm:right-4 sm:bottom-4 sm:top-20 sm:w-[390px] z-40 shadow-2xl rounded-xl">
