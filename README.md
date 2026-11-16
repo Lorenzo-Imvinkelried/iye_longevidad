@@ -1,4 +1,4 @@
-# "Nos encontramos al paso" — Red Comunitaria de Movimiento Activo y Pertenencia Barrial
+Red Comunitaria de Movimiento Activo y Pertenencia Barrial
 **Desafio de Innovacion Corporativa: Longevidad Activa (Silver Economy) — Sancor Seguros / Sancor Salud**  
 **Universidad Tecnologica Nacional (UTN) — Facultad Regional Santa Fe — Equipo 5**  
 *Integrantes: Macarena Diderle Vivas, Zoe Eandi, Victoria Sovrano, Lorenzo Imvinkelried*
