@@ -37,6 +37,23 @@ function verifyTutorPin(tutor: Participante, clave: string): boolean {
   return clave.trim() === "1234";
 }
 
+function ensureUniquePhone(
+  participantes: Participante[],
+  preferred?: string
+): string {
+  const candidate = (preferred || "").trim();
+  const isTaken = (tel: string) =>
+    participantes.some((p) => p.telefono.trim() === tel);
+  if (candidate && !isTaken(candidate)) {
+    return candidate;
+  }
+  let generated = "";
+  do {
+    generated = `+5493424${Math.floor(100000 + Math.random() * 899999)}`;
+  } while (isTaken(generated));
+  return generated;
+}
+
 function resolveEventForCoordinator(
   state: SystemSnapshot,
   jornadaId?: string
@@ -260,14 +277,14 @@ export async function registrarNuevoTutorYLugar(input: {
   const jornadaId = generateUuid();
   const pinHash = hashPin(input.claveTutor || "1234");
 
+  const telefonoUnico = ensureUniquePhone(state.participantes, input.telefonoTutor);
+
   const nuevoTutor: Participante = {
     id: tutorId,
     nombre: input.nombreTutor,
     edad: 45,
     dni: input.dniTutor || "25.100.200",
-    telefono:
-      input.telefonoTutor ||
-      `+5493424${Math.floor(100000 + Math.random() * 899999)}`,
+    telefono: telefonoUnico,
     rol: "coordinador",
     direccion: input.direccionLugar,
     coords_domicilio: preset.coordsClub,
@@ -1087,9 +1104,7 @@ export async function crearSolicitudNietoFamiliar(input: {
     nombre: input.nombreAdulto,
     edad: Number(input.edad) || 76,
     dni: input.dni || "09.123.456",
-    telefono:
-      input.telefonoAdulto ||
-      `+5493424${Math.floor(100000 + Math.random() * 899999)}`,
+    telefono: ensureUniquePhone(state.participantes, input.telefonoAdulto),
     rol: "adulto_mayor",
     direccion: input.direccion || "Marcial Candioti 3510, Barrio Candioti",
     coords_domicilio: {
@@ -1160,9 +1175,7 @@ export async function acreditarNuevoVecinoPadrino(input: {
     nombre: input.nombre,
     edad: Number(input.edad) || 65,
     dni: input.dni,
-    telefono:
-      input.telefono ||
-      `+5493424${Math.floor(100000 + Math.random() * 899999)}`,
+    telefono: ensureUniquePhone(state.participantes, input.telefono),
     rol: "padrino",
     direccion: input.direccion,
     coords_domicilio: {

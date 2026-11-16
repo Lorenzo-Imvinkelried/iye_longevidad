@@ -58,7 +58,7 @@ export default function PantallaLoginTutor({
     nombreTutor: "",
     dniTutor: "",
     claveTutor: "",
-    telefonoTutor: "+5493425001122",
+    telefonoTutor: "",
     especialidad: "Profesional de Salud / Tutor",
     nombreLugar: "",
     direccionLugar: "",

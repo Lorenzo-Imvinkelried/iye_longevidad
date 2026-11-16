@@ -234,6 +234,8 @@ export async function resetStateAsync(): Promise<SystemSnapshot> {
     try {
       const seedPartIds = fresh.participantes.map((p) => p.id);
       const seedAsisIds = fresh.asistencias.map((a) => a.id);
+      const seedJornIds = fresh.jornadas.map((j) => j.id);
+      const seedCircIds = fresh.circuitos.map((c) => c.id);
 
       const { data: existingAsis } = await supabase.from("asistencias").select("id");
       if (existingAsis) {
@@ -242,6 +244,28 @@ export async function resetStateAsync(): Promise<SystemSnapshot> {
           .filter((id) => !seedAsisIds.includes(id));
         if (extraAsis.length > 0) {
           await supabase.from("asistencias").delete().in("id", extraAsis);
+        }
+      }
+
+      const { data: existingJor } = await supabase.from("jornadas").select("id");
+      if (existingJor) {
+        const extraJor = existingJor
+          .map((r) => r.id as string)
+          .filter((id) => !seedJornIds.includes(id));
+        if (extraJor.length > 0) {
+          await supabase.from("jornadas").delete().in("id", extraJor);
+        }
+      }
+
+      const { data: existingCirc } = await supabase
+        .from("circuitos_barriales")
+        .select("id");
+      if (existingCirc) {
+        const extraCirc = existingCirc
+          .map((r) => r.id as string)
+          .filter((id) => !seedCircIds.includes(id));
+        if (extraCirc.length > 0) {
+          await supabase.from("circuitos_barriales").delete().in("id", extraCirc);
         }
       }
 
@@ -351,7 +375,7 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
 
   try {
     for (const c of state.circuitos) {
-      await supabase.from("circuitos_barriales").upsert({
+      const { error } = await supabase.from("circuitos_barriales").upsert({
         id: c.id,
         nombre_barrio: c.nombre_barrio,
         nombre_club: c.nombre_club,
@@ -362,10 +386,11 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         paradas_seguras: c.paradas_seguras,
         ruta_polilinea: c.ruta_polilinea,
       });
+      if (error) console.error("[Supabase upsert circuitos_barriales]", error.message);
     }
 
     for (const j of state.jornadas) {
-      await supabase.from("jornadas").upsert({
+      const { error } = await supabase.from("jornadas").upsert({
         id: j.id,
         circuito_id: j.circuito_id,
         fecha: j.fecha,
@@ -378,10 +403,11 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         motivo_suspension: j.motivo_suspension,
         updated_at: j.updated_at,
       });
+      if (error) console.error("[Supabase upsert jornadas]", error.message);
     }
 
     for (const p of state.participantes) {
-      await supabase.from("participantes").upsert({
+      const { error } = await supabase.from("participantes").upsert({
         id: p.id,
         nombre: p.nombre,
         edad: p.edad,
@@ -400,10 +426,11 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         notas_vulnerabilidad: p.notas_vulnerabilidad,
         estado_alta: p.estado_alta,
       });
+      if (error) console.error("[Supabase upsert participantes]", error.message);
     }
 
     for (const a of state.asistencias) {
-      await supabase.from("asistencias").upsert({
+      const { error } = await supabase.from("asistencias").upsert({
         id: a.id,
         jornada_id: a.jornada_id,
         participante_id: a.participante_id,
@@ -416,6 +443,7 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         codigo_canje_farmacia: a.codigo_canje_farmacia,
         updated_at: a.updated_at,
       });
+      if (error) console.error("[Supabase upsert asistencias]", error.message);
     }
   } catch (err) {
     console.warn("Sincronizacion opcional con Supabase omitida:", err);

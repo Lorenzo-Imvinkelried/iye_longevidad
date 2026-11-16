@@ -57,7 +57,7 @@ export default function ModalDerivacionFamiliar({
     nombreAdulto: "",
     edad: 77,
     dni: "",
-    telefonoAdulto: "+5493424889900",
+    telefonoAdulto: "",
     direccion: "Sarmiento 3485, Santa Fe",
     nombreFamiliar: "Inscripcion directa por Tutor",
     vinculo: "Coordinacion / Familiar",
@@ -306,11 +306,11 @@ export default function ModalDerivacionFamiliar({
               </div>
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">
-                  Telefono WhatsApp *
+                  Telefono WhatsApp (opcional)
                 </label>
                 <input
                   type="text"
-                  required
+                  placeholder="Ej: +5493424889900"
                   value={form.telefonoAdulto}
                   onChange={(e) => setForm({ ...form, telefonoAdulto: e.target.value })}
                   className="w-full border border-slate-300 rounded-lg px-3 py-2"
