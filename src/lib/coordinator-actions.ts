@@ -256,6 +256,7 @@ export async function registrarNuevoTutorYLugar(input: {
   actividadInicial: string;
   horaCaminata: string;
   horaEncuentro: string;
+  keepCurrentSession?: boolean;
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
 
@@ -350,9 +351,11 @@ export async function registrarNuevoTutorYLugar(input: {
   state.participantes.push(nuevoTutor);
   state.circuitos.unshift(nuevoCircuito);
   state.jornadas.unshift(nuevaJornada);
-  state.tutorActivoId = tutorId;
-  state.circuito = nuevoCircuito;
-  state.jornada = nuevaJornada;
+  if (!input.keepCurrentSession) {
+    state.tutorActivoId = tutorId;
+    state.circuito = nuevoCircuito;
+    state.jornada = nuevaJornada;
+  }
 
   // Vincular a Rosa y Jorge solo si no tienen conflicto horario en esa franja
   const adultosBase = [SEED_IDS.rosa, SEED_IDS.jorge];

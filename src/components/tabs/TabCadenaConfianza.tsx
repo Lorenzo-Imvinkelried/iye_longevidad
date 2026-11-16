@@ -10,6 +10,7 @@ interface TabConfianzaProps {
   onOpenPhone: (participanteId: string) => void;
   onOpenFamiliarModal: () => void;
   onOpenPadrinoModal: () => void;
+  onOpenCoordinadorModal: () => void;
 }
 
 export default function TabCadenaConfianza({
@@ -18,6 +19,7 @@ export default function TabCadenaConfianza({
   onOpenPhone,
   onOpenFamiliarModal,
   onOpenPadrinoModal,
+  onOpenCoordinadorModal,
 }: TabConfianzaProps) {
   const [selectedPadrinoForApproval, setSelectedPadrinoForApproval] = useState<
     Record<string, string>
@@ -72,6 +74,14 @@ export default function TabCadenaConfianza({
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Acreditar nuevo padrino</span>
+          </button>
+
+          <button
+            onClick={onOpenCoordinadorModal}
+            className="border border-[#363f48] text-[#363f48] hover:bg-[#363f48] hover:text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
+          >
+            <ShieldCheck className="w-3.5 h-3.5" />
+            <span>Acreditar coordinador</span>
           </button>
         </div>
       </div>

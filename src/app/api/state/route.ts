@@ -87,11 +87,36 @@ export async function POST(req: NextRequest) {
         });
       }
       case "registrar_tutor_lugar": {
-        const snapshot = await registrarNuevoTutorYLugar(body.payload);
+        if (!activeTutorId) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error:
+                "Solo un coordinador acreditado con sesion iniciada puede habilitar nuevos coordinadores.",
+            },
+            { status: 403 }
+          );
+        }
+        const currentRaw = await readStateAsync();
+        const esCoordinadorValido = currentRaw.participantes.some(
+          (p) => p.id === activeTutorId && p.rol === "coordinador"
+        );
+        if (!esCoordinadorValido) {
+          return NextResponse.json(
+            {
+              ok: false,
+              error: "Cuenta sin permisos de acreditacion.",
+            },
+            { status: 403 }
+          );
+        }
+        const snapshot = await registrarNuevoTutorYLugar({
+          ...body.payload,
+          keepCurrentSession: true,
+        });
         return NextResponse.json({
           ok: true,
-          tutorId: snapshot.tutorActivoId,
-          snapshot: sanitizeSnapshotForClient(snapshot),
+          snapshot: finalize(snapshot),
         });
       }
       case "crear_evento_lugar": {

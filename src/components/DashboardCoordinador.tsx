@@ -15,6 +15,7 @@ import TabMetricasImpacto from "@/components/tabs/TabMetricasImpacto";
 import ModalLectorQr from "@/components/modals/ModalLectorQr";
 import ModalDerivacionFamiliar from "@/components/modals/ModalDerivacionFamiliar";
 import ModalAcreditarPadrino from "@/components/modals/ModalAcreditarPadrino";
+import ModalAcreditarCoordinador from "@/components/modals/ModalAcreditarCoordinador";
 import ModalCrearEventoLugar from "@/components/modals/ModalCrearEventoLugar";
 import SimuladorWhatsApp from "@/components/SimuladorWhatsApp";
 import { AlertTriangle, X } from "lucide-react";
@@ -45,6 +46,7 @@ export default function DashboardCoordinador({
   const [qrModalOpen, setQrModalOpen] = useState<boolean>(false);
   const [familiarModalOpen, setFamiliarModalOpen] = useState<boolean>(false);
   const [padrinoModalOpen, setPadrinoModalOpen] = useState<boolean>(false);
+  const [coordinadorModalOpen, setCoordinadorModalOpen] = useState<boolean>(false);
   const [crearEventoModalOpen, setCrearEventoModalOpen] = useState<boolean>(false);
 
   const saveSession = (tutorId: string, jornadaId?: string | null) => {
@@ -154,48 +156,6 @@ export default function DashboardCoordinador({
     }
   };
 
-  const handleSelectDemoTutor = async (tutorId: string, jornadaId?: string) => {
-    setLoginError(null);
-    const res = await executeCoordinatorAction("seleccionar_evento", {
-      tutorId,
-      jornadaId,
-    });
-    if (res.ok && res.snapshot) {
-      const projected = projectSnapshotForTutor(res.snapshot, tutorId, jornadaId);
-      setSnapshot(projected);
-      setLoggedInTutorId(tutorId);
-      setSelectedJornadaId(projected.jornada.id);
-      saveSession(tutorId, projected.jornada.id);
-    }
-  };
-
-  const handleRegistrarNuevoTutor = async (payload: {
-    nombreTutor: string;
-    dniTutor: string;
-    claveTutor: string;
-    telefonoTutor: string;
-    especialidad: string;
-    nombreLugar: string;
-    direccionLugar: string;
-    zonaKey: string;
-    actividadInicial: string;
-    horaCaminata: string;
-    horaEncuentro: string;
-  }) => {
-    setLoginError(null);
-    const res = await executeCoordinatorAction("registrar_tutor_lugar", {
-      payload,
-    });
-    if (res.ok && res.snapshot) {
-      const newTutorId = res.snapshot.tutorActivoId;
-      const newJornadaId = res.snapshot.jornada.id;
-      setSnapshot(res.snapshot);
-      setLoggedInTutorId(newTutorId);
-      setSelectedJornadaId(newJornadaId);
-      saveSession(newTutorId, newJornadaId);
-    }
-  };
-
   const handleSelectEventoDelTutor = async (jornadaId: string) => {
     setSelectedJornadaId(jornadaId);
     if (loggedInTutorId) {
@@ -228,16 +188,9 @@ export default function DashboardCoordinador({
       <PantallaLoginTutor
         tutores={tutores}
         circuitos={snapshot.circuitos || [snapshot.circuito]}
-        jornadas={snapshot.jornadas || [snapshot.jornada]}
-        loading={
-          loadingAction === "login_tutor" ||
-          loadingAction === "seleccionar_evento" ||
-          loadingAction === "registrar_tutor_lugar"
-        }
+        loading={loadingAction === "login_tutor"}
         errorMessage={loginError}
         onLoginConClave={handleLoginWithClave}
-        onSelectDemoTutor={handleSelectDemoTutor}
-        onRegisterTutor={handleRegistrarNuevoTutor}
       />
     );
   }
@@ -358,6 +311,7 @@ export default function DashboardCoordinador({
               onOpenPhone={handleOpenPhoneInSimulator}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
               onOpenPadrinoModal={() => setPadrinoModalOpen(true)}
+              onOpenCoordinadorModal={() => setCoordinadorModalOpen(true)}
             />
           )}
 
@@ -429,6 +383,17 @@ export default function DashboardCoordinador({
         onClose={() => setPadrinoModalOpen(false)}
         onSubmit={async (payload) => {
           await executeCoordinatorAction("acreditar_padrino", { payload });
+        }}
+      />
+
+      <ModalAcreditarCoordinador
+        open={coordinadorModalOpen}
+        onClose={() => setCoordinadorModalOpen(false)}
+        onSubmit={async (payload) => {
+          const res = await executeCoordinatorAction("registrar_tutor_lugar", {
+            payload,
+          });
+          return { ok: res.ok, error: res.error };
         }}
       />
 
