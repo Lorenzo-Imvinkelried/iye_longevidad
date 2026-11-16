@@ -21,7 +21,7 @@ export default function DashboardCoordinador({
   const [snapshot, setSnapshot] = useState<SystemSnapshot>(initialSnapshot);
   const [activeTab, setActiveTab] = useState<TabId>("tab1_monitor");
   const [selectedPhoneId, setSelectedPhoneId] = useState<string>(SEED_IDS.rosa);
-  const [simulatorOpenMobile, setSimulatorOpenMobile] = useState<boolean>(false);
+  const [simulatorOpen, setSimulatorOpen] = useState<boolean>(false);
   const [loadingAction, setLoadingAction] = useState<string | null>(null);
 
   const [qrModalOpen, setQrModalOpen] = useState<boolean>(false);
@@ -82,7 +82,7 @@ export default function DashboardCoordinador({
 
   const handleOpenPhoneInSimulator = (partId: string) => {
     setSelectedPhoneId(partId);
-    setSimulatorOpenMobile(true);
+    setSimulatorOpen(true);
   };
 
   return (
@@ -96,12 +96,13 @@ export default function DashboardCoordinador({
         totalAdultos={adultosActivos.length}
         solicitudesCount={solicitudesPendientes.length}
         loadingReset={loadingAction === "reset_demo"}
+        simulatorOpen={simulatorOpen}
         onResetDemo={() => executeCoordinatorAction("reset_demo")}
-        onToggleMobileSim={() => setSimulatorOpenMobile(!simulatorOpenMobile)}
+        onToggleSim={() => setSimulatorOpen(!simulatorOpen)}
       />
 
-      <main className="flex-1 max-w-[1500px] w-full mx-auto px-4 sm:px-6 py-5 grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
-        <div className="lg:col-span-8">
+      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-5">
+        <div>
           {activeTab === "tab1_monitor" && (
             <TabMonitorCircuito
               snapshot={snapshot}
@@ -133,28 +134,25 @@ export default function DashboardCoordinador({
 
           {activeTab === "tab4_impacto" && <TabMetricasImpacto />}
         </div>
+      </main>
 
-        <div
-          className={`lg:col-span-4 lg:sticky lg:top-24 h-[720px] ${
-            simulatorOpenMobile ? "fixed inset-4 z-50 h-auto" : "hidden lg:block"
-          }`}
-        >
-          {simulatorOpenMobile && (
-            <button
-              onClick={() => setSimulatorOpenMobile(false)}
-              className="lg:hidden absolute -top-3 -right-3 z-50 bg-slate-900 text-white rounded-full p-2 shadow"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          )}
+      {simulatorOpen && (
+        <aside className="fixed right-4 bottom-4 top-24 w-[390px] max-w-[calc(100vw-2rem)] z-40 shadow-2xl rounded-xl">
+          <button
+            onClick={() => setSimulatorOpen(false)}
+            aria-label="Cerrar simulador"
+            className="absolute -top-2.5 -right-2.5 z-50 bg-slate-900 hover:bg-slate-800 text-white rounded-full p-1.5 shadow-md border border-slate-700"
+          >
+            <X className="w-4 h-4" />
+          </button>
           <SimuladorWhatsApp
             snapshot={snapshot}
             selectedPhoneId={selectedPhoneId}
             onSelectPhoneId={setSelectedPhoneId}
             onSnapshotUpdate={setSnapshot}
           />
-        </div>
-      </main>
+        </aside>
+      )}
 
       <ModalLectorQr
         open={qrModalOpen}

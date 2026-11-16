@@ -14,8 +14,9 @@ interface HeaderProps {
   totalAdultos: number;
   solicitudesCount: number;
   loadingReset: boolean;
+  simulatorOpen: boolean;
   onResetDemo: () => void;
-  onToggleMobileSim: () => void;
+  onToggleSim: () => void;
 }
 
 export default function HeaderInstitucional({
@@ -27,8 +28,9 @@ export default function HeaderInstitucional({
   totalAdultos,
   solicitudesCount,
   loadingReset,
+  simulatorOpen,
   onResetDemo,
-  onToggleMobileSim,
+  onToggleSim,
 }: HeaderProps) {
   const tabs: { id: TabId; label: string; badge?: string; isAlert?: boolean }[] = [
     {
@@ -76,11 +78,16 @@ export default function HeaderInstitucional({
           </button>
 
           <button
-            onClick={onToggleMobileSim}
-            className="lg:hidden bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3 py-2 rounded-lg flex items-center gap-1.5"
+            onClick={onToggleSim}
+            title="Abrir o cerrar Simulador de WhatsApp"
+            className={`text-xs font-medium px-2.5 py-2 rounded-lg transition flex items-center gap-1.5 border ${
+              simulatorOpen
+                ? "bg-emerald-600 border-emerald-500 text-white"
+                : "bg-white/10 hover:bg-white/20 border-white/15 text-sky-100"
+            }`}
           >
-            <Smartphone className="w-4 h-4" />
-            <span>Ver WhatsApp</span>
+            <Smartphone className="w-3.5 h-3.5" />
+            <span>{simulatorOpen ? "Ocultar simulador" : "Simulador"}</span>
           </button>
         </div>
       </div>
