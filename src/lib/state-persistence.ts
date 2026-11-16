@@ -98,6 +98,7 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
 
     if (asisRes.data && asisRes.data.length > 0) {
       state.asistencias = asisRes.data as Asistencia[];
+      reconcileSimulatorMessagesFromSupabase(state);
     }
 
     state.modoConexion = "supabase_realtime";
@@ -108,6 +109,75 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
   }
 
   return state;
+}
+
+/**
+ * Mantiene el panel lateral del simulador alineado cuando la respuesta entro por WhatsApp real
+ * en otra instancia serverless de Vercel y se guardo en Supabase.
+ */
+function reconcileSimulatorMessagesFromSupabase(state: SystemSnapshot) {
+  for (const asis of state.asistencias) {
+    const part = state.participantes.find((p) => p.id === asis.participante_id);
+    if (!part) continue;
+
+    const msgs = state.mensajes.filter((m) => m.participante_id === part.id);
+    const hasUserReply = msgs.some((m) => m.sender === "usuario");
+
+    if (asis.modalidad_elegida !== "sin_respuesta" && !hasUserReply) {
+      const firstName = part.nombre.split(" ")[0];
+      let replyLabel = "Respuesta recibida por WhatsApp";
+      let botConfirmation = "";
+
+      if (asis.modalidad_elegida === "nivel_1_puerta") {
+        replyLabel = "Pasen a buscarme";
+        const pad = state.participantes.find((p) => p.id === asis.padrino_asignado_id);
+        botConfirmation =
+          asis.estado_padrino === "confirmado" && pad
+            ? `Confirmado, ${firstName}. Pasa por tu puerta ${pad.nombre} (Credencial ${pad.credencial_nro}).`
+            : `Barbaro, ${firstName}. Ya le avisamos a tu vecino padrino para confirmar.`;
+      } else if (asis.modalidad_elegida === "nivel_2_esquina") {
+        const parada = state.circuito.paradas_seguras.find(
+          (ps) => ps.id === asis.parada_esquina_id
+        );
+        replyLabel = parada ? parada.nombre_esquina : "Voy a la esquina";
+        botConfirmation = parada
+          ? `Agendado, ${firstName}. Te esperamos en ${parada.nombre_esquina} (${parada.horario_paso}).`
+          : `Agendado, ${firstName}. Parada confirmada.`;
+      } else if (asis.modalidad_elegida === "nivel_3_directo") {
+        replyLabel = "Voy directo al club";
+        botConfirmation = `Excelente, ${firstName}. Te esperamos directamente a las ${state.jornada.hora_encuentro_club} hs en el ${state.circuito.nombre_club}.`;
+      } else if (asis.modalidad_elegida === "no_asiste") {
+        replyLabel = "No voy hoy";
+        botConfirmation = `Entendido, ${firstName}. Registramos que hoy no asistis.`;
+      }
+
+      state.mensajes.forEach((m) => {
+        if (m.participante_id === part.id && m.buttons) {
+          m.buttons = m.buttons.map((b) => ({ ...b, disabled: true }));
+        }
+      });
+
+      state.mensajes.push({
+        id: `msg-sync-usr-${part.id}-${asis.updated_at}`,
+        participante_id: part.id,
+        telefono: part.telefono,
+        sender: "usuario",
+        text: replyLabel,
+        timestamp: nowTimeStr(),
+      });
+
+      if (botConfirmation) {
+        state.mensajes.push({
+          id: `msg-sync-bot-${part.id}-${asis.updated_at}`,
+          participante_id: part.id,
+          telefono: part.telefono,
+          sender: "bot_sancor",
+          text: botConfirmation,
+          timestamp: nowTimeStr(),
+        });
+      }
+    }
+  }
 }
 
 export function writeState(state: SystemSnapshot): void {

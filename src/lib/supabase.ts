@@ -7,9 +7,16 @@ function cleanEnv(val?: string): string {
 const supabaseUrl =
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL) ||
   cleanEnv(process.env.SUPABASE_URL);
+
 const supabaseAnonKey =
   cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) ||
-  cleanEnv(process.env.SUPABASE_ANON_KEY);
+  cleanEnv(process.env.SUPABASE_ANON_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_DEFAULT_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.SUPABASE_PUBLISHABLE_KEY) ||
+  cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_KEY) ||
+  cleanEnv(process.env.SUPABASE_KEY);
+
 const supabaseServiceKey =
   cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) || supabaseAnonKey;
 
@@ -17,14 +24,15 @@ export function getSupabaseEnvDiagnostics() {
   return {
     hasUrl: Boolean(supabaseUrl),
     urlStartsWithHttp: supabaseUrl.startsWith("http"),
-    hasKey: Boolean(supabaseAnonKey),
+    hasKey: Boolean(supabaseAnonKey || supabaseServiceKey),
   };
 }
 
 export function isSupabaseConfigured(): boolean {
+  const activeKey = supabaseAnonKey || supabaseServiceKey;
   return (
     Boolean(supabaseUrl) &&
-    Boolean(supabaseAnonKey) &&
+    Boolean(activeKey) &&
     !supabaseUrl.includes("tu-proyecto.supabase.co") &&
     supabaseUrl.startsWith("http")
   );
@@ -36,13 +44,17 @@ let serverClient: SupabaseClient | null = null;
 export function getSupabaseBrowserClient(): SupabaseClient | null {
   if (!isSupabaseConfigured()) return null;
   if (!browserClient) {
-    browserClient = createClient(supabaseUrl, supabaseAnonKey, {
-      realtime: {
-        params: {
-          eventsPerSecond: 20,
+    browserClient = createClient(
+      supabaseUrl,
+      supabaseAnonKey || supabaseServiceKey,
+      {
+        realtime: {
+          params: {
+            eventsPerSecond: 20,
+          },
         },
-      },
-    });
+      }
+    );
   }
   return browserClient;
 }
