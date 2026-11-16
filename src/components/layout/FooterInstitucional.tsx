@@ -12,16 +12,16 @@ export default function FooterInstitucional({
   return (
     <footer className="bg-[#f6f6f7] border-t border-[#eaeced] shrink-0">
       <div
-        className={`${maxWidthClass} mx-auto px-3 sm:px-5 py-2 flex flex-col md:flex-row md:items-center justify-between gap-2.5`}
+        className={`${maxWidthClass} mx-auto px-3 sm:px-5 py-2.5 flex flex-col md:flex-row md:items-center justify-between gap-3`}
       >
-        <div className="flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4 min-w-0">
+        <div className="flex flex-col sm:flex-row sm:items-center gap-2.5 sm:gap-4 min-w-0">
           <img
             title="Grupo Sancor Seguros"
             alt="Grupo Sancor Seguros"
             src="/logos/marca-GSS.svg"
             width={246}
             height={48}
-            className="h-7 sm:h-8 w-auto shrink-0 self-start sm:self-auto"
+            className="h-9 sm:h-10 w-auto shrink-0 self-start sm:self-auto"
           />
           <p className="text-[11px] leading-snug text-[#52606d]">
             <a
@@ -50,30 +50,30 @@ export default function FooterInstitucional({
           </p>
         </div>
 
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-3.5 shrink-0">
           <img
             src="/logos/logo-QR.png"
             title="logo QR"
             alt="Logo QR"
-            width={26}
-            height={36}
-            className="h-8 w-auto"
+            width={37}
+            height={50}
+            className="h-11 sm:h-12 w-auto"
           />
           <img
             src="/logos/logo-PDP.jpg"
             title="logo PDP"
             alt="Logo PDP"
-            width={26}
-            height={36}
-            className="h-8 w-auto mix-blend-multiply"
+            width={37}
+            height={48}
+            className="h-11 sm:h-12 w-auto mix-blend-multiply"
           />
           <img
             src="/logos/logo_SSN.svg"
             title="logo SSN"
             alt="Logo SSN"
-            width={160}
-            height={23}
-            className="h-6 sm:h-7 w-auto"
+            width={254}
+            height={36}
+            className="h-8 sm:h-9 w-auto"
           />
         </div>
       </div>
