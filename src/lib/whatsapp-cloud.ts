@@ -64,9 +64,25 @@ function buildMetaPayload(
       };
 }
 
+function buildArgentinaPhoneCandidates(cleanPhone: string): string[] {
+  const candidates = new Set<string>([cleanPhone]);
+  if (cleanPhone.startsWith("549") && cleanPhone.length === 13) {
+    const rest = cleanPhone.slice(3);
+    candidates.add(`54${rest}`);
+    candidates.add(`54${rest.slice(0, 4)}15${rest.slice(4)}`);
+    candidates.add(`54${rest.slice(0, 3)}15${rest.slice(3)}`);
+    if (rest.startsWith("11")) {
+      candidates.add(`541115${rest.slice(2)}`);
+    }
+  } else if (cleanPhone.startsWith("54") && !cleanPhone.startsWith("549")) {
+    candidates.add(`549${cleanPhone.slice(2)}`);
+  }
+  return Array.from(candidates);
+}
+
 /**
  * Envia un mensaje 1 a 1 por WhatsApp Cloud API Oficial (Meta Graph API v21.0).
- * Soporta automaticamente la variante de numeracion Argentina con y sin el prefijo 9 (549... / 54...).
+ * Soporta automaticamente variantes de numeracion Argentina (549..., 54..., 54+<area>+15+...).
  */
 export async function sendWhatsAppCloudMessage(
   toPhone: string,
@@ -87,33 +103,30 @@ export async function sendWhatsAppCloudMessage(
   const phoneId = cleanEnv(process.env.WHATSAPP_PHONE_ID);
   const token = cleanEnv(process.env.WHATSAPP_TOKEN);
   const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
+  const phoneCandidates = buildArgentinaPhoneCandidates(cleanPhone);
 
   try {
-    let res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(payload),
-    });
-
-    // Si es un numero de Argentina (549...) y Meta lo tiene agendado sin el 9 (54...), reintentar automaticamente
-    if (!res.ok && res.status !== 401 && cleanPhone.startsWith("549")) {
-      const altPhone = "54" + cleanPhone.slice(3);
-      const altPayload = buildMetaPayload(altPhone, bodyText, activeButtons);
-      const altRes = await fetch(endpoint, {
+    let lastRes: Response | null = null;
+    for (const candidatePhone of phoneCandidates) {
+      const candidatePayload =
+        candidatePhone === cleanPhone
+          ? payload
+          : buildMetaPayload(candidatePhone, bodyText, activeButtons);
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify(altPayload),
+        body: JSON.stringify(candidatePayload),
       });
-      if (altRes.ok) {
-        res = altRes;
+      lastRes = res;
+      if (res.ok || res.status === 401) {
+        break;
       }
     }
+
+    const res = lastRes!;
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
