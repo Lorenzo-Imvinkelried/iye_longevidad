@@ -818,30 +818,37 @@ export default function TabMonitorCircuito({
                   return (
                     <div
                       key={ad.id}
-                      className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                      className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
                     >
-                      <div className="min-w-0 space-y-0.5">
+                      <div className="flex-1 min-w-0 space-y-1">
                         <div className="flex items-center gap-2 flex-wrap">
                           <span className="font-bold text-[#363f48]">
                             {ad.nombre}
                           </span>
-                          <span className="text-[11px] text-[#52606d]">
+                          <span className="text-[11px] text-[#52606d] whitespace-nowrap">
                             ({ad.edad} anos • DNI {ad.dni})
                           </span>
                           {asis?.presente_validado_en_club && (
-                            <span className="text-[10px] font-bold bg-[#d0e6cd]/60 text-[#168003] px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-bold bg-[#d0e6cd]/60 text-[#168003] px-2 py-0.5 rounded-full whitespace-nowrap">
                               Presente en sede
                             </span>
                           )}
                         </div>
-                        <div className="text-[11px] text-[#52606d] truncate">
-                          {ad.direccion} • Tel: {ad.telefono}
+                        <div className="text-[11px] text-[#52606d] flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                          <span>{ad.direccion}</span>
+                          <span className="text-[#c4c9cd]">•</span>
+                          <span className="whitespace-nowrap">
+                            Tel:{" "}
+                            <strong className="text-[#363f48] font-semibold select-all">
+                              {ad.telefono}
+                            </strong>
+                          </span>
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 shrink-0">
+                      <div className="flex items-center gap-2 flex-wrap sm:justify-end sm:max-w-[52%] shrink-0">
                         <span
-                          className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${estadoBadgeClass}`}
+                          className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-xl border leading-snug ${estadoBadgeClass}`}
                         >
                           {estadoTexto}
                         </span>
