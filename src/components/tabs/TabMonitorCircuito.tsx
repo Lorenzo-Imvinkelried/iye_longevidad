@@ -1355,16 +1355,6 @@ export default function TabMonitorCircuito({
                               <Pencil className="w-3 h-3" />
                               <span>Editar</span>
                             </button>
-                            <button
-                              type="button"
-                              onClick={() => {
-                                setListaAbuelosOpen(false);
-                                onOpenPhone(ad.id);
-                              }}
-                              className="text-[11px] font-semibold text-[#0a4494] hover:underline whitespace-nowrap"
-                            >
-                              Ver WhatsApp
-                            </button>
                           </div>
                         </div>
                       );
