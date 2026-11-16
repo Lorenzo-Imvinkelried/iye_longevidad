@@ -91,8 +91,8 @@ export async function procesarEventoWebhookWhatsApp(params: {
   const actor = state.participantes.find((p) => {
     if (params.participanteId && p.id === params.participanteId) return true;
     if (params.fromPhone) {
-      const pDigits = p.telefono.replace(/[^0-9]/g, "").slice(-10);
-      const fromDigits = params.fromPhone.replace(/[^0-9]/g, "").slice(-10);
+      const pDigits = p.telefono.replace(/[^0-9]/g, "").slice(-6);
+      const fromDigits = params.fromPhone.replace(/[^0-9]/g, "").slice(-6);
       if (pDigits && pDigits === fromDigits) return true;
     }
     return false;

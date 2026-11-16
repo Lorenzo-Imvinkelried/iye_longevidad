@@ -117,7 +117,7 @@ export function buildInitialState(): SystemSnapshot {
       nombre: "Rosa Martinez",
       edad: 74,
       dni: "10.312.445",
-      telefono: "+5493496504079",
+      telefono: "+54349615504079",
       rol: "adulto_mayor",
       direccion: "Sarmiento 3452, Barrio Candioti",
       coords_domicilio: { lat: -31.6342, lng: -60.6878 },
@@ -320,7 +320,7 @@ export function buildInitialState(): SystemSnapshot {
     {
       id: "msg-init-rosa-1",
       participante_id: SEED_IDS.rosa,
-      telefono: "+5493496504079",
+      telefono: "+54349615504079",
       sender: "bot_sancor",
       text: `Buen dia, Rosa. Hoy 15:40 hs nos encontramos en el Centro de Jubilados y Club Candioti "La Union" para caminar juntos y cerrar con Torneo de Truco, Canasta y Bingo Recreativo. Asistiendo hoy sumas *$2.500 de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
       timestamp: "09:30",
