@@ -1,3 +1,4 @@
+import crypto from "crypto";
 import {
   CircuitoBarrial,
   Jornada,
@@ -5,6 +6,11 @@ import {
   SEED_IDS,
   SystemSnapshot,
 } from "@/types/domain";
+import {
+  findExistingSeniorByDniOrPhone,
+  findScheduleConflict,
+  normalizeDni,
+} from "@/lib/domain-helpers";
 import {
   addLog,
   appendBotMessage,
@@ -14,6 +20,37 @@ import {
   syncToSupabaseIfConfigured,
   writeState,
 } from "@/lib/state-persistence";
+
+function hashPin(pin: string): string {
+  return crypto
+    .createHash("sha256")
+    .update(`sancor-longevidad:${pin.trim()}`)
+    .digest("hex")
+    .slice(0, 16);
+}
+
+function verifyTutorPin(tutor: Participante, clave: string): boolean {
+  const match = (tutor.notas_vulnerabilidad || "").match(/\|pin:([a-f0-9]+)/i);
+  if (match) {
+    return match[1] === hashPin(clave);
+  }
+  return clave.trim() === "1234";
+}
+
+function resolveEventForCoordinator(
+  state: SystemSnapshot,
+  jornadaId?: string
+): { targetJornada: Jornada; targetCircuito: CircuitoBarrial } {
+  const targetJornada =
+    (jornadaId && state.jornadas.find((j) => j.id === jornadaId)) ||
+    state.jornada;
+  const targetCircuito =
+    state.circuitos.find((c) => c.id === targetJornada.circuito_id) ||
+    state.circuito;
+  state.jornada = targetJornada;
+  state.circuito = targetCircuito;
+  return { targetJornada, targetCircuito };
+}
 
 export const BARRIOS_SANTA_FE_PRESETS: Record<
   string,
@@ -115,6 +152,44 @@ function syncActiveJornadaIntoArray(state: SystemSnapshot) {
   }
 }
 
+export async function loginTutorConClave(input: {
+  identificador: string;
+  clave: string;
+}): Promise<{ ok: boolean; tutorId?: string; snapshot?: SystemSnapshot; error?: string }> {
+  const state = await readStateAsync();
+  const qNorm = normalizeDni(input.identificador);
+  const qLower = (input.identificador || "").trim().toLowerCase();
+
+  const tutor = state.participantes.find((p) => {
+    if (p.rol !== "coordinador") return false;
+    if (qNorm && normalizeDni(p.dni) === qNorm) return true;
+    return p.nombre.toLowerCase() === qLower;
+  });
+
+  if (!tutor || !verifyTutorPin(tutor, input.clave || "")) {
+    return {
+      ok: false,
+      error: "DNI / Usuario o clave incorrectos. Podes crear una cuenta nueva o usar el acceso Demo.",
+    };
+  }
+
+  state.tutorActivoId = tutor.id;
+  const tutorCircuitos = state.circuitos
+    .filter((c) => (c.poliza_nro || "").includes(`tutor:${tutor.id}`))
+    .map((c) => c.id);
+  const targetJornada =
+    state.jornadas.find((j) => tutorCircuitos.includes(j.circuito_id)) ||
+    state.jornada;
+
+  state.jornada = targetJornada;
+  state.circuito =
+    state.circuitos.find((c) => c.id === targetJornada.circuito_id) ||
+    state.circuito;
+
+  writeState(state);
+  return { ok: true, tutorId: tutor.id, snapshot: state };
+}
+
 export async function seleccionarEventoActivo(params: {
   jornadaId?: string;
   tutorId?: string;
@@ -129,7 +204,6 @@ export async function seleccionarEventoActivo(params: {
   if (params.jornadaId) {
     targetJornada = state.jornadas.find((j) => j.id === params.jornadaId);
   } else if (params.tutorId) {
-    // Buscar los lugares asociados a este tutor
     const tutorCircuitos = state.circuitos
       .filter((c) => (c.poliza_nro || "").includes(`tutor:${params.tutorId}`))
       .map((c) => c.id);
@@ -156,6 +230,7 @@ export async function seleccionarEventoActivo(params: {
 export async function registrarNuevoTutorYLugar(input: {
   nombreTutor: string;
   dniTutor: string;
+  claveTutor: string;
   telefonoTutor: string;
   especialidad: string;
   nombreLugar: string;
@@ -166,12 +241,24 @@ export async function registrarNuevoTutorYLugar(input: {
   horaEncuentro: string;
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
+
+  const dniNorm = normalizeDni(input.dniTutor);
+  const yaExiste = state.participantes.find(
+    (p) => p.rol === "coordinador" && dniNorm && normalizeDni(p.dni) === dniNorm
+  );
+  if (yaExiste) {
+    throw new Error(
+      `Ya existe una cuenta registrada con el DNI/Usuario "${input.dniTutor}". Ingresa con tu clave en "Ingresar con mi cuenta".`
+    );
+  }
+
   const preset =
     BARRIOS_SANTA_FE_PRESETS[input.zonaKey] || BARRIOS_SANTA_FE_PRESETS.candioti;
 
   const tutorId = generateUuid();
   const circuitoId = generateUuid();
   const jornadaId = generateUuid();
+  const pinHash = hashPin(input.claveTutor || "1234");
 
   const nuevoTutor: Participante = {
     id: tutorId,
@@ -191,7 +278,7 @@ export async function registrarNuevoTutorYLugar(input: {
     saldo_reintegro_sancor: 0,
     contacto_familiar_nombre: input.nombreLugar,
     contacto_familiar_tel: input.telefonoTutor || "+5493424551234",
-    notas_vulnerabilidad: `Responsable de ${input.nombreLugar}`,
+    notas_vulnerabilidad: `Responsable de ${input.nombreLugar} |pin:${pinHash}`,
     estado_alta: "activo",
   };
 
@@ -209,7 +296,7 @@ export async function registrarNuevoTutorYLugar(input: {
         nombre_esquina: preset.parada1.nombre,
         lat: preset.parada1.lat,
         lng: preset.parada1.lng,
-        horario_paso: input.horaCaminata || "16:00 hs",
+        horario_paso: `${input.horaCaminata || "18:00"} hs`,
         estado_veredas: "Esquina relevada con rampa peatonal",
         tiene_rampa: true,
         iluminacion_ok: true,
@@ -219,7 +306,7 @@ export async function registrarNuevoTutorYLugar(input: {
         nombre_esquina: preset.parada2.nombre,
         lat: preset.parada2.lat,
         lng: preset.parada2.lng,
-        horario_paso: input.horaEncuentro || "16:15 hs",
+        horario_paso: `${input.horaEncuentro || "18:20"} hs`,
         estado_veredas: "Corredor seguro iluminado",
         tiene_rampa: true,
         iluminacion_ok: true,
@@ -232,8 +319,8 @@ export async function registrarNuevoTutorYLugar(input: {
     id: jornadaId,
     circuito_id: circuitoId,
     fecha: new Date().toISOString().split("T")[0],
-    hora_inicio_caminata: input.horaCaminata || "16:00",
-    hora_encuentro_club: input.horaEncuentro || "16:30",
+    hora_inicio_caminata: input.horaCaminata || "18:00",
+    hora_encuentro_club: input.horaEncuentro || "18:20",
     actividad_cierre:
       input.actividadInicial || "Encuentro Recreativo, Juegos de Mesa y Mateada",
     monto_reintegro_asistencia: 2500,
@@ -250,31 +337,46 @@ export async function registrarNuevoTutorYLugar(input: {
   state.circuito = nuevoCircuito;
   state.jornada = nuevaJornada;
 
-  // Vincular a Rosa (para probar WhatsApp real) y a Jorge al nuevo lugar/evento por defecto
+  // Vincular a Rosa y Jorge solo si no tienen conflicto horario en esa franja
   const adultosBase = [SEED_IDS.rosa, SEED_IDS.jorge];
+  const vinculados: string[] = [];
   for (const adId of adultosBase) {
     const ad = state.participantes.find((p) => p.id === adId);
     if (!ad) continue;
-    state.asistencias.push({
-      id: generateUuid(),
-      jornada_id: jornadaId,
-      participante_id: ad.id,
-      modalidad_elegida: "sin_respuesta",
-      parada_esquina_id: null,
-      padrino_asignado_id: ad.padrino_preferido_id || SEED_IDS.padrinoCarlos,
-      estado_padrino: "no_aplica",
-      acuse_suspension_leido: false,
-      presente_validado_en_club: false,
-      codigo_canje_farmacia: null,
-      updated_at: new Date().toISOString(),
-    });
+    const conflicto = findScheduleConflict(
+      ad.id,
+      nuevaJornada,
+      state.jornadas,
+      state.asistencias,
+      state.circuitos
+    );
+    if (!conflicto) {
+      state.asistencias.push({
+        id: generateUuid(),
+        jornada_id: jornadaId,
+        participante_id: ad.id,
+        modalidad_elegida: "sin_respuesta",
+        parada_esquina_id: null,
+        padrino_asignado_id: ad.padrino_preferido_id || SEED_IDS.padrinoCarlos,
+        estado_padrino: "no_aplica",
+        acuse_suspension_leido: false,
+        presente_validado_en_club: false,
+        codigo_canje_farmacia: null,
+        updated_at: new Date().toISOString(),
+      });
+      vinculados.push(ad.nombre);
+    }
   }
 
   addLog(
     state,
     nuevoTutor.nombre,
     "Nuevo Perfil y Lugar Creado",
-    `Se registro ${nuevoTutor.nombre} con sede en ${nuevoCircuito.nombre_club}.`,
+    `Se registro ${nuevoTutor.nombre} con sede en ${nuevoCircuito.nombre_club}. ${
+      vinculados.length > 0
+        ? `Participantes iniciales sin superposicion: ${vinculados.join(", ")}.`
+        : "Podes sumar abuelos a tu lista desde + Sumar Abuelo."
+    }`,
     "success"
   );
 
@@ -366,7 +468,7 @@ export async function crearNuevoEventoOLugar(input: {
   state.jornada = nuevaJornada;
   state.circuito = targetCircuito;
 
-  // Copiar el padron de adultos mayores activos de este lugar / tutor para este evento
+  // Copiar el padron de adultos mayores activos de este lugar / tutor evitando superposicion horaria
   const idsAdultosEnLugar = new Set<string>();
   if (input.incluirAbuelosDelTutor) {
     const jornadasDelMismoLugar = state.jornadas
@@ -389,11 +491,6 @@ export async function crearNuevoEventoOLugar(input: {
     }
   }
 
-  if (idsAdultosEnLugar.size === 0) {
-    idsAdultosEnLugar.add(SEED_IDS.rosa);
-    idsAdultosEnLugar.add(SEED_IDS.jorge);
-  }
-
   const adultosParaInscribir = state.participantes.filter(
     (p) =>
       p.rol === "adulto_mayor" &&
@@ -401,7 +498,20 @@ export async function crearNuevoEventoOLugar(input: {
       idsAdultosEnLugar.has(p.id)
   );
 
+  const omitidosPorConflicto: string[] = [];
   for (const ad of adultosParaInscribir) {
+    const conflicto = findScheduleConflict(
+      ad.id,
+      nuevaJornada,
+      state.jornadas,
+      state.asistencias,
+      state.circuitos
+    );
+    if (conflicto) {
+      omitidosPorConflicto.push(`${ad.nombre} (${conflicto.circuito?.nombre_club || "otro evento"})`);
+      continue;
+    }
+
     state.asistencias.push({
       id: generateUuid(),
       jornada_id: nuevaJornada.id,
@@ -421,7 +531,76 @@ export async function crearNuevoEventoOLugar(input: {
     state,
     targetCircuito.nombre_club,
     "Nuevo Evento Creado",
-    `Se programo "${nuevaJornada.actividad_cierre}" (${nuevaJornada.hora_inicio_caminata} hs) en ${targetCircuito.nombre_club}.`,
+    `Se programo "${nuevaJornada.actividad_cierre}" (${nuevaJornada.fecha} ${nuevaJornada.hora_inicio_caminata} hs) en ${targetCircuito.nombre_club}.${
+      omitidosPorConflicto.length > 0
+        ? ` Omitidos por superposicion horaria: ${omitidosPorConflicto.join(", ")}.`
+        : ""
+    }`,
+    omitidosPorConflicto.length > 0 ? "warning" : "success"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function vincularAbueloExistenteAEvento(input: {
+  adultoId: string;
+  jornadaId?: string;
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    input.jornadaId
+  );
+
+  const adulto = state.participantes.find(
+    (p) => p.id === input.adultoId && p.rol === "adulto_mayor"
+  );
+  if (!adulto) {
+    throw new Error("No se encontro el adulto mayor seleccionado.");
+  }
+
+  const yaEnEsteEvento = state.asistencias.find(
+    (a) => a.jornada_id === targetJornada.id && a.participante_id === adulto.id
+  );
+  if (yaEnEsteEvento) {
+    return state;
+  }
+
+  const conflicto = findScheduleConflict(
+    adulto.id,
+    targetJornada,
+    state.jornadas,
+    state.asistencias,
+    state.circuitos
+  );
+  if (conflicto) {
+    throw new Error(
+      `No se puede agendar a ${adulto.nombre} en este horario: ${conflicto.mensaje}`
+    );
+  }
+
+  adulto.estado_alta = "activo";
+  state.asistencias.push({
+    id: generateUuid(),
+    jornada_id: targetJornada.id,
+    participante_id: adulto.id,
+    modalidad_elegida: "sin_respuesta",
+    parada_esquina_id: null,
+    padrino_asignado_id: adulto.padrino_preferido_id || SEED_IDS.padrinoCarlos,
+    estado_padrino: "no_aplica",
+    acuse_suspension_leido: false,
+    presente_validado_en_club: false,
+    codigo_canje_farmacia: null,
+    updated_at: new Date().toISOString(),
+  });
+
+  addLog(
+    state,
+    targetCircuito.nombre_club,
+    "Abuelo Existente Vinculado",
+    `Se vinculo a ${adulto.nombre} (DNI ${adulto.dni}) a ${targetCircuito.nombre_club} sin duplicar su padron.`,
     "success"
   );
 
@@ -431,24 +610,37 @@ export async function crearNuevoEventoOLugar(input: {
 }
 
 export async function suspenderJornadaPorEmergencia(
-  motivo?: string
+  motivo?: string,
+  jornadaId?: string
 ): Promise<SystemSnapshot> {
   const state = await readStateAsync();
-  state.jornada.estado = "suspendida_emergencia";
-  state.jornada.motivo_suspension =
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    jornadaId
+  );
+  targetJornada.estado = "suspendida_emergencia";
+  targetJornada.motivo_suspension =
     motivo || "Condiciones climaticas adversas y riesgo de resbalones en veredas";
-  state.jornada.updated_at = new Date().toISOString();
+  targetJornada.updated_at = new Date().toISOString();
   syncActiveJornadaIntoArray(state);
+
+  const idsDelEvento = new Set(
+    state.asistencias
+      .filter((a) => a.jornada_id === targetJornada.id)
+      .map((a) => a.participante_id)
+  );
 
   const participantesNotificables = state.participantes.filter(
     (p) =>
       p.estado_alta === "activo" &&
-      (p.rol === "adulto_mayor" || p.rol === "padrino")
+      ((p.rol === "adulto_mayor" &&
+        (idsDelEvento.size === 0 || idsDelEvento.has(p.id))) ||
+        p.rol === "padrino")
   );
 
   for (const part of participantesNotificables) {
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === part.id
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === part.id
     );
     if (asis) {
       asis.acuse_suspension_leido = false;
@@ -459,12 +651,12 @@ export async function suspenderJornadaPorEmergencia(
     await appendBotMessage(
       state,
       part,
-      `*AVISO IMPORTANTE (${state.circuito.nombre_club}):* ${primerNombre}, por condiciones climaticas y para cuidar tu seguridad en las veredas, *SE SUSPENDE el encuentro de hoy*. Quedate en casa. Por favor toca el boton de abajo para que sepamos que leiste este aviso.`,
+      `*AVISO IMPORTANTE (${targetCircuito.nombre_club}):* ${primerNombre}, por condiciones climaticas y para cuidar tu seguridad en las veredas, *SE SUSPENDE el encuentro de hoy*. Quedate en casa. Por favor toca el boton de abajo para que sepamos que leiste este aviso.`,
       {
         esAlertaPrioritaria: true,
         buttons: [
           {
-            id: "btn_acuse_suspension",
+            id: `btn_acuse_suspension:${targetJornada.id}`,
             title: "Me quedo en casa",
             variant: "success",
           },
@@ -475,9 +667,9 @@ export async function suspenderJornadaPorEmergencia(
 
   addLog(
     state,
-    state.circuito.nombre_club,
+    targetCircuito.nombre_club,
     "Caso 4A: Jornada Suspendida por Clima",
-    "Se enviaron alertas prioritarias con requerimiento de acuse de recibo a los participantes.",
+    `Se enviaron alertas prioritarias para ${targetCircuito.nombre_club} con requerimiento de acuse.`,
     "danger"
   );
 
@@ -488,12 +680,17 @@ export async function suspenderJornadaPorEmergencia(
 
 export async function reasignarTutorManualCoordinador(
   adultoId: string,
-  nuevoPadrinoId?: string
+  nuevoPadrinoId?: string,
+  jornadaId?: string
 ): Promise<SystemSnapshot> {
   const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    jornadaId
+  );
   const adulto = state.participantes.find((p) => p.id === adultoId);
   const asis = state.asistencias.find(
-    (a) => a.jornada_id === state.jornada.id && a.participante_id === adultoId
+    (a) => a.jornada_id === targetJornada.id && a.participante_id === adultoId
   );
 
   const padrinoReemplazo =
@@ -515,18 +712,18 @@ export async function reasignarTutorManualCoordinador(
     await appendBotMessage(
       state,
       adulto,
-      `Confirmado, ${nombreAdulto}. Te asignamos un Tutor Acreditado de reemplazo: hoy a las ${state.jornada.hora_inicio_caminata} hs pasa por tu puerta *${padrinoReemplazo.nombre}* (Credencial ${padrinoReemplazo.credencial_nro}). A preparar el equipo de mate.`,
+      `Confirmado, ${nombreAdulto}. Te asignamos un Tutor Acreditado de reemplazo rumbo a ${targetCircuito.nombre_club}: hoy a las ${targetJornada.hora_inicio_caminata} hs pasa por tu puerta *${padrinoReemplazo.nombre}* (Credencial ${padrinoReemplazo.credencial_nro}). A preparar el equipo de mate.`,
       {
         fichaSeguridad: {
           padrinoNombre: padrinoReemplazo.nombre,
           credencialNro: padrinoReemplazo.credencial_nro || "#108",
           dni: padrinoReemplazo.dni,
-          horarioPuerta: `${state.jornada.hora_inicio_caminata} hs`,
-          clubAcreditador: state.circuito.nombre_club,
+          horarioPuerta: `${targetJornada.hora_inicio_caminata} hs`,
+          clubAcreditador: targetCircuito.nombre_club,
         },
         buttons: [
           {
-            id: "btn_adulto_cancela",
+            id: `btn_adulto_cancela:${targetJornada.id}`,
             title: "No voy hoy",
             variant: "danger",
           },
@@ -536,7 +733,7 @@ export async function reasignarTutorManualCoordinador(
 
     addLog(
       state,
-      state.circuito.nombre_club,
+      targetCircuito.nombre_club,
       "Caso 4B Resuelto: Tutor Reasignado",
       `Se asigno a ${padrinoReemplazo.nombre} (${padrinoReemplazo.credencial_nro}) para buscar a ${adulto.nombre}.`,
       "success"
@@ -549,12 +746,17 @@ export async function reasignarTutorManualCoordinador(
 }
 
 export async function frenarSalidaAdultoPorSeguridad(
-  adultoId: string
+  adultoId: string,
+  jornadaId?: string
 ): Promise<SystemSnapshot> {
   const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    jornadaId
+  );
   const adulto = state.participantes.find((p) => p.id === adultoId);
   const asis = state.asistencias.find(
-    (a) => a.jornada_id === state.jornada.id && a.participante_id === adultoId
+    (a) => a.jornada_id === targetJornada.id && a.participante_id === adultoId
   );
 
   if (adulto && asis) {
@@ -565,12 +767,12 @@ export async function frenarSalidaAdultoPorSeguridad(
     await appendBotMessage(
       state,
       adulto,
-      `*Cuidado Preventivo (${state.circuito.nombre_club}):* Hola ${nombreAdulto}, hoy tu vecino padrino tuvo un imprevisto de ultimo momento. Por tu seguridad en las veredas, *te pedimos que hoy no salgas sola a la calle*. El coordinador te llamara en unos minutos.`,
+      `*Cuidado Preventivo (${targetCircuito.nombre_club}):* Hola ${nombreAdulto}, hoy tu vecino padrino tuvo un imprevisto de ultimo momento. Por tu seguridad en las veredas, *te pedimos que hoy no salgas sola a la calle*. El coordinador te llamara en unos minutos.`,
       {
         esAlertaPrioritaria: true,
         buttons: [
           {
-            id: "btn_acuse_suspension",
+            id: `btn_acuse_suspension:${targetJornada.id}`,
             title: "Me quedo en casa",
             variant: "success",
           },
@@ -580,7 +782,7 @@ export async function frenarSalidaAdultoPorSeguridad(
 
     addLog(
       state,
-      state.circuito.nombre_club,
+      targetCircuito.nombre_club,
       "Caso 4B Resuelto: Salida Frenada",
       `Se freno preventivamente la salida de ${adulto.nombre} por falta de padrino.`,
       "warning"
@@ -593,14 +795,19 @@ export async function frenarSalidaAdultoPorSeguridad(
 }
 
 export async function validarPresenciaEnClub(
-  participanteIds: string[]
+  participanteIds: string[],
+  jornadaId?: string
 ): Promise<SystemSnapshot> {
   const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    jornadaId
+  );
   const padrinosBonificadosEnLote = new Set<string>();
 
   for (const partId of participanteIds) {
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === partId
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === partId
     );
     const adulto = state.participantes.find((p) => p.id === partId);
 
@@ -630,14 +837,14 @@ export async function validarPresenciaEnClub(
     asis.codigo_canje_farmacia = codigoCanje;
     asis.updated_at = new Date().toISOString();
 
-    const montoAdulto = state.jornada.monto_reintegro_asistencia;
+    const montoAdulto = targetJornada.monto_reintegro_asistencia;
     adulto.saldo_reintegro_sancor += montoAdulto;
 
     const primerNombre = adulto.nombre.split(" ")[0];
     await appendBotMessage(
       state,
       adulto,
-      `Que linda jornada compartimos en ${state.circuito.nombre_club}, ${primerNombre}. Por tu participacion de hoy ya tenes acreditados *$${formatPesos(
+      `Que linda jornada compartimos en ${targetCircuito.nombre_club}, ${primerNombre}. Por tu participacion de hoy ya tenes acreditados *$${formatPesos(
         montoAdulto
       )} de reintegro directo en Farmacias adheridas*. Tu saldo acumulado en Sancor es de *$${formatPesos(
         adulto.saldo_reintegro_sancor
@@ -661,8 +868,8 @@ export async function validarPresenciaEnClub(
       );
       if (padrino) {
         padrinosBonificadosEnLote.add(`${padrino.id}-${adulto.id}`);
-        const plus = state.jornada.plus_reintegro_padrino;
-        const base = state.jornada.monto_reintegro_asistencia;
+        const plus = targetJornada.plus_reintegro_padrino;
+        const base = targetJornada.monto_reintegro_asistencia;
         const totalPadrinoHoy = base + plus;
         padrino.saldo_reintegro_sancor += totalPadrinoHoy;
         const codigoPadrino = `SANCOR-FARMA-P${Math.floor(
@@ -673,7 +880,7 @@ export async function validarPresenciaEnClub(
         await appendBotMessage(
           state,
           padrino,
-          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en ${state.circuito.nombre_club} tu llegada acompanando a *${adulto.nombre}*. Se acreditaron *$${formatPesos(
+          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en ${targetCircuito.nombre_club} tu llegada acompanando a *${adulto.nombre}*. Se acreditaron *$${formatPesos(
             base
           )}* de asistencia + *$${formatPesos(
             plus
@@ -696,13 +903,13 @@ export async function validarPresenciaEnClub(
       state,
       adulto.nombre,
       "Flujo 5: Llegada Validada",
-      `Se acreditaron $${formatPesos(montoAdulto)} en Farmacias Sancor (Codigo ${codigoCanje}).`,
+      `Se acreditaron $${formatPesos(montoAdulto)} en Farmacias Sancor (${targetCircuito.nombre_club}, Codigo ${codigoCanje}).`,
       "success"
     );
   }
 
-  state.jornada.estado = "en_club";
-  state.jornada.updated_at = new Date().toISOString();
+  targetJornada.estado = "en_club";
+  targetJornada.updated_at = new Date().toISOString();
   syncActiveJornadaIntoArray(state);
 
   writeState(state);
@@ -712,24 +919,42 @@ export async function validarPresenciaEnClub(
 
 export async function aprobarAltaDerivacionFamiliar(
   participanteId: string,
-  padrinoAsignadoId: string
+  padrinoAsignadoId: string,
+  jornadaId?: string
 ): Promise<SystemSnapshot> {
   const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    jornadaId
+  );
   const adulto = state.participantes.find((p) => p.id === participanteId);
   const padrino = state.participantes.find((p) => p.id === padrinoAsignadoId);
 
   if (adulto && padrino) {
+    const conflicto = findScheduleConflict(
+      adulto.id,
+      targetJornada,
+      state.jornadas,
+      state.asistencias,
+      state.circuitos
+    );
+    if (conflicto) {
+      throw new Error(
+        `No se puede aprobar para este horario: ${adulto.nombre} ${conflicto.mensaje}`
+      );
+    }
+
     adulto.estado_alta = "activo";
     adulto.padrino_preferido_id = padrino.id;
 
     const existeAsis = state.asistencias.find(
       (a) =>
-        a.jornada_id === state.jornada.id && a.participante_id === adulto.id
+        a.jornada_id === targetJornada.id && a.participante_id === adulto.id
     );
     if (!existeAsis) {
       state.asistencias.push({
         id: generateUuid(),
-        jornada_id: state.jornada.id,
+        jornada_id: targetJornada.id,
         participante_id: adulto.id,
         modalidad_elegida: "nivel_1_puerta",
         parada_esquina_id: null,
@@ -746,16 +971,16 @@ export async function aprobarAltaDerivacionFamiliar(
     await appendBotMessage(
       state,
       padrino,
-      `*Nueva Asignacion de Cercania:* Hola ${nombrePadrino}, se aprobo la incorporacion de tu vecino *${adulto.nombre}* (${adulto.direccion}) en ${state.circuito.nombre_club}. ¿Podes pasar a buscarlo hoy a las ${state.jornada.hora_inicio_caminata} hs para su primer encuentro?`,
+      `*Nueva Asignacion de Cercania:* Hola ${nombrePadrino}, se aprobo la incorporacion de tu vecino *${adulto.nombre}* (${adulto.direccion}) en ${targetCircuito.nombre_club}. ¿Podes pasar a buscarlo hoy a las ${targetJornada.hora_inicio_caminata} hs para su primer encuentro?`,
       {
         buttons: [
           {
-            id: `btn_padrino_acepta:${adulto.id}`,
+            id: `btn_padrino_acepta:${adulto.id}:${targetJornada.id}`,
             title: "Si, paso por ahi",
             variant: "success",
           },
           {
-            id: `btn_padrino_rechaza:${adulto.id}`,
+            id: `btn_padrino_rechaza:${adulto.id}:${targetJornada.id}`,
             title: "Hoy no puedo",
             variant: "warning",
           },
@@ -765,7 +990,7 @@ export async function aprobarAltaDerivacionFamiliar(
 
     addLog(
       state,
-      state.circuito.nombre_club,
+      targetCircuito.nombre_club,
       "Solicitud Familiar Aprobada",
       `Se aprobo el alta de ${adulto.nombre} con el Padrino ${padrino.nombre} (${padrino.credencial_nro}).`,
       "success"
@@ -778,6 +1003,7 @@ export async function aprobarAltaDerivacionFamiliar(
 }
 
 export async function crearSolicitudNietoFamiliar(input: {
+  jornadaId?: string;
   nombreAdulto: string;
   edad: number;
   dni: string;
@@ -790,6 +1016,68 @@ export async function crearSolicitudNietoFamiliar(input: {
   aprobarDirecto?: boolean;
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    input.jornadaId
+  );
+
+  // Evitar duplicar si el adulto mayor ya existe en la base por DNI o WhatsApp
+  const existente = findExistingSeniorByDniOrPhone(
+    state.participantes,
+    input.dni,
+    input.telefonoAdulto
+  );
+
+  if (existente) {
+    const conflicto = findScheduleConflict(
+      existente.id,
+      targetJornada,
+      state.jornadas,
+      state.asistencias,
+      state.circuitos
+    );
+    if (conflicto) {
+      throw new Error(
+        `Superposicion horaria para ${existente.nombre} (DNI ${existente.dni}): ${conflicto.mensaje}`
+      );
+    }
+
+    if (input.aprobarDirecto) {
+      existente.estado_alta = "activo";
+    }
+
+    const yaInscripto = state.asistencias.find(
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === existente.id
+    );
+    if (!yaInscripto) {
+      state.asistencias.push({
+        id: generateUuid(),
+        jornada_id: targetJornada.id,
+        participante_id: existente.id,
+        modalidad_elegida: "sin_respuesta",
+        parada_esquina_id: null,
+        padrino_asignado_id:
+          existente.padrino_preferido_id || SEED_IDS.padrinoCarlos,
+        estado_padrino: "no_aplica",
+        acuse_suspension_leido: false,
+        presente_validado_en_club: false,
+        codigo_canje_farmacia: null,
+        updated_at: new Date().toISOString(),
+      });
+    }
+
+    addLog(
+      state,
+      targetCircuito.nombre_club,
+      "Abuelo Existente Vinculado (Sin Duplicar)",
+      `${existente.nombre} ya figuraba en el sistema (DNI ${existente.dni}); se vinculo directamente a ${targetCircuito.nombre_club}.`,
+      "success"
+    );
+
+    writeState(state);
+    await syncToSupabaseIfConfigured(state);
+    return state;
+  }
 
   const jitterLat = (Math.random() - 0.5) * 0.0025;
   const jitterLng = (Math.random() - 0.5) * 0.0025;
@@ -805,8 +1093,8 @@ export async function crearSolicitudNietoFamiliar(input: {
     rol: "adulto_mayor",
     direccion: input.direccion || "Marcial Candioti 3510, Barrio Candioti",
     coords_domicilio: {
-      lat: Number((state.circuito.coords_club.lat - 0.002 + jitterLat).toFixed(5)),
-      lng: Number((state.circuito.coords_club.lng + 0.001 + jitterLng).toFixed(5)),
+      lat: Number((targetCircuito.coords_club.lat - 0.002 + jitterLat).toFixed(5)),
+      lng: Number((targetCircuito.coords_club.lng + 0.001 + jitterLng).toFixed(5)),
     },
     nivel_autonomia_habitual: 1,
     padrino_preferido_id: SEED_IDS.padrinoCarlos,
@@ -828,7 +1116,7 @@ export async function crearSolicitudNietoFamiliar(input: {
   if (input.aprobarDirecto) {
     state.asistencias.push({
       id: generateUuid(),
-      jornada_id: state.jornada.id,
+      jornada_id: targetJornada.id,
       participante_id: nuevo.id,
       modalidad_elegida: "sin_respuesta",
       parada_esquina_id: null,
@@ -845,7 +1133,7 @@ export async function crearSolicitudNietoFamiliar(input: {
     state,
     nuevo.contacto_familiar_nombre,
     input.aprobarDirecto ? "Adulto Mayor Sumado al Padron" : "Nueva Solicitud Familiar",
-    `Se incorporo a ${nuevo.nombre} (${nuevo.direccion}) en ${state.circuito.nombre_club}.`,
+    `Se incorporo a ${nuevo.nombre} (${nuevo.direccion}) en ${targetCircuito.nombre_club}.`,
     "info"
   );
 

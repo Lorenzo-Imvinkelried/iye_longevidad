@@ -67,7 +67,7 @@ export default function MapaCircuitoLeaflet({
     (p) =>
       p.rol === "adulto_mayor" &&
       p.estado_alta === "activo" &&
-      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+      idsDelEvento.has(p.id)
   );
   const padrinosActivos = participantes.filter(
     (p) => p.rol === "padrino" && p.acreditado_por_club

@@ -11,9 +11,11 @@ export {
   procesarEventoWebhookWhatsApp,
 } from "@/lib/bot-flows";
 export {
+  loginTutorConClave,
   seleccionarEventoActivo,
   registrarNuevoTutorYLugar,
   crearNuevoEventoOLugar,
+  vincularAbueloExistenteAEvento,
   suspenderJornadaPorEmergencia,
   reasignarTutorManualCoordinador,
   frenarSalidaAdultoPorSeguridad,

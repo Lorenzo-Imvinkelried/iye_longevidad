@@ -34,7 +34,7 @@ export default function TabCadenaConfianza({
     (p) =>
       p.rol === "adulto_mayor" &&
       p.estado_alta === "activo" &&
-      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+      idsDelEvento.has(p.id)
   );
 
   const padrinosAcreditados = participantes.filter(
@@ -87,6 +87,12 @@ export default function TabCadenaConfianza({
           </span>
         </div>
 
+        {adultosDelLugar.length === 0 ? (
+          <div className="p-6 text-center text-xs text-[#52606d]">
+            Aun no hay abuelos vinculados a este evento/lugar. Toca{" "}
+            <strong>&ldquo;+ Sumar abuelo a este lugar&rdquo;</strong> para vincular un adulto mayor existente o cargar uno nuevo.
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
           {adultosDelLugar.map((adulto) => {
             const padrinoPref = participantes.find(
@@ -137,6 +143,7 @@ export default function TabCadenaConfianza({
             );
           })}
         </div>
+        )}
       </div>
 
       {/* Solicitudes de nietos y familiares */}

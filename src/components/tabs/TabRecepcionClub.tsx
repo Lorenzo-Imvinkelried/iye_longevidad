@@ -30,7 +30,7 @@ export default function TabRecepcionClub({
     (p) =>
       p.rol === "adulto_mayor" &&
       p.estado_alta === "activo" &&
-      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+      idsDelEvento.has(p.id)
   );
 
   return (
@@ -78,6 +78,11 @@ export default function TabRecepcionClub({
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
+        {adultosActivos.length === 0 ? (
+          <div className="p-8 text-center text-xs text-slate-500">
+            No hay adultos mayores anotados en este evento todavia. Podes sumarlos desde &ldquo;Mapa y Monitoreo&rdquo; o &ldquo;Lista de Abuelos y Padrinos&rdquo;.
+          </div>
+        ) : (
         <div className="divide-y divide-slate-200">
           {adultosActivos.map((adulto) => {
             const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
@@ -164,6 +169,7 @@ export default function TabRecepcionClub({
             );
           })}
         </div>
+        )}
       </div>
     </div>
   );

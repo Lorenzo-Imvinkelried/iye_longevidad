@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { CircuitoBarrial } from "@/types/domain";
 import { CalendarPlus, X } from "lucide-react";
 
@@ -48,6 +48,13 @@ export default function ModalCrearEventoLugar({
   const [horaEncuentro, setHoraEncuentro] = useState("16:20");
   const [montoReintegro, setMontoReintegro] = useState(2500);
   const [plusPadrino, setPlusPadrino] = useState(1500);
+  const [incluirAbuelosDelTutor, setIncluirAbuelosDelTutor] = useState(true);
+
+  useEffect(() => {
+    if (open) {
+      setCircuitoId(circuitoActualId);
+    }
+  }, [open, circuitoActualId]);
 
   if (!open) return null;
 
@@ -67,7 +74,7 @@ export default function ModalCrearEventoLugar({
       horaEncuentro,
       montoReintegro,
       plusPadrino,
-      incluirAbuelosDelTutor: true,
+      incluirAbuelosDelTutor,
     });
     onClose();
   };
@@ -261,6 +268,18 @@ export default function ModalCrearEventoLugar({
               />
             </div>
           </div>
+
+          <label className="flex items-start gap-2 bg-[#f6f6f7] p-3 rounded-lg border border-[#eaeced] cursor-pointer">
+            <input
+              type="checkbox"
+              checked={incluirAbuelosDelTutor}
+              onChange={(e) => setIncluirAbuelosDelTutor(e.target.checked)}
+              className="mt-0.5 rounded border-[#c4c9cd] text-[#0a4494]"
+            />
+            <span className="text-[11px] text-[#363f48]">
+              <strong>Copiar mi lista guardada de abuelos de esta sede</strong> (los que ya tengan otro evento en la misma fecha y horario se omiten automaticamente para evitar superposiciones).
+            </span>
+          </label>
 
           <div className="flex items-center justify-end gap-2 pt-3 border-t border-[#eaeced]">
             <button

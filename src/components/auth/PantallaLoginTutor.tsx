@@ -1,18 +1,34 @@
 "use client";
 
 import React, { useState } from "react";
-import { CircuitoBarrial, Jornada, Participante } from "@/types/domain";
-import { Building2, LogIn, MapPin, UserPlus, Users } from "lucide-react";
+import {
+  CircuitoBarrial,
+  Jornada,
+  Participante,
+  SEED_IDS,
+} from "@/types/domain";
+import {
+  Building2,
+  KeyRound,
+  LogIn,
+  MapPin,
+  ShieldCheck,
+  UserPlus,
+  Users,
+} from "lucide-react";
 
 interface LoginProps {
   tutores: Participante[];
   circuitos: CircuitoBarrial[];
   jornadas: Jornada[];
   loading: boolean;
-  onSelectTutor: (tutorId: string, jornadaId?: string) => void;
+  errorMessage?: string | null;
+  onLoginConClave: (identificador: string, clave: string) => Promise<void>;
+  onSelectDemoTutor: (tutorId: string, jornadaId?: string) => void;
   onRegisterTutor: (payload: {
     nombreTutor: string;
     dniTutor: string;
+    claveTutor: string;
     telefonoTutor: string;
     especialidad: string;
     nombreLugar: string;
@@ -29,34 +45,34 @@ export default function PantallaLoginTutor({
   circuitos,
   jornadas,
   loading,
-  onSelectTutor,
+  errorMessage,
+  onLoginConClave,
+  onSelectDemoTutor,
   onRegisterTutor,
 }: LoginProps) {
   const [modo, setModo] = useState<"login" | "registro">("login");
-  const [filtroDni, setFiltroDni] = useState("");
+  const [identificador, setIdentificador] = useState("");
+  const [clave, setClave] = useState("");
 
   const [form, setForm] = useState({
     nombreTutor: "",
     dniTutor: "",
+    claveTutor: "",
     telefonoTutor: "+5493425001122",
     especialidad: "Profesional de Salud / Tutor",
     nombreLugar: "",
     direccionLugar: "",
     zonaKey: "candioti",
     actividadInicial: "Caminata Grupal, Torneo de Truco y Bingo",
-    horaCaminata: "16:00",
-    horaEncuentro: "16:20",
+    horaCaminata: "18:00",
+    horaEncuentro: "18:20",
   });
 
-  const tutoresFiltrados = tutores.filter((t) => {
-    if (!filtroDni.trim()) return true;
-    const q = filtroDni.toLowerCase();
-    return (
-      t.nombre.toLowerCase().includes(q) ||
-      t.dni.toLowerCase().includes(q) ||
-      (t.credencial_nro || "").toLowerCase().includes(q)
-    );
-  });
+  // Solo las 2 cuentas semilla oficiales tienen acceso rapido Demo; cuentas creadas requieren DNI + clave
+  const demoTutores = tutores.filter(
+    (t) =>
+      t.id === SEED_IDS.coordinadoraMarta || t.id === SEED_IDS.tutorRoberto
+  );
 
   const getCircuitosDeTutor = (tutorId: string): CircuitoBarrial[] => {
     const propios = circuitos.filter((c) =>
@@ -65,9 +81,15 @@ export default function PantallaLoginTutor({
     return propios.length > 0 ? propios : [circuitos[0]].filter(Boolean);
   };
 
+  const handleSubmitLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!identificador.trim() || !clave.trim()) return;
+    await onLoginConClave(identificador, clave);
+  };
+
   const handleSubmitRegistro = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!form.nombreTutor || !form.nombreLugar) return;
+    if (!form.nombreTutor || !form.nombreLugar || !form.claveTutor) return;
     await onRegisterTutor(form);
   };
 
@@ -91,17 +113,21 @@ export default function PantallaLoginTutor({
               className="h-8 w-auto"
             />
             <span className="h-5 w-px bg-[#eaeced]" />
-            <span className="text-sm font-bold text-[#363f48]">
-              Acceso para Profesionales, Tutores y Organizadores
+            <span className="text-xs sm:text-sm font-bold text-[#363f48]">
+              Portal para Profesionales, Tutores y Organizadores
             </span>
           </div>
+          <span className="hidden sm:inline-flex items-center gap-1.5 text-[11px] font-semibold text-[#168003] bg-[#d0e6cd]/40 px-3 py-1 rounded-full">
+            <ShieldCheck className="w-3.5 h-3.5" />
+            Guardado en Supabase
+          </span>
         </div>
       </div>
 
       {/* Contenedor central de ingreso / registro */}
-      <main className="flex-1 max-w-[980px] w-full mx-auto px-4 py-6 sm:py-10 flex flex-col justify-center">
+      <main className="flex-1 max-w-[920px] w-full mx-auto px-4 py-6 sm:py-8 flex flex-col justify-center">
         <div className="bg-white rounded-2xl border border-[#eaeced] shadow-xs overflow-hidden">
-          {/* Selector de pestañas Ingresar vs Registrar */}
+          {/* Selector de pestanas Ingresar vs Registrar */}
           <div className="grid grid-cols-2 border-b border-[#eaeced] bg-[#fdf9fb]">
             <button
               type="button"
@@ -130,105 +156,165 @@ export default function PantallaLoginTutor({
             </button>
           </div>
 
+          {errorMessage && (
+            <div className="mx-5 sm:mx-7 mt-4 p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
           {modo === "login" ? (
-            <div className="p-5 sm:p-7 space-y-5">
-              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <h2 className="text-base sm:text-lg font-bold text-[#363f48]">
-                    Selecciona tu perfil de Organizador / Tutor
-                  </h2>
-                  <p className="text-xs text-[#52606d]">
-                    Cada cuenta conserva sus lugares guardados (clubes, salas o vecinales), sus eventos y su padron de adultos mayores.
-                  </p>
+            <div className="p-5 sm:p-7 space-y-6">
+              {/* Formulario de Login privado con DNI/Usuario + Clave */}
+              <form
+                onSubmit={handleSubmitLogin}
+                className="bg-[#f6f6f7] border border-[#eaeced] rounded-xl p-4 sm:p-5 space-y-3"
+              >
+                <div className="flex items-center gap-2">
+                  <KeyRound className="w-4 h-4 text-[#a70355]" />
+                  <div>
+                    <h2 className="text-sm sm:text-base font-bold text-[#363f48]">
+                      Acceso Privado por DNI o Usuario
+                    </h2>
+                    <p className="text-[11px] text-[#52606d]">
+                      Ingresa tu DNI (o nombre completo) y tu clave para ver unicamente tus lugares, eventos y lista de abuelos.
+                    </p>
+                  </div>
                 </div>
 
-                <input
-                  type="text"
-                  placeholder="Buscar por nombre o DNI..."
-                  value={filtroDni}
-                  onChange={(e) => setFiltroDni(e.target.value)}
-                  className="border border-[#c4c9cd] rounded-full px-4 py-2 text-xs text-[#363f48] w-full sm:w-64 focus:outline-none focus:border-[#0a4494]"
-                />
-              </div>
+                <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end text-xs">
+                  <div className="sm:col-span-5">
+                    <label className="font-semibold text-[#363f48] block mb-1">
+                      DNI o Nombre *
+                    </label>
+                    <input
+                      type="text"
+                      required
+                      placeholder="Ej: 16.402.881 o tu DNI registrado"
+                      value={identificador}
+                      onChange={(e) => setIdentificador(e.target.value)}
+                      className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white text-[#363f48]"
+                    />
+                  </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {tutoresFiltrados.map((tutor) => {
-                  const sedes = getCircuitosDeTutor(tutor.id);
-                  const sedesIds = sedes.map((s) => s.id);
-                  const eventosTutor = jornadas.filter((j) =>
-                    sedesIds.includes(j.circuito_id)
-                  );
+                  <div className="sm:col-span-4">
+                    <label className="font-semibold text-[#363f48] block mb-1">
+                      Clave / PIN *
+                    </label>
+                    <input
+                      type="password"
+                      required
+                      placeholder="Ej: 1234"
+                      value={clave}
+                      onChange={(e) => setClave(e.target.value)}
+                      className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white text-[#363f48]"
+                    />
+                  </div>
 
-                  return (
-                    <div
-                      key={tutor.id}
-                      className="border border-[#eaeced] hover:border-[#a70355] rounded-xl p-4 flex flex-col justify-between gap-4 transition bg-white"
+                  <div className="sm:col-span-3">
+                    <button
+                      type="submit"
+                      disabled={loading}
+                      className="w-full bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs py-2.5 px-4 rounded-full transition"
                     >
-                      <div className="space-y-2">
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2.5 py-0.5 rounded-full">
-                              {tutor.credencial_nro || "Tutor / Organizador"}
-                            </span>
-                            <h3 className="text-base font-bold text-[#363f48] mt-1">
-                              {tutor.nombre}
-                            </h3>
-                          </div>
-                          <span className="text-xs text-[#52606d] font-medium">
-                            DNI {tutor.dni}
-                          </span>
-                        </div>
+                      {loading ? "Verificando..." : "Ingresar"}
+                    </button>
+                  </div>
+                </div>
+              </form>
 
-                        <div className="space-y-1 pt-1 border-t border-[#eaeced] text-xs text-[#52606d]">
-                          <div className="font-semibold text-[#363f48] flex items-center gap-1.5">
-                            <Building2 className="w-3.5 h-3.5 text-[#0a4494]" />
-                            <span>Lugares administrados ({sedes.length}):</span>
-                          </div>
-                          {sedes.map((s) => (
-                            <div
-                              key={s.id}
-                              className="pl-5 text-[11px] text-[#52606d] truncate"
-                            >
-                              • <strong>{s.nombre_club}</strong> ({s.direccion_club})
+              {/* Seccion Demo Rapido */}
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <h3 className="text-xs font-bold uppercase tracking-wide text-[#52606d]">
+                    Acceso rapido Demo (Cuentas de ejemplo — Clave: 1234)
+                  </h3>
+                  <span className="text-[11px] text-[#52606d]">
+                    {tutores.length} organizadores registrados en Supabase
+                  </span>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+                  {demoTutores.map((tutor) => {
+                    const sedes = getCircuitosDeTutor(tutor.id);
+                    const sedesIds = sedes.map((s) => s.id);
+                    const eventosTutor = jornadas.filter((j) =>
+                      sedesIds.includes(j.circuito_id)
+                    );
+
+                    return (
+                      <div
+                        key={tutor.id}
+                        className="border border-[#eaeced] hover:border-[#a70355] rounded-xl p-4 flex flex-col justify-between gap-3 transition bg-white"
+                      >
+                        <div className="space-y-2">
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2.5 py-0.5 rounded-full">
+                                {tutor.credencial_nro || "Tutor / Organizador"}
+                              </span>
+                              <h4 className="text-sm font-bold text-[#363f48] mt-1">
+                                {tutor.nombre}
+                              </h4>
                             </div>
-                          ))}
+                            <span className="text-[11px] text-[#52606d] font-medium">
+                              DNI {tutor.dni}
+                            </span>
+                          </div>
+
+                          <div className="space-y-1 pt-1 border-t border-[#eaeced] text-xs text-[#52606d]">
+                            <div className="font-semibold text-[#363f48] flex items-center gap-1.5">
+                              <Building2 className="w-3.5 h-3.5 text-[#0a4494]" />
+                              <span>Lugares ({sedes.length}):</span>
+                            </div>
+                            {sedes.map((s) => (
+                              <div
+                                key={s.id}
+                                className="pl-5 text-[11px] text-[#52606d] truncate"
+                              >
+                                • <strong>{s.nombre_club}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+
+                        <div className="pt-2 border-t border-[#eaeced] flex items-center justify-between gap-2">
+                          <span className="text-[11px] text-[#52606d] flex items-center gap-1">
+                            <Users className="w-3.5 h-3.5 text-[#a70355]" />
+                            <span>{eventosTutor.length} evento(s)</span>
+                          </span>
+
+                          <button
+                            type="button"
+                            disabled={loading}
+                            onClick={() =>
+                              onSelectDemoTutor(tutor.id, eventosTutor[0]?.id)
+                            }
+                            className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
+                          >
+                            Entrar en Demo
+                          </button>
                         </div>
                       </div>
-
-                      <div className="pt-2 border-t border-[#eaeced] flex items-center justify-between gap-2">
-                        <span className="text-[11px] text-[#52606d] flex items-center gap-1">
-                          <Users className="w-3.5 h-3.5 text-[#a70355]" />
-                          <span>{eventosTutor.length} evento(s) activos</span>
-                        </span>
-
-                        <button
-                          type="button"
-                          disabled={loading}
-                          onClick={() =>
-                            onSelectTutor(tutor.id, eventosTutor[0]?.id)
-                          }
-                          className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-5 py-2 rounded-full transition"
-                        >
-                          {loading ? "Ingresando..." : "Ingresar al panel"}
-                        </button>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
             </div>
           ) : (
-            <form onSubmit={handleSubmitRegistro} className="p-5 sm:p-7 space-y-4 text-xs">
+            <form
+              onSubmit={handleSubmitRegistro}
+              className="p-5 sm:p-7 space-y-4 text-xs"
+            >
               <div>
                 <h2 className="text-base sm:text-lg font-bold text-[#363f48]">
-                  Registrar nueva cuenta de Profesional / Tutor y Lugar de Encuentro
+                  Crear Cuenta (Sin confirmacion por email) y Registrar Lugar
                 </h2>
                 <p className="text-xs text-[#52606d]">
-                  Completa tus datos y el lugar (club, sala vecinal, centro de salud o espacio barrial) donde vas a organizar los encuentros.
+                  Elegi tu DNI/Usuario y una clave personal. Tu perfil y sede quedan guardados al instante en Supabase para ver unicamente tus lugares, eventos y lista de abuelos.
                 </p>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 pt-1">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 pt-1">
                 <div>
                   <label className="font-semibold text-[#363f48] block mb-1">
                     Tu Nombre y Apellido *
@@ -247,14 +333,33 @@ export default function PantallaLoginTutor({
 
                 <div>
                   <label className="font-semibold text-[#363f48] block mb-1">
-                    DNI *
+                    DNI o Usuario *
                   </label>
                   <input
                     type="text"
                     required
                     placeholder="Ej: 30.456.789"
                     value={form.dniTutor}
-                    onChange={(e) => setForm({ ...form, dniTutor: e.target.value })}
+                    onChange={(e) =>
+                      setForm({ ...form, dniTutor: e.target.value })
+                    }
+                    className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
+                  />
+                </div>
+
+                <div>
+                  <label className="font-semibold text-[#363f48] block mb-1">
+                    Clave / PIN *
+                  </label>
+                  <input
+                    type="password"
+                    required
+                    minLength={4}
+                    placeholder="Min. 4 caracteres"
+                    value={form.claveTutor}
+                    onChange={(e) =>
+                      setForm({ ...form, claveTutor: e.target.value })
+                    }
                     className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
                   />
                 </div>
@@ -355,7 +460,7 @@ export default function PantallaLoginTutor({
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                   <div>
                     <label className="font-semibold text-[#363f48] block mb-1">
-                      Primer Evento / Actividad a organizar *
+                      Primer Evento / Actividad *
                     </label>
                     <input
                       type="text"
@@ -384,7 +489,7 @@ export default function PantallaLoginTutor({
 
                   <div>
                     <label className="font-semibold text-[#363f48] block mb-1">
-                      Hora encuentro en el lugar
+                      Hora encuentro en sede
                     </label>
                     <input
                       type="text"
@@ -404,14 +509,14 @@ export default function PantallaLoginTutor({
                   onClick={() => setModo("login")}
                   className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-semibold"
                 >
-                  Volver a cuentas existentes
+                  Volver a ingresar
                 </button>
                 <button
                   type="submit"
                   disabled={loading}
                   className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold px-6 py-2 rounded-full transition"
                 >
-                  {loading ? "Creando cuenta..." : "Crear cuenta e ingresar al panel"}
+                  {loading ? "Guardando..." : "Crear cuenta e ingresar al panel"}
                 </button>
               </div>
             </form>

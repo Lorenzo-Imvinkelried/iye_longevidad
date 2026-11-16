@@ -2,6 +2,10 @@
 
 import React, { useEffect, useState } from "react";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
+import {
+  getTutorCircuitos,
+  projectSnapshotForTutor,
+} from "@/lib/domain-helpers";
 import HeaderInstitucional, { TabId } from "@/components/layout/HeaderInstitucional";
 import PantallaLoginTutor from "@/components/auth/PantallaLoginTutor";
 import TabMonitorCircuito from "@/components/tabs/TabMonitorCircuito";
@@ -13,9 +17,14 @@ import ModalDerivacionFamiliar from "@/components/modals/ModalDerivacionFamiliar
 import ModalAcreditarPadrino from "@/components/modals/ModalAcreditarPadrino";
 import ModalCrearEventoLugar from "@/components/modals/ModalCrearEventoLugar";
 import SimuladorWhatsApp from "@/components/SimuladorWhatsApp";
-import { X } from "lucide-react";
+import { AlertTriangle, X } from "lucide-react";
 
-const SESSION_STORAGE_KEY = "sancor_tutor_logged_in_v1";
+const SESSION_STORAGE_KEY = "sancor_tutor_session_v2";
+
+interface SessionData {
+  tutorId: string;
+  jornadaId?: string;
+}
 
 export default function DashboardCoordinador({
   initialSnapshot,
@@ -24,6 +33,10 @@ export default function DashboardCoordinador({
 }) {
   const [snapshot, setSnapshot] = useState<SystemSnapshot>(initialSnapshot);
   const [loggedInTutorId, setLoggedInTutorId] = useState<string | null>(null);
+  const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(null);
+  const [loginError, setLoginError] = useState<string | null>(null);
+  const [actionError, setActionError] = useState<string | null>(null);
+
   const [activeTab, setActiveTab] = useState<TabId>("tab1_monitor");
   const [selectedPhoneId, setSelectedPhoneId] = useState<string>(SEED_IDS.rosa);
   const [simulatorOpen, setSimulatorOpen] = useState<boolean>(false);
@@ -34,21 +47,42 @@ export default function DashboardCoordinador({
   const [padrinoModalOpen, setPadrinoModalOpen] = useState<boolean>(false);
   const [crearEventoModalOpen, setCrearEventoModalOpen] = useState<boolean>(false);
 
-  useEffect(() => {
+  const saveSession = (tutorId: string, jornadaId?: string | null) => {
     try {
-      const saved = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
-      if (saved) {
-        setLoggedInTutorId(saved);
-      }
+      const payload: SessionData = {
+        tutorId,
+        jornadaId: jornadaId || undefined,
+      };
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
     } catch {
       // Ignore storage access errors
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const savedRaw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
+      if (savedRaw) {
+        const parsed = JSON.parse(savedRaw) as SessionData;
+        if (parsed?.tutorId) {
+          setLoggedInTutorId(parsed.tutorId);
+          setSelectedJornadaId(parsed.jornadaId || null);
+        }
+      }
+    } catch {
+      // Ignore malformed sessionStorage
     }
   }, []);
 
   useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const res = await fetch("/api/state", { cache: "no-store" });
+        const params = new URLSearchParams();
+        if (loggedInTutorId) params.set("tutorId", loggedInTutorId);
+        if (selectedJornadaId) params.set("jornadaId", selectedJornadaId);
+        const query = params.toString() ? `?${params.toString()}` : "";
+
+        const res = await fetch(`/api/state${query}`, { cache: "no-store" });
         if (res.ok) {
           const data = (await res.json()) as SystemSnapshot;
           setSnapshot(data);
@@ -58,49 +92,87 @@ export default function DashboardCoordinador({
       }
     }, 2500);
     return () => clearInterval(interval);
-  }, []);
+  }, [loggedInTutorId, selectedJornadaId]);
 
   const executeCoordinatorAction = async (
     actionName: string,
     payload: Record<string, unknown> = {}
-  ): Promise<SystemSnapshot | null> => {
+  ): Promise<{ ok: boolean; error?: string; snapshot?: SystemSnapshot }> => {
     setLoadingAction(actionName);
+    setActionError(null);
     try {
       const res = await fetch("/api/state", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ action: actionName, ...payload }),
+        body: JSON.stringify({
+          action: actionName,
+          activeTutorId: loggedInTutorId,
+          activeJornadaId: selectedJornadaId || snapshot.jornada.id,
+          ...payload,
+        }),
       });
       const data = await res.json();
-      if (data?.snapshot) {
-        setSnapshot(data.snapshot);
-        return data.snapshot as SystemSnapshot;
+      if (!res.ok || data?.ok === false) {
+        const msg = data?.error || "No se pudo completar la accion.";
+        if (actionName === "login_tutor" || actionName === "registrar_tutor_lugar") {
+          setLoginError(msg);
+        } else {
+          setActionError(msg);
+        }
+        return { ok: false, error: msg };
       }
-      return null;
+
+      if (data?.snapshot) {
+        const nextSnap = data.snapshot as SystemSnapshot;
+        setSnapshot(nextSnap);
+        return { ok: true, snapshot: nextSnap };
+      }
+      return { ok: true };
     } catch (error) {
-      console.error("Error ejecutando accion:", error);
-      return null;
+      const msg =
+        error instanceof Error ? error.message : "Error de red ejecutando accion.";
+      setActionError(msg);
+      return { ok: false, error: msg };
     } finally {
       setLoadingAction(null);
     }
   };
 
-  const handleLoginExistente = async (tutorId: string, jornadaId?: string) => {
-    await executeCoordinatorAction("seleccionar_evento", {
+  const handleLoginWithClave = async (identificador: string, clave: string) => {
+    setLoginError(null);
+    const res = await executeCoordinatorAction("login_tutor", {
+      identificador,
+      clave,
+    });
+    if (res.ok && res.snapshot) {
+      const tutorId = res.snapshot.tutorActivoId;
+      const projected = projectSnapshotForTutor(res.snapshot, tutorId);
+      setSnapshot(projected);
+      setLoggedInTutorId(tutorId);
+      setSelectedJornadaId(projected.jornada.id);
+      saveSession(tutorId, projected.jornada.id);
+    }
+  };
+
+  const handleSelectDemoTutor = async (tutorId: string, jornadaId?: string) => {
+    setLoginError(null);
+    const res = await executeCoordinatorAction("seleccionar_evento", {
       tutorId,
       jornadaId,
     });
-    setLoggedInTutorId(tutorId);
-    try {
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, tutorId);
-    } catch {
-      // Ignore
+    if (res.ok && res.snapshot) {
+      const projected = projectSnapshotForTutor(res.snapshot, tutorId, jornadaId);
+      setSnapshot(projected);
+      setLoggedInTutorId(tutorId);
+      setSelectedJornadaId(projected.jornada.id);
+      saveSession(tutorId, projected.jornada.id);
     }
   };
 
   const handleRegistrarNuevoTutor = async (payload: {
     nombreTutor: string;
     dniTutor: string;
+    claveTutor: string;
     telefonoTutor: string;
     especialidad: string;
     nombreLugar: string;
@@ -110,20 +182,38 @@ export default function DashboardCoordinador({
     horaCaminata: string;
     horaEncuentro: string;
   }) => {
-    const updated = await executeCoordinatorAction("registrar_tutor_lugar", {
+    setLoginError(null);
+    const res = await executeCoordinatorAction("registrar_tutor_lugar", {
       payload,
     });
-    const newTutorId = updated?.tutorActivoId || SEED_IDS.coordinadoraMarta;
-    setLoggedInTutorId(newTutorId);
-    try {
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, newTutorId);
-    } catch {
-      // Ignore
+    if (res.ok && res.snapshot) {
+      const newTutorId = res.snapshot.tutorActivoId;
+      const newJornadaId = res.snapshot.jornada.id;
+      setSnapshot(res.snapshot);
+      setLoggedInTutorId(newTutorId);
+      setSelectedJornadaId(newJornadaId);
+      saveSession(newTutorId, newJornadaId);
     }
+  };
+
+  const handleSelectEventoDelTutor = async (jornadaId: string) => {
+    setSelectedJornadaId(jornadaId);
+    if (loggedInTutorId) {
+      saveSession(loggedInTutorId, jornadaId);
+    }
+    const projected = projectSnapshotForTutor(snapshot, loggedInTutorId, jornadaId);
+    setSnapshot(projected);
+    await executeCoordinatorAction("seleccionar_evento", {
+      tutorId: loggedInTutorId,
+      jornadaId,
+    });
   };
 
   const handleLogoutTutor = () => {
     setLoggedInTutorId(null);
+    setSelectedJornadaId(null);
+    setLoginError(null);
+    setActionError(null);
     try {
       window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
     } catch {
@@ -140,19 +230,32 @@ export default function DashboardCoordinador({
         circuitos={snapshot.circuitos || [snapshot.circuito]}
         jornadas={snapshot.jornadas || [snapshot.jornada]}
         loading={
+          loadingAction === "login_tutor" ||
           loadingAction === "seleccionar_evento" ||
           loadingAction === "registrar_tutor_lugar"
         }
-        onSelectTutor={handleLoginExistente}
+        errorMessage={loginError}
+        onLoginConClave={handleLoginWithClave}
+        onSelectDemoTutor={handleSelectDemoTutor}
         onRegisterTutor={handleRegistrarNuevoTutor}
       />
     );
   }
 
-  const { circuito, jornada, circuitos, participantes, asistencias } = snapshot;
+  const vistaActual = projectSnapshotForTutor(
+    snapshot,
+    loggedInTutorId,
+    selectedJornadaId
+  );
+  const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
+    vistaActual;
 
+  const circuitosDelTutor = getTutorCircuitos(
+    circuitos || [circuito],
+    loggedInTutorId
+  );
   const tutorActivo =
-    participantes.find((p) => p.id === (loggedInTutorId || snapshot.tutorActivoId)) ||
+    participantes.find((p) => p.id === loggedInTutorId) ||
     participantes.find((p) => p.rol === "coordinador");
 
   const asistenciasEvento = asistencias.filter(
@@ -164,7 +267,7 @@ export default function DashboardCoordinador({
     (p) =>
       p.rol === "adulto_mayor" &&
       p.estado_alta === "activo" &&
-      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+      idsDelEvento.has(p.id)
   );
   const solicitudesPendientes = participantes.filter(
     (p) => p.rol === "adulto_mayor" && p.estado_alta === "pendiente_aprobacion"
@@ -196,19 +299,43 @@ export default function DashboardCoordinador({
         solicitudesCount={solicitudesPendientes.length}
         loadingReset={loadingAction === "reset_demo"}
         simulatorOpen={simulatorOpen}
-        onResetDemo={() => executeCoordinatorAction("reset_demo")}
+        onResetDemo={async () => {
+          const res = await executeCoordinatorAction("reset_demo");
+          if (res.ok && res.snapshot) {
+            setLoggedInTutorId(SEED_IDS.coordinadoraMarta);
+            setSelectedJornadaId(SEED_IDS.jornada);
+            saveSession(SEED_IDS.coordinadoraMarta, SEED_IDS.jornada);
+          }
+        }}
         onToggleSim={() => setSimulatorOpen(!simulatorOpen)}
         onOpenCrearEvento={() => setCrearEventoModalOpen(true)}
         onLogoutTutor={handleLogoutTutor}
       />
 
-      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 py-3">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 py-3 space-y-3">
+        {actionError && (
+          <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-2.5 flex items-center justify-between gap-2 text-xs font-semibold text-red-700">
+            <div className="flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4 shrink-0" />
+              <span>{actionError}</span>
+            </div>
+            <button
+              onClick={() => setActionError(null)}
+              className="text-red-500 hover:text-red-800"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
         <div>
           {activeTab === "tab1_monitor" && (
             <TabMonitorCircuito
-              snapshot={snapshot}
+              snapshot={vistaActual}
+              loggedInTutorId={loggedInTutorId}
               loadingAction={loadingAction}
               onExecuteAction={executeCoordinatorAction}
+              onSelectEvento={handleSelectEventoDelTutor}
               onOpenPhone={handleOpenPhoneInSimulator}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
             />
@@ -216,7 +343,7 @@ export default function DashboardCoordinador({
 
           {activeTab === "tab2_club" && (
             <TabRecepcionClub
-              snapshot={snapshot}
+              snapshot={vistaActual}
               loadingAction={loadingAction}
               onExecuteAction={executeCoordinatorAction}
               onOpenPhone={handleOpenPhoneInSimulator}
@@ -226,7 +353,7 @@ export default function DashboardCoordinador({
 
           {activeTab === "tab3_confianza" && (
             <TabCadenaConfianza
-              snapshot={snapshot}
+              snapshot={vistaActual}
               onExecuteAction={executeCoordinatorAction}
               onOpenPhone={handleOpenPhoneInSimulator}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
@@ -248,7 +375,7 @@ export default function DashboardCoordinador({
             <X className="w-4 h-4" />
           </button>
           <SimuladorWhatsApp
-            snapshot={snapshot}
+            snapshot={vistaActual}
             selectedPhoneId={selectedPhoneId}
             onSelectPhoneId={setSelectedPhoneId}
             onSnapshotUpdate={setSnapshot}
@@ -276,8 +403,24 @@ export default function DashboardCoordinador({
         open={familiarModalOpen}
         onClose={() => setFamiliarModalOpen(false)}
         nombreClub={circuito.nombre_club}
+        jornada={jornada}
+        jornadas={jornadas || [jornada]}
+        circuitos={circuitos || [circuito]}
+        participantes={participantes}
+        asistencias={asistencias}
+        onVincularExistente={async (adultoId) => {
+          const res = await executeCoordinatorAction("vincular_abuelo_evento", {
+            adultoId,
+            jornadaId: jornada.id,
+          });
+          return { ok: res.ok, error: res.error };
+        }}
         onSubmit={async (payload) => {
-          await executeCoordinatorAction("crear_solicitud_familiar", { payload });
+          const res = await executeCoordinatorAction("crear_solicitud_familiar", {
+            payload,
+            jornadaId: jornada.id,
+          });
+          return { ok: res.ok, error: res.error };
         }}
       />
 
@@ -292,11 +435,19 @@ export default function DashboardCoordinador({
       <ModalCrearEventoLugar
         open={crearEventoModalOpen}
         onClose={() => setCrearEventoModalOpen(false)}
-        tutorId={tutorActivo?.id || SEED_IDS.coordinadoraMarta}
-        circuitosDelTutor={circuitos || [circuito]}
+        tutorId={tutorActivo?.id || loggedInTutorId}
+        circuitosDelTutor={
+          circuitosDelTutor.length > 0 ? circuitosDelTutor : [circuito]
+        }
         circuitoActualId={circuito.id}
         onSubmit={async (payload) => {
-          await executeCoordinatorAction("crear_evento_lugar", { payload });
+          const res = await executeCoordinatorAction("crear_evento_lugar", {
+            payload,
+          });
+          if (res.ok && res.snapshot) {
+            setSelectedJornadaId(res.snapshot.jornada.id);
+            saveSession(loggedInTutorId, res.snapshot.jornada.id);
+          }
         }}
       />
     </div>

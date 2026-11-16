@@ -1,8 +1,13 @@
 import {
+  Asistencia,
+  CircuitoBarrial,
+  Jornada,
+  Participante,
   SEED_IDS,
   SystemSnapshot,
   WhatsAppReplyButton,
 } from "@/types/domain";
+import { phonesMatch } from "@/lib/domain-helpers";
 import {
   addLog,
   appendBotMessage,
@@ -14,31 +19,127 @@ import {
   writeState,
 } from "@/lib/state-persistence";
 
-function phonesMatch(phoneA: string, phoneB: string): boolean {
-  const normA = phoneA.replace(/[^0-9]/g, "").replace(/^549?/, "");
-  const normB = phoneB.replace(/[^0-9]/g, "").replace(/^549?/, "");
-  if (!normA || !normB) return false;
-  if (normA === normB) return true;
-  return normA.slice(0, 3) === normB.slice(0, 3) && normA.slice(-6) === normB.slice(-6);
+function buildConvocatoriaButtons(jornadaId: string): WhatsAppReplyButton[] {
+  return [
+    { id: `btn_nivel_1:${jornadaId}`, title: "Pasen a buscarme", variant: "primary" },
+    { id: `btn_nivel_2:${jornadaId}`, title: "Voy a la esquina", variant: "primary" },
+    { id: `btn_nivel_3:${jornadaId}`, title: "Voy directo al club", variant: "primary" },
+  ];
 }
 
-const CONVOCATORIA_BUTTONS: WhatsAppReplyButton[] = [
-  { id: "btn_nivel_1", title: "Pasen a buscarme", variant: "primary" },
-  { id: "btn_nivel_2", title: "Voy a la esquina", variant: "primary" },
-  { id: "btn_nivel_3", title: "Voy directo al club", variant: "primary" },
-];
+interface ParsedButton {
+  baseAction: string;
+  targetArgId?: string;
+  jornadaId?: string;
+}
 
-export async function dispararConvocatoriaJornada(): Promise<SystemSnapshot> {
+function parseButtonId(buttonId: string): ParsedButton {
+  const parts = (buttonId || "").split(":");
+  const baseAction = parts[0];
+
+  if (
+    baseAction === "btn_parada" ||
+    baseAction === "btn_padrino_acepta" ||
+    baseAction === "btn_padrino_rechaza" ||
+    baseAction === "btn_padrino_imprevisto"
+  ) {
+    return {
+      baseAction,
+      targetArgId: parts[1],
+      jornadaId: parts[2],
+    };
+  }
+
+  return {
+    baseAction,
+    jornadaId: parts[1],
+  };
+}
+
+function resolveEventContext(
+  state: SystemSnapshot,
+  explicitJornadaId?: string,
+  actorId?: string
+): { targetJornada: Jornada; targetCircuito: CircuitoBarrial } {
+  let targetJornada: Jornada | undefined;
+
+  if (explicitJornadaId) {
+    targetJornada = (state.jornadas || []).find((j) => j.id === explicitJornadaId);
+  }
+
+  if (!targetJornada && actorId) {
+    const actorJornadaIds = new Set(
+      state.asistencias
+        .filter((a) => a.participante_id === actorId)
+        .map((a) => a.jornada_id)
+    );
+    const candidateJornadas = (state.jornadas || []).filter((j) =>
+      actorJornadaIds.has(j.id)
+    );
+    targetJornada =
+      candidateJornadas.find((j) => j.estado === "convocando") ||
+      candidateJornadas[0];
+  }
+
+  if (!targetJornada) {
+    targetJornada = state.jornada;
+  }
+
+  const targetCircuito =
+    (state.circuitos || []).find((c) => c.id === targetJornada!.circuito_id) ||
+    state.circuito;
+
+  return { targetJornada, targetCircuito };
+}
+
+function upsertAsistencia(
+  state: SystemSnapshot,
+  jornadaId: string,
+  actor: Participante,
+  updates: Partial<Asistencia>
+): Asistencia {
+  let asis = state.asistencias.find(
+    (a) => a.jornada_id === jornadaId && a.participante_id === actor.id
+  );
+  if (!asis) {
+    asis = {
+      id: generateUuid(),
+      jornada_id: jornadaId,
+      participante_id: actor.id,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: actor.padrino_preferido_id || null,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+      ...updates,
+    };
+    state.asistencias.push(asis);
+  } else {
+    Object.assign(asis, updates, { updated_at: new Date().toISOString() });
+  }
+  return asis;
+}
+
+export async function dispararConvocatoriaJornada(
+  jornadaId?: string
+): Promise<SystemSnapshot> {
   const state = await readStateAsync();
-  state.jornada.estado = "convocando";
-  state.jornada.motivo_suspension = null;
-  state.jornada.updated_at = new Date().toISOString();
-  const jIdx = state.jornadas.findIndex((j) => j.id === state.jornada.id);
-  if (jIdx >= 0) state.jornadas[jIdx] = state.jornada;
+  const { targetJornada, targetCircuito } = resolveEventContext(state, jornadaId);
 
-  // Enviar convocatoria a los adultos mayores inscriptos en este evento/lugar (o a todos los activos si no hay asistencias previas)
+  targetJornada.estado = "convocando";
+  targetJornada.motivo_suspension = null;
+  targetJornada.updated_at = new Date().toISOString();
+  state.jornada = targetJornada;
+  state.circuito = targetCircuito;
+
+  const jIdx = state.jornadas.findIndex((j) => j.id === targetJornada.id);
+  if (jIdx >= 0) state.jornadas[jIdx] = targetJornada;
+
   const asistenciasDelEvento = state.asistencias.filter(
-    (a) => a.jornada_id === state.jornada.id
+    (a) => a.jornada_id === targetJornada.id
   );
   const idsDelEvento = new Set(asistenciasDelEvento.map((a) => a.participante_id));
 
@@ -46,52 +147,37 @@ export async function dispararConvocatoriaJornada(): Promise<SystemSnapshot> {
     (p) =>
       p.rol === "adulto_mayor" &&
       p.estado_alta === "activo" &&
-      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+      idsDelEvento.has(p.id)
   );
 
   for (const adulto of adultosActivos) {
-    let asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === adulto.id
-    );
-    if (!asis) {
-      asis = {
-        id: generateUuid(),
-        jornada_id: state.jornada.id,
-        participante_id: adulto.id,
-        modalidad_elegida: "sin_respuesta",
-        parada_esquina_id: null,
-        padrino_asignado_id: adulto.padrino_preferido_id,
-        estado_padrino: "no_aplica",
-        acuse_suspension_leido: false,
-        presente_validado_en_club: false,
-        codigo_canje_farmacia: null,
-        updated_at: new Date().toISOString(),
-      };
-      state.asistencias.push(asis);
-    } else {
-      asis.acuse_suspension_leido = false;
-    }
+    const asis = upsertAsistencia(state, targetJornada.id, adulto, {
+      acuse_suspension_leido: false,
+    });
 
-    if (asis.modalidad_elegida === "sin_respuesta" || asis.modalidad_elegida === "no_asiste") {
+    if (
+      asis.modalidad_elegida === "sin_respuesta" ||
+      asis.modalidad_elegida === "no_asiste"
+    ) {
       asis.modalidad_elegida = "sin_respuesta";
       asis.estado_padrino = "no_aplica";
       const primerNombre = adulto.nombre.split(" ")[0];
       await appendBotMessage(
         state,
         adulto,
-        `Buen dia, ${primerNombre}. Hoy ${state.jornada.hora_inicio_caminata} hs nos encontramos en el ${state.circuito.nombre_club} para caminar juntos y cerrar con ${state.jornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
-          state.jornada.monto_reintegro_asistencia
+        `Buen dia, ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}) para caminar juntos y cerrar con ${targetJornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
+          targetJornada.monto_reintegro_asistencia
         )} de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
-        { buttons: CONVOCATORIA_BUTTONS }
+        { buttons: buildConvocatoriaButtons(targetJornada.id) }
       );
     }
   }
 
   addLog(
     state,
-    "Coordinadora Marta Rios",
+    targetCircuito.nombre_club,
     "Flujo 1: Convocatoria Disparada",
-    `Mensajes 1 a 1 enviados a los adultos mayores del circuito ${state.circuito.nombre_barrio}.`,
+    `Mensajes 1 a 1 enviados a ${adultosActivos.length} abuelo(s) de ${targetCircuito.nombre_club}.`,
     "info"
   );
 
@@ -119,22 +205,28 @@ export async function procesarEventoWebhookWhatsApp(params: {
       state,
       params.fromPhone || "Desconocido",
       "Webhook recibido de numero no registrado",
-      `Llego evento (${params.buttonId}) desde ${params.fromPhone || "sin telefono"} que no coincide con ningun participante.`,
+      `Llego evento (${params.buttonId}) desde ${
+        params.fromPhone || "sin telefono"
+      } que no coincide con ningun participante.`,
       "warning"
     );
     writeState(state);
     return state;
   }
 
-  const { buttonId } = params;
+  const parsed = parseButtonId(params.buttonId);
+  const { targetJornada, targetCircuito } = resolveEventContext(
+    state,
+    parsed.jornadaId,
+    actor.id
+  );
   const primerNombre = actor.nombre.split(" ")[0];
 
-  appendUserMessage(state, actor, params.buttonTitle || buttonId);
+  appendUserMessage(state, actor, params.buttonTitle || params.buttonId);
 
-  // MENU INICIAL (cuando el participante escribe "hola" o toca "Volver a sumarme")
-  if (buttonId === "btn_menu_convocatoria") {
+  if (parsed.baseAction === "btn_menu_convocatoria") {
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === actor.id
     );
     if (asis && asis.modalidad_elegida === "no_asiste") {
       asis.modalidad_elegida = "sin_respuesta";
@@ -145,52 +237,30 @@ export async function procesarEventoWebhookWhatsApp(params: {
     await appendBotMessage(
       state,
       actor,
-      `Hola ${primerNombre}. Hoy ${state.jornada.hora_inicio_caminata} hs nos encontramos en el ${state.circuito.nombre_club} para caminar y cerrar con ${state.jornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
-        state.jornada.monto_reintegro_asistencia
+      `Hola ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} para caminar y cerrar con ${targetJornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
+        targetJornada.monto_reintegro_asistencia
       )} de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
-      { buttons: CONVOCATORIA_BUTTONS }
+      { buttons: buildConvocatoriaButtons(targetJornada.id) }
     );
-  }
-
-  // FLUJO 2: NIVEL 1 (PUERTA A PUERTA)
-  else if (buttonId === "btn_nivel_1") {
-    let asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
-    );
+  } else if (parsed.baseAction === "btn_nivel_1") {
     const padrinoId = actor.padrino_preferido_id || SEED_IDS.padrinoCarlos;
     const padrino = state.participantes.find((p) => p.id === padrinoId);
 
-    if (!asis) {
-      asis = {
-        id: generateUuid(),
-        jornada_id: state.jornada.id,
-        participante_id: actor.id,
-        modalidad_elegida: "nivel_1_puerta",
-        parada_esquina_id: null,
-        padrino_asignado_id: padrinoId,
-        estado_padrino: "esperando_confirmacion",
-        acuse_suspension_leido: false,
-        presente_validado_en_club: false,
-        codigo_canje_farmacia: null,
-        updated_at: new Date().toISOString(),
-      };
-      state.asistencias.push(asis);
-    } else {
-      asis.modalidad_elegida = "nivel_1_puerta";
-      asis.parada_esquina_id = null;
-      asis.padrino_asignado_id = padrinoId;
-      asis.estado_padrino = "esperando_confirmacion";
-      asis.updated_at = new Date().toISOString();
-    }
+    upsertAsistencia(state, targetJornada.id, actor, {
+      modalidad_elegida: "nivel_1_puerta",
+      parada_esquina_id: null,
+      padrino_asignado_id: padrinoId,
+      estado_padrino: "esperando_confirmacion",
+    });
 
     await appendBotMessage(
       state,
       actor,
-      `Barbaro, ${primerNombre}. Ya le estamos avisando a tu vecino padrino para confirmar el horario. Quedate atenta.`,
+      `Barbaro, ${primerNombre}. Ya le estamos avisando a tu vecino padrino para confirmar el horario rumbo a ${targetCircuito.nombre_club}. Quedate atenta.`,
       {
         buttons: [
           {
-            id: "btn_adulto_cancela",
+            id: `btn_adulto_cancela:${targetJornada.id}`,
             title: "No voy hoy",
             variant: "danger",
           },
@@ -203,18 +273,18 @@ export async function procesarEventoWebhookWhatsApp(params: {
       await appendBotMessage(
         state,
         padrino,
-        `Hola ${nombrePadrino}. Tu vecina *${actor.nombre}* (${actor.direccion}) pidio acompanamiento puerta a puerta para la salida de hoy. Si la acompanas sumas tu *Plus de Padrinazgo (+$${formatPesos(
-          state.jornada.plus_reintegro_padrino
-        )})*. ¿Podes pasar por su casa a las ${state.jornada.hora_inicio_caminata} hs?`,
+        `Hola ${nombrePadrino}. Tu vecina *${actor.nombre}* (${actor.direccion}) pidio acompanamiento puerta a puerta para ir a *${targetCircuito.nombre_club}*. Si la acompanas sumas tu *Plus de Padrinazgo (+$${formatPesos(
+          targetJornada.plus_reintegro_padrino
+        )})*. ¿Podes pasar por su casa a las ${targetJornada.hora_inicio_caminata} hs?`,
         {
           buttons: [
             {
-              id: `btn_padrino_acepta:${actor.id}`,
+              id: `btn_padrino_acepta:${actor.id}:${targetJornada.id}`,
               title: "Si, paso por ahi",
               variant: "success",
             },
             {
-              id: `btn_padrino_rechaza:${actor.id}`,
+              id: `btn_padrino_rechaza:${actor.id}:${targetJornada.id}`,
               title: "Hoy no puedo",
               variant: "warning",
             },
@@ -226,18 +296,15 @@ export async function procesarEventoWebhookWhatsApp(params: {
         state,
         actor.nombre,
         "Flujo 2: Solicitud Nivel 1 (Puerta a Puerta)",
-        `${actor.nombre} pidio acompanamiento domiciliario. Se notifico a ${padrino.nombre} (${padrino.credencial_nro}).`,
+        `${actor.nombre} pidio acompanamiento domiciliario (${targetCircuito.nombre_club}). Se notifico a ${padrino.nombre} (${padrino.credencial_nro}).`,
         "warning"
       );
     }
-  }
-
-  // FLUJO 2: PADRINO CONFIRMA
-  else if (buttonId.startsWith("btn_padrino_acepta:")) {
-    const adultoId = buttonId.split(":")[1];
+  } else if (parsed.baseAction === "btn_padrino_acepta") {
+    const adultoId = parsed.targetArgId;
     const adulto = state.participantes.find((p) => p.id === adultoId);
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === adultoId
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === adultoId
     );
 
     if (adulto && asis) {
@@ -250,11 +317,11 @@ export async function procesarEventoWebhookWhatsApp(params: {
       await appendBotMessage(
         state,
         actor,
-        `Muchas gracias, ${primerNombre}. Quedo confirmado tu acompanamiento puerta a puerta para *${adulto.nombre}* (${adulto.direccion}) hoy a las ${state.jornada.hora_inicio_caminata} hs. Ya le enviamos tu Ficha de Seguridad Oficial.`,
+        `Muchas gracias, ${primerNombre}. Quedo confirmado tu acompanamiento puerta a puerta para *${adulto.nombre}* (${adulto.direccion}) hoy a las ${targetJornada.hora_inicio_caminata} hs rumbo a ${targetCircuito.nombre_club}. Ya le enviamos tu Ficha de Seguridad Oficial.`,
         {
           buttons: [
             {
-              id: `btn_padrino_imprevisto:${adulto.id}`,
+              id: `btn_padrino_imprevisto:${adulto.id}:${targetJornada.id}`,
               title: "Tuve un imprevisto",
               variant: "danger",
             },
@@ -265,18 +332,18 @@ export async function procesarEventoWebhookWhatsApp(params: {
       await appendBotMessage(
         state,
         adulto,
-        `Confirmado, ${nombreAdulto}. Hoy a las ${state.jornada.hora_inicio_caminata} hs pasa por tu puerta *${actor.nombre}* (Padrino Acreditado del Club - Credencial ${actor.credencial_nro}). A preparar el equipo de mate.`,
+        `Confirmado, ${nombreAdulto}. Hoy a las ${targetJornada.hora_inicio_caminata} hs pasa por tu puerta *${actor.nombre}* (Padrino Acreditado - Credencial ${actor.credencial_nro}) rumbo a ${targetCircuito.nombre_club}. A preparar el equipo de mate.`,
         {
           fichaSeguridad: {
             padrinoNombre: actor.nombre,
             credencialNro: actor.credencial_nro || "#104",
             dni: actor.dni,
-            horarioPuerta: `${state.jornada.hora_inicio_caminata} hs`,
-            clubAcreditador: state.circuito.nombre_club,
+            horarioPuerta: `${targetJornada.hora_inicio_caminata} hs`,
+            clubAcreditador: targetCircuito.nombre_club,
           },
           buttons: [
             {
-              id: "btn_adulto_cancela",
+              id: `btn_adulto_cancela:${targetJornada.id}`,
               title: "No voy hoy",
               variant: "danger",
             },
@@ -288,21 +355,18 @@ export async function procesarEventoWebhookWhatsApp(params: {
         state,
         `${actor.nombre} (${actor.credencial_nro})`,
         "Flujo 2: Padrino Confirmado",
-        `${actor.nombre} confirmo pasar por la puerta de ${adulto.nombre}. Ficha de Seguridad enviada.`,
+        `${actor.nombre} confirmo pasar por la puerta de ${adulto.nombre} (${targetCircuito.nombre_club}).`,
         "success"
       );
     }
-  }
-
-  // FLUJO 4B: PADRINO RECHAZA O SE BAJA A ULTIMO MOMENTO
-  else if (
-    buttonId.startsWith("btn_padrino_rechaza:") ||
-    buttonId.startsWith("btn_padrino_imprevisto:")
+  } else if (
+    parsed.baseAction === "btn_padrino_rechaza" ||
+    parsed.baseAction === "btn_padrino_imprevisto"
   ) {
-    const adultoId = buttonId.split(":")[1];
+    const adultoId = parsed.targetArgId;
     const adulto = state.participantes.find((p) => p.id === adultoId);
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === adultoId
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === adultoId
     );
 
     if (adulto && asis) {
@@ -324,19 +388,19 @@ export async function procesarEventoWebhookWhatsApp(params: {
         await appendBotMessage(
           state,
           padrinoReemplazo,
-          `*REEMPLAZO DE CERCANIA URGENTE:* Hola ${nombreReemplazo}, el padrino ${actor.nombre} tuvo un imprevisto de ultimo momento. ¿Podes pasar a buscar a *${adulto.nombre}* (${adulto.direccion}) hoy a las ${state.jornada.hora_inicio_caminata} hs? Sumas *Plus de Padrinazgo (+$${formatPesos(
-            state.jornada.plus_reintegro_padrino
+          `*REEMPLAZO DE CERCANIA URGENTE (${targetCircuito.nombre_club}):* Hola ${nombreReemplazo}, el padrino ${actor.nombre} tuvo un imprevisto de ultimo momento. ¿Podes pasar a buscar a *${adulto.nombre}* (${adulto.direccion}) hoy a las ${targetJornada.hora_inicio_caminata} hs? Sumas *Plus de Padrinazgo (+$${formatPesos(
+            targetJornada.plus_reintegro_padrino
           )})*.`,
           {
             esAlertaPrioritaria: true,
             buttons: [
               {
-                id: `btn_padrino_acepta:${adulto.id}`,
+                id: `btn_padrino_acepta:${adulto.id}:${targetJornada.id}`,
                 title: "Si, paso por ahi",
                 variant: "success",
               },
               {
-                id: `btn_padrino_rechaza:${adulto.id}`,
+                id: `btn_padrino_rechaza:${adulto.id}:${targetJornada.id}`,
                 title: "Hoy no puedo",
                 variant: "warning",
               },
@@ -349,16 +413,13 @@ export async function procesarEventoWebhookWhatsApp(params: {
         state,
         `${actor.nombre} (${actor.credencial_nro})`,
         "Caso 4B: Padrino Caido a Ultimo Momento",
-        `${actor.nombre} reporto un imprevisto para buscar a ${adulto.nombre}. Se activo alerta en el Panel del Coordinador.`,
+        `${actor.nombre} reporto imprevisto para ${adulto.nombre} en ${targetCircuito.nombre_club}.`,
         "danger"
       );
     }
-  }
-
-  // FLUJO 4C: ADULTO MAYOR CANCELA A ULTIMO MOMENTO
-  else if (buttonId === "btn_adulto_cancela") {
+  } else if (parsed.baseAction === "btn_adulto_cancela") {
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === actor.id
     );
 
     if (asis) {
@@ -372,13 +433,13 @@ export async function procesarEventoWebhookWhatsApp(params: {
 
       const cancelMsg =
         eraNivel1 && teniaPadrinoId
-          ? `Entendido, ${primerNombre}. Ya registramos que hoy no asistis y le avisamos a tu vecino padrino para que no pase por tu casa. Te esperamos en la proxima jornada.`
-          : `Entendido, ${primerNombre}. Ya registramos que hoy no asistis. Te esperamos en la proxima jornada.`;
+          ? `Entendido, ${primerNombre}. Ya registramos que hoy no asistis a ${targetCircuito.nombre_club} y le avisamos a tu vecino padrino para que no pase por tu casa. Te esperamos en la proxima jornada.`
+          : `Entendido, ${primerNombre}. Ya registramos que hoy no asistis a ${targetCircuito.nombre_club}. Te esperamos en la proxima jornada.`;
 
       await appendBotMessage(state, actor, cancelMsg, {
         buttons: [
           {
-            id: "btn_menu_convocatoria",
+            id: `btn_menu_convocatoria:${targetJornada.id}`,
             title: "Volver a sumarme",
             variant: "neutral",
           },
@@ -392,7 +453,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
           await appendBotMessage(
             state,
             padrino,
-            `Aviso a tiempo, ${nombrePadrino}: Tu vecina *${primerNombre}* aviso que hoy no se suma a la caminata, asi que no hace falta que pases por su domicilio.`
+            `Aviso a tiempo, ${nombrePadrino}: Tu vecina *${primerNombre}* aviso que hoy no se suma a la caminata hacia ${targetCircuito.nombre_club}, asi que no hace falta que pases por su domicilio.`
           );
         }
       }
@@ -401,36 +462,39 @@ export async function procesarEventoWebhookWhatsApp(params: {
         state,
         actor.nombre,
         "Caso 4C: Cancelacion de Adulto Mayor",
-        `${actor.nombre} aviso que hoy no asiste. Se notifico instantaneamente a su Padrino.`,
+        `${actor.nombre} aviso que hoy no asiste a ${targetCircuito.nombre_club}.`,
         "warning"
       );
     }
-  }
-
-  // FLUJO 3: SELECCION DE PARADA SEGURA (NIVEL 2)
-  else if (buttonId === "btn_nivel_2") {
-    const paradaButtons: WhatsAppReplyButton[] = state.circuito.paradas_seguras.map(
+  } else if (parsed.baseAction === "btn_nivel_2") {
+    const paradaButtons: WhatsAppReplyButton[] = targetCircuito.paradas_seguras.map(
       (parada, idx) => ({
-        id: `btn_parada:${parada.id}`,
+        id: `btn_parada:${parada.id}:${targetJornada.id}`,
         title: `Parada ${idx + 1} (${parada.horario_paso})`,
         variant: "primary",
       })
     );
 
     paradaButtons.push({
-      id: "btn_adulto_cancela",
+      id: `btn_adulto_cancela:${targetJornada.id}`,
       title: "No voy hoy",
       variant: "danger",
     });
 
-    const detalleParadas = state.circuito.paradas_seguras
-      .map((p, idx) => `• *Parada ${idx + 1}:* ${p.nombre_esquina.replace(/^Parada \d+:\s*/, "")} (${p.horario_paso})`)
+    const detalleParadas = targetCircuito.paradas_seguras
+      .map(
+        (p, idx) =>
+          `• *Parada ${idx + 1}:* ${p.nombre_esquina.replace(
+            /^Parada \d+:\s*/,
+            ""
+          )} (${p.horario_paso})`
+      )
       .join("\n");
 
     await appendBotMessage(
       state,
       actor,
-      `Muy bien, ${primerNombre}. Elegi en cual de las *Paradas Seguras relevadas por Sancor* te sumas hoy:\n${detalleParadas}`,
+      `Muy bien, ${primerNombre}. Elegi en cual de las *Paradas Seguras relevadas por Sancor* hacia ${targetCircuito.nombre_club} te sumas hoy:\n${detalleParadas}`,
       { buttons: paradaButtons }
     );
 
@@ -438,50 +502,29 @@ export async function procesarEventoWebhookWhatsApp(params: {
       state,
       actor.nombre,
       "Flujo 3: Consulta de Paradas Seguras (Nivel 2)",
-      `${actor.nombre} solicito ver las esquinas seguras del circuito.`,
+      `${actor.nombre} solicito ver las esquinas seguras de ${targetCircuito.nombre_club}.`,
       "info"
     );
-  }
+  } else if (parsed.baseAction === "btn_parada") {
+    const paradaId = parsed.targetArgId || "";
+    const parada = targetCircuito.paradas_seguras.find((p) => p.id === paradaId);
 
-  // FLUJO 3: CONFIRMACION DE ESQUINA
-  else if (buttonId.startsWith("btn_parada:")) {
-    const paradaId = buttonId.split(":")[1];
-    const parada = state.circuito.paradas_seguras.find((p) => p.id === paradaId);
-
-    let asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
-    );
-    if (!asis) {
-      asis = {
-        id: generateUuid(),
-        jornada_id: state.jornada.id,
-        participante_id: actor.id,
-        modalidad_elegida: "nivel_2_esquina",
-        parada_esquina_id: paradaId,
-        padrino_asignado_id: null,
-        estado_padrino: "no_aplica",
-        acuse_suspension_leido: false,
-        presente_validado_en_club: false,
-        codigo_canje_farmacia: null,
-        updated_at: new Date().toISOString(),
-      };
-      state.asistencias.push(asis);
-    } else {
-      asis.modalidad_elegida = "nivel_2_esquina";
-      asis.parada_esquina_id = paradaId;
-      asis.estado_padrino = "no_aplica";
-      asis.updated_at = new Date().toISOString();
-    }
+    upsertAsistencia(state, targetJornada.id, actor, {
+      modalidad_elegida: "nivel_2_esquina",
+      parada_esquina_id: paradaId,
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
+    });
 
     if (parada) {
       await appendBotMessage(
         state,
         actor,
-        `Agendado, ${primerNombre}. Te esperamos en *${parada.nombre_esquina}* a las *${parada.horario_paso}* para sumarte a la caravana rumbo al ${state.circuito.nombre_club}.`,
+        `Agendado, ${primerNombre}. Te esperamos en *${parada.nombre_esquina}* a las *${parada.horario_paso}* para sumarte rumbo a ${targetCircuito.nombre_club}.`,
         {
           buttons: [
             {
-              id: "btn_adulto_cancela",
+              id: `btn_adulto_cancela:${targetJornada.id}`,
               title: "No voy hoy",
               variant: "danger",
             },
@@ -493,47 +536,26 @@ export async function procesarEventoWebhookWhatsApp(params: {
         state,
         actor.nombre,
         "Flujo 3: Parada Segura Confirmada",
-        `${actor.nombre} confirmo espera en ${parada.nombre_esquina} (${parada.horario_paso}).`,
+        `${actor.nombre} confirmo espera en ${parada.nombre_esquina} (${targetCircuito.nombre_club}).`,
         "success"
       );
     }
-  }
-
-  // NIVEL 3: DIRECTO AL CLUB
-  else if (buttonId === "btn_nivel_3") {
-    let asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
-    );
-    if (!asis) {
-      asis = {
-        id: generateUuid(),
-        jornada_id: state.jornada.id,
-        participante_id: actor.id,
-        modalidad_elegida: "nivel_3_directo",
-        parada_esquina_id: null,
-        padrino_asignado_id: null,
-        estado_padrino: "no_aplica",
-        acuse_suspension_leido: false,
-        presente_validado_en_club: false,
-        codigo_canje_farmacia: null,
-        updated_at: new Date().toISOString(),
-      };
-      state.asistencias.push(asis);
-    } else {
-      asis.modalidad_elegida = "nivel_3_directo";
-      asis.parada_esquina_id = null;
-      asis.estado_padrino = "no_aplica";
-      asis.updated_at = new Date().toISOString();
-    }
+  } else if (parsed.baseAction === "btn_nivel_3") {
+    upsertAsistencia(state, targetJornada.id, actor, {
+      modalidad_elegida: "nivel_3_directo",
+      parada_esquina_id: null,
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
+    });
 
     await appendBotMessage(
       state,
       actor,
-      `Excelente, ${primerNombre}. Te esperamos directamente a las *${state.jornada.hora_encuentro_club} hs* en el *${state.circuito.nombre_club}* (${state.circuito.direccion_club}) para compartir el ${state.jornada.actividad_cierre}.`,
+      `Excelente, ${primerNombre}. Te esperamos directamente a las *${targetJornada.hora_encuentro_club} hs* en *${targetCircuito.nombre_club}* (${targetCircuito.direccion_club}) para compartir ${targetJornada.actividad_cierre}.`,
       {
         buttons: [
           {
-            id: "btn_adulto_cancela",
+            id: `btn_adulto_cancela:${targetJornada.id}`,
             title: "No voy hoy",
             variant: "danger",
           },
@@ -545,15 +567,12 @@ export async function procesarEventoWebhookWhatsApp(params: {
       state,
       actor.nombre,
       "Anillo Nivel 3 Confirmado",
-      `${actor.nombre} confirmo asistencia directa al Club a las ${state.jornada.hora_encuentro_club} hs.`,
+      `${actor.nombre} confirmo asistencia directa a ${targetCircuito.nombre_club} a las ${targetJornada.hora_encuentro_club} hs.`,
       "success"
     );
-  }
-
-  // FLUJO 4A: ACUSE DE RECIBO DE SUSPENSION
-  else if (buttonId === "btn_acuse_suspension") {
+  } else if (parsed.baseAction === "btn_acuse_suspension") {
     const asis = state.asistencias.find(
-      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
+      (a) => a.jornada_id === targetJornada.id && a.participante_id === actor.id
     );
     if (asis) {
       asis.acuse_suspension_leido = true;
@@ -563,14 +582,14 @@ export async function procesarEventoWebhookWhatsApp(params: {
     await appendBotMessage(
       state,
       actor,
-      `Gracias por confirmar, ${primerNombre}. Ya le avisamos a la coordinadora Marta que leiste el mensaje y te quedas en casa. Nos vemos en la proxima salida.`
+      `Gracias por confirmar, ${primerNombre}. Ya registramos que leiste el aviso de ${targetCircuito.nombre_club} y te quedas en casa. Nos vemos en la proxima salida.`
     );
 
     addLog(
       state,
       actor.nombre,
       "Caso 4A: Acuse de Suspension Recibido",
-      `${actor.nombre} confirmo lectura de suspension climatica.`,
+      `${actor.nombre} confirmo lectura de suspension (${targetCircuito.nombre_club}).`,
       "success"
     );
   }

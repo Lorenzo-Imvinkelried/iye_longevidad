@@ -6,6 +6,7 @@ import {
   crearSolicitudNietoFamiliar,
   dispararConvocatoriaJornada,
   frenarSalidaAdultoPorSeguridad,
+  loginTutorConClave,
   readStateAsync,
   reasignarTutorManualCoordinador,
   registrarNuevoTutorYLugar,
@@ -13,80 +14,163 @@ import {
   seleccionarEventoActivo,
   suspenderJornadaPorEmergencia,
   validarPresenciaEnClub,
+  vincularAbueloExistenteAEvento,
 } from "@/lib/store";
+import {
+  projectSnapshotForTutor,
+  sanitizeSnapshotForClient,
+} from "@/lib/domain-helpers";
 
 export const dynamic = "force-dynamic";
 
-export async function GET() {
-  const snapshot = await readStateAsync();
-  return NextResponse.json(snapshot);
+export async function GET(req: NextRequest) {
+  const { searchParams } = new URL(req.url);
+  const tutorId = searchParams.get("tutorId");
+  const jornadaId = searchParams.get("jornadaId");
+
+  const raw = await readStateAsync();
+  const projected = tutorId
+    ? projectSnapshotForTutor(raw, tutorId, jornadaId)
+    : raw;
+
+  return NextResponse.json(sanitizeSnapshotForClient(projected));
 }
 
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { action } = body;
+    const { action, activeTutorId, activeJornadaId } = body;
+
+    const finalize = (rawSnapshot: Awaited<ReturnType<typeof readStateAsync>>) => {
+      const projected = activeTutorId
+        ? projectSnapshotForTutor(
+            rawSnapshot,
+            activeTutorId,
+            activeJornadaId || rawSnapshot.jornada.id
+          )
+        : rawSnapshot;
+      return sanitizeSnapshotForClient(projected);
+    };
 
     switch (action) {
+      case "login_tutor": {
+        const result = await loginTutorConClave({
+          identificador: body.identificador || "",
+          clave: body.clave || "",
+        });
+        if (!result.ok || !result.snapshot) {
+          return NextResponse.json(
+            { ok: false, error: result.error || "Credenciales invalidas." },
+            { status: 401 }
+          );
+        }
+        return NextResponse.json({
+          ok: true,
+          tutorId: result.tutorId,
+          snapshot: sanitizeSnapshotForClient(result.snapshot),
+        });
+      }
       case "seleccionar_evento": {
         const snapshot = await seleccionarEventoActivo({
           jornadaId: body.jornadaId,
           tutorId: body.tutorId,
         });
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({
+          ok: true,
+          snapshot: sanitizeSnapshotForClient(
+            projectSnapshotForTutor(
+              snapshot,
+              body.tutorId || activeTutorId,
+              body.jornadaId || snapshot.jornada.id
+            )
+          ),
+        });
       }
       case "registrar_tutor_lugar": {
         const snapshot = await registrarNuevoTutorYLugar(body.payload);
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({
+          ok: true,
+          tutorId: snapshot.tutorActivoId,
+          snapshot: sanitizeSnapshotForClient(snapshot),
+        });
       }
       case "crear_evento_lugar": {
         const snapshot = await crearNuevoEventoOLugar(body.payload);
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({
+          ok: true,
+          snapshot: sanitizeSnapshotForClient(snapshot),
+        });
+      }
+      case "vincular_abuelo_evento": {
+        const snapshot = await vincularAbueloExistenteAEvento({
+          adultoId: body.adultoId,
+          jornadaId: body.jornadaId || activeJornadaId,
+        });
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "lanzar_convocatoria": {
-        const snapshot = await dispararConvocatoriaJornada();
-        return NextResponse.json({ ok: true, snapshot });
+        const snapshot = await dispararConvocatoriaJornada(
+          body.jornadaId || activeJornadaId
+        );
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "suspender_emergencia": {
-        const snapshot = await suspenderJornadaPorEmergencia(body.motivo);
-        return NextResponse.json({ ok: true, snapshot });
+        const snapshot = await suspenderJornadaPorEmergencia(
+          body.motivo,
+          body.jornadaId || activeJornadaId
+        );
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "reasignar_tutor": {
         const snapshot = await reasignarTutorManualCoordinador(
           body.adultoId,
-          body.nuevoPadrinoId
+          body.nuevoPadrinoId,
+          body.jornadaId || activeJornadaId
         );
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "frenar_salida": {
-        const snapshot = await frenarSalidaAdultoPorSeguridad(body.adultoId);
-        return NextResponse.json({ ok: true, snapshot });
+        const snapshot = await frenarSalidaAdultoPorSeguridad(
+          body.adultoId,
+          body.jornadaId || activeJornadaId
+        );
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "validar_club": {
         const ids: string[] = Array.isArray(body.participanteIds)
           ? body.participanteIds
           : [body.participanteId];
-        const snapshot = await validarPresenciaEnClub(ids);
-        return NextResponse.json({ ok: true, snapshot });
+        const snapshot = await validarPresenciaEnClub(
+          ids,
+          body.jornadaId || activeJornadaId
+        );
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "aprobar_solicitud_familiar": {
         const snapshot = await aprobarAltaDerivacionFamiliar(
           body.participanteId,
-          body.padrinoId
+          body.padrinoId,
+          body.jornadaId || activeJornadaId
         );
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "crear_solicitud_familiar": {
-        const snapshot = await crearSolicitudNietoFamiliar(body.payload);
-        return NextResponse.json({ ok: true, snapshot });
+        const snapshot = await crearSolicitudNietoFamiliar({
+          ...body.payload,
+          jornadaId: body.jornadaId || activeJornadaId,
+        });
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "acreditar_padrino": {
         const snapshot = await acreditarNuevoVecinoPadrino(body.payload);
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "reset_demo": {
         const snapshot = await resetStateAsync();
-        return NextResponse.json({ ok: true, snapshot });
+        return NextResponse.json({
+          ok: true,
+          snapshot: sanitizeSnapshotForClient(snapshot),
+        });
       }
       default:
         return NextResponse.json(
@@ -96,12 +180,14 @@ export async function POST(req: NextRequest) {
     }
   } catch (err: unknown) {
     console.error("Error en /api/state:", err);
-    return NextResponse.json(
-      {
-        ok: false,
-        error: err instanceof Error ? err.message : "Error procesando accion",
-      },
-      { status: 500 }
-    );
+    const message =
+      err instanceof Error ? err.message : "Error procesando accion";
+    const status =
+      message.includes("Superposicion") ||
+      message.includes("No se puede") ||
+      message.includes("Ya existe")
+        ? 409
+        : 500;
+    return NextResponse.json({ ok: false, error: message }, { status });
   }
 }

@@ -3,6 +3,7 @@
 import React from "react";
 import dynamic from "next/dynamic";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
+import { getTutorJornadas } from "@/lib/domain-helpers";
 import { AlertTriangle, MapPin, PhoneCall, UserPlus } from "lucide-react";
 
 const MapaCircuitoLeaflet = dynamic(
@@ -19,21 +20,33 @@ const MapaCircuitoLeaflet = dynamic(
 
 interface TabMonitorProps {
   snapshot: SystemSnapshot;
+  loggedInTutorId: string;
   loadingAction: string | null;
   onExecuteAction: (action: string, payload?: Record<string, unknown>) => void;
+  onSelectEvento: (jornadaId: string) => void;
   onOpenPhone: (participanteId: string) => void;
   onOpenFamiliarModal: () => void;
 }
 
 export default function TabMonitorCircuito({
   snapshot,
+  loggedInTutorId,
   loadingAction,
   onExecuteAction,
+  onSelectEvento,
   onOpenPhone,
   onOpenFamiliarModal,
 }: TabMonitorProps) {
   const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
     snapshot;
+
+  const eventosDelTutor = getTutorJornadas(
+    jornadas || [jornada],
+    circuitos || [circuito],
+    loggedInTutorId
+  );
+  const listaEventos =
+    eventosDelTutor.length > 0 ? eventosDelTutor : [jornada];
 
   const asistenciasEvento = asistencias.filter(
     (a) => a.jornada_id === jornada.id
@@ -44,7 +57,7 @@ export default function TabMonitorCircuito({
     (p) =>
       p.rol === "adulto_mayor" &&
       p.estado_alta === "activo" &&
-      (idsDelEvento.size === 0 || idsDelEvento.has(p.id))
+      idsDelEvento.has(p.id)
   );
 
   const asistenciasNivel1 = asistenciasEvento.filter(
@@ -75,18 +88,16 @@ export default function TabMonitorCircuito({
             <select
               id="selector-evento-activo"
               value={jornada.id}
-              onChange={(e) =>
-                onExecuteAction("seleccionar_evento", { jornadaId: e.target.value })
-              }
+              onChange={(e) => onSelectEvento(e.target.value)}
               className="bg-transparent text-xs font-bold text-[#0a4494] focus:outline-hidden max-w-[260px] sm:max-w-[340px] truncate cursor-pointer"
             >
-              {(jornadas || [jornada]).map((j) => {
+              {listaEventos.map((j) => {
                 const c =
                   (circuitos || [circuito]).find((ci) => ci.id === j.circuito_id) ||
                   circuito;
                 return (
                   <option key={j.id} value={j.id}>
-                    {c.nombre_club} — {j.actividad_cierre} ({j.hora_inicio_caminata} hs)
+                    {c.nombre_club} — {j.actividad_cierre} ({j.fecha} {j.hora_inicio_caminata} hs)
                   </option>
                 );
               })}
