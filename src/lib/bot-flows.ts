@@ -103,7 +103,17 @@ export async function procesarEventoWebhookWhatsApp(params: {
     return false;
   });
 
-  if (!actor) return state;
+  if (!actor) {
+    addLog(
+      state,
+      params.fromPhone || "Desconocido",
+      "Webhook recibido de numero no registrado",
+      `Llego evento (${params.buttonId}) desde ${params.fromPhone || "sin telefono"} que no coincide con ningun participante.`,
+      "warning"
+    );
+    writeState(state);
+    return state;
+  }
 
   const { buttonId } = params;
   const primerNombre = actor.nombre.split(" ")[0];

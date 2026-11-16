@@ -1,8 +1,13 @@
 import { createClient, SupabaseClient } from "@supabase/supabase-js";
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || "";
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || "";
-const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY || supabaseAnonKey;
+function cleanEnv(val?: string): string {
+  return (val || "").trim().replace(/^["']|["']$/g, "");
+}
+
+const supabaseUrl = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_URL);
+const supabaseAnonKey = cleanEnv(process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
+const supabaseServiceKey =
+  cleanEnv(process.env.SUPABASE_SERVICE_ROLE_KEY) || supabaseAnonKey;
 
 export function isSupabaseConfigured(): boolean {
   return (

@@ -1,8 +1,12 @@
 import { WhatsAppReplyButton } from "@/types/domain";
 
+function cleanEnv(val?: string): string {
+  return (val || "").trim().replace(/^["']|["']$/g, "");
+}
+
 export function isWhatsAppCloudConfigured(): boolean {
-  const token = process.env.WHATSAPP_TOKEN || "";
-  const phoneId = process.env.WHATSAPP_PHONE_ID || "";
+  const token = cleanEnv(process.env.WHATSAPP_TOKEN);
+  const phoneId = cleanEnv(process.env.WHATSAPP_PHONE_ID);
   return (
     Boolean(token) &&
     Boolean(phoneId) &&
@@ -80,8 +84,8 @@ export async function sendWhatsAppCloudMessage(
     };
   }
 
-  const phoneId = process.env.WHATSAPP_PHONE_ID!;
-  const token = process.env.WHATSAPP_TOKEN!;
+  const phoneId = cleanEnv(process.env.WHATSAPP_PHONE_ID);
+  const token = cleanEnv(process.env.WHATSAPP_TOKEN);
   const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
 
   try {
@@ -111,8 +115,19 @@ export async function sendWhatsAppCloudMessage(
       }
     }
 
+    if (!res.ok) {
+      const errBody = await res.text().catch(() => "");
+      console.error("[WhatsApp Cloud API Error]", res.status, errBody);
+      return {
+        dispatched: false,
+        payload,
+        responseStatus: res.status,
+        error: errBody,
+      };
+    }
+
     return {
-      dispatched: res.ok,
+      dispatched: true,
       payload,
       responseStatus: res.status,
     };
