@@ -108,8 +108,21 @@ export default function MapaCircuitoLeaflet({
       p.estado_alta === "activo" &&
       idsDelEvento.has(p.id)
   );
+  const padrinosSolicitadosIds = new Set(
+    asistenciasEvento
+      .filter(
+        (a) =>
+          a.modalidad_elegida === "nivel_1_puerta" &&
+          a.estado_padrino !== "sin_padrino_frenado" &&
+          Boolean(a.padrino_asignado_id)
+      )
+      .map((a) => a.padrino_asignado_id as string)
+  );
   const padrinosActivos = participantes.filter(
-    (p) => p.rol === "padrino" && p.acreditado_por_club
+    (p) =>
+      p.rol === "padrino" &&
+      p.acreditado_por_club &&
+      padrinosSolicitadosIds.has(p.id)
   );
 
   const validadosCount = asistenciasEvento.filter(

@@ -1,5 +1,14 @@
 import { WhatsAppReplyButton } from "@/types/domain";
 
+export const WHATSAPP_BOT_DISPLAY_PHONE = "+1 (555) 155-0663";
+export const WHATSAPP_BOT_E164_DIGITS = "15551550663";
+
+export function buildWhatsAppInviteLink(prefillText: string = "Hola"): string {
+  return `https://wa.me/${WHATSAPP_BOT_E164_DIGITS}?text=${encodeURIComponent(
+    prefillText
+  )}`;
+}
+
 function cleanEnv(val?: string): string {
   return (val || "").trim().replace(/^["']|["']$/g, "");
 }

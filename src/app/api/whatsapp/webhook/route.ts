@@ -53,12 +53,15 @@ export async function POST(req: NextRequest) {
 
     if (message) {
       const fromPhone: string | undefined = message.from;
+      const senderName: string | undefined =
+        value?.contacts?.[0]?.profile?.name;
       const participanteId: string | undefined = message.participante_id;
       const buttonReply = message?.interactive?.button_reply;
 
       if (buttonReply?.id) {
         const snapshot = await procesarEventoWebhookWhatsApp({
           fromPhone,
+          senderName,
           participanteId,
           buttonId: buttonReply.id,
           buttonTitle: buttonReply.title,
@@ -77,6 +80,7 @@ export async function POST(req: NextRequest) {
         const payloadId = message.button.payload || "btn_menu_convocatoria";
         const snapshot = await procesarEventoWebhookWhatsApp({
           fromPhone,
+          senderName,
           participanteId,
           buttonId: payloadId,
           buttonTitle: message.button.text,
@@ -105,6 +109,7 @@ export async function POST(req: NextRequest) {
 
         const snapshot = await procesarEventoWebhookWhatsApp({
           fromPhone,
+          senderName,
           participanteId,
           buttonId: mappedButton,
           buttonTitle: textBody,

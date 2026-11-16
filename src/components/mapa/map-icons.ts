@@ -99,7 +99,7 @@ export function createPadrinoIcon(nombreCorto: string, credencial: string) {
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);">
         <div style="background:#3730a3;color:white;padding:3px 8px;border-radius:6px;font-weight:600;font-size:10px;white-space:nowrap;box-shadow:0 2px 8px rgba(0,0,0,0.25);border:1.5px solid #ffffff;display:flex;align-items:center;gap:4px;">
-          <span>Tutor ${nombreCorto}</span>
+          <span>Busca: ${nombreCorto}</span>
           <span style="background:#e0e7ff;color:#1e1b4b;padding:0px 4px;border-radius:3px;font-weight:800;font-size:9px;">
             ${credencial}
           </span>

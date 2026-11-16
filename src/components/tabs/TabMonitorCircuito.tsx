@@ -13,6 +13,10 @@ import {
 } from "@/types/domain";
 import { getTutorJornadas } from "@/lib/domain-helpers";
 import { fetchStreetWalkingRoute } from "@/lib/street-routing";
+import {
+  buildWhatsAppInviteLink,
+  WHATSAPP_BOT_DISPLAY_PHONE,
+} from "@/lib/whatsapp-cloud";
 import { useGlobalLoading } from "@/components/modals/ModalCargando";
 import EditorRutaPanel, {
   EditableRouteNode,
@@ -20,8 +24,11 @@ import EditorRutaPanel, {
 import {
   AlertTriangle,
   ArrowLeft,
+  Check,
   CheckCircle2,
   ChevronDown,
+  Copy,
+  ExternalLink,
   MapPin,
   Pencil,
   PhoneCall,
@@ -77,6 +84,7 @@ export default function TabMonitorCircuito({
   const [isEditingRoute, setIsEditingRoute] = useState(false);
   const [listaAbuelosOpen, setListaAbuelosOpen] = useState(false);
   const [confirmReenviarOpen, setConfirmReenviarOpen] = useState(false);
+  const [linkCopiado, setLinkCopiado] = useState(false);
   const [editingAdultoId, setEditingAdultoId] = useState<string | null>(null);
   const [editAdultoError, setEditAdultoError] = useState<string | null>(null);
   const [editAdultoForm, setEditAdultoForm] = useState<{
@@ -879,10 +887,40 @@ export default function TabMonitorCircuito({
             <h2 className="text-xs sm:text-sm font-bold text-[#363f48]">
               Mapa del Circuito: {circuito.nombre_barrio}
             </h2>
-            <div className="flex items-center gap-2.5">
-              <span className="hidden sm:inline text-[11px] text-[#52606d]">
-                Actualizacion en vivo via WhatsApp
-              </span>
+            <div className="flex items-center gap-2 flex-wrap">
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    await navigator.clipboard.writeText(
+                      buildWhatsAppInviteLink("Hola")
+                    );
+                    setLinkCopiado(true);
+                    setTimeout(() => setLinkCopiado(false), 2500);
+                  } catch {
+                    // Fallback: abrir enlace
+                    window.open(
+                      buildWhatsAppInviteLink("Hola"),
+                      "_blank",
+                      "noopener,noreferrer"
+                    );
+                  }
+                }}
+                title={`Copiar link para sumarse al chat de WhatsApp (${WHATSAPP_BOT_DISPLAY_PHONE})`}
+                className="border border-[#168003] bg-[#d0e6cd]/30 hover:bg-[#d0e6cd]/60 text-[#168003] text-[11px] font-semibold px-2.5 py-1 rounded-full transition flex items-center gap-1"
+              >
+                {linkCopiado ? (
+                  <>
+                    <Check className="w-3 h-3" />
+                    <span>Link copiado!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3 h-3" />
+                    <span>Link WhatsApp</span>
+                  </>
+                )}
+              </button>
               {!isEditingRoute && (
                 <button
                   type="button"
@@ -1334,18 +1372,29 @@ export default function TabMonitorCircuito({
                   </div>
                 )}
 
-                <div className="flex items-center justify-between pt-3 border-t border-[#eaeced] shrink-0">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setListaAbuelosOpen(false);
-                      onOpenFamiliarModal();
-                    }}
-                    className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
-                  >
-                    <UserPlus className="w-3.5 h-3.5" />
-                    <span>+ Sumar Abuelo</span>
-                  </button>
+                <div className="flex flex-wrap items-center justify-between gap-2 pt-3 border-t border-[#eaeced] shrink-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setListaAbuelosOpen(false);
+                        onOpenFamiliarModal();
+                      }}
+                      className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+                    >
+                      <UserPlus className="w-3.5 h-3.5" />
+                      <span>+ Sumar Abuelo</span>
+                    </button>
+                    <a
+                      href={buildWhatsAppInviteLink("Hola")}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="border border-[#168003] bg-[#d0e6cd]/30 hover:bg-[#d0e6cd]/60 text-[#168003] font-semibold text-xs px-3 py-1.5 rounded-full transition inline-flex items-center gap-1.5"
+                    >
+                      <ExternalLink className="w-3.5 h-3.5" />
+                      <span>Ir al chat ({WHATSAPP_BOT_DISPLAY_PHONE})</span>
+                    </a>
+                  </div>
                   <button
                     type="button"
                     onClick={() => setListaAbuelosOpen(false)}

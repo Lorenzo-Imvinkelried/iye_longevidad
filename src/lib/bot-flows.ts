@@ -224,29 +224,98 @@ export async function dispararConvocatoriaJornada(
 
 export async function procesarEventoWebhookWhatsApp(params: {
   fromPhone?: string;
+  senderName?: string;
   participanteId?: string;
   buttonId: string;
   buttonTitle?: string;
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
 
-  const actor = state.participantes.find((p) => {
+  let actor = state.participantes.find((p) => {
     if (params.participanteId && p.id === params.participanteId) return true;
     if (params.fromPhone && phonesMatch(p.telefono, params.fromPhone)) return true;
     return false;
   });
 
   if (!actor) {
+    const rawDigits = (params.fromPhone || "").replace(/[^0-9]/g, "");
+    if (!rawDigits) {
+      addLog(
+        state,
+        "Desconocido",
+        "Webhook recibido sin telefono",
+        `Llego evento (${params.buttonId}) sin numero identificador.`,
+        "warning"
+      );
+      writeState(state);
+      return state;
+    }
+
+    const parsedFallback = parseButtonId(params.buttonId);
+    const { targetJornada, targetCircuito } = resolveEventContext(
+      state,
+      parsedFallback.jornadaId
+    );
+    const offsetSeed = (state.participantes.length % 7) - 3;
+    const nuevoId = generateUuid();
+    const cleanPhone = `+${rawDigits}`;
+    const displayName =
+      (params.senderName || "").trim() || `Participante ${rawDigits.slice(-4)}`;
+
+    actor = {
+      id: nuevoId,
+      nombre: displayName,
+      edad: 70,
+      dni: "A completar",
+      telefono: cleanPhone,
+      rol: "adulto_mayor",
+      direccion: `${targetCircuito.nombre_barrio}`,
+      coords_domicilio: {
+        lat: Number(
+          (targetCircuito.coords_club.lat + offsetSeed * 0.00055).toFixed(5)
+        ),
+        lng: Number(
+          (targetCircuito.coords_club.lng - offsetSeed * 0.00055).toFixed(5)
+        ),
+      },
+      nivel_autonomia_habitual: 2,
+      padrino_preferido_id: null,
+      acreditado_por_club: false,
+      credencial_nro: null,
+      saldo_reintegro_sancor: 0,
+      contacto_familiar_nombre: "Ingreso directo por WhatsApp",
+      contacto_familiar_tel: cleanPhone,
+      notas_vulnerabilidad: "Vinculado automaticamente al escribir por WhatsApp.",
+      estado_alta: "activo",
+    };
+
+    state.participantes.push(actor);
+    upsertAsistencia(state, targetJornada.id, actor, {
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
+    });
+
+    appendUserMessage(state, actor, params.buttonTitle || "Hola");
+    const first = actor.nombre.split(" ")[0];
+    await appendBotMessage(
+      state,
+      actor,
+      `Hola ${first}, ya quedaste vinculado a *${targetCircuito.nombre_club}*. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos para ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
+      { buttons: buildConvocatoriaButtons(targetJornada.id) }
+    );
+
     addLog(
       state,
-      params.fromPhone || "Desconocido",
-      "Webhook recibido de numero no registrado",
-      `Llego evento (${params.buttonId}) desde ${
-        params.fromPhone || "sin telefono"
-      } que no coincide con ningun participante.`,
-      "warning"
+      actor.nombre,
+      "Nuevo Participante Vinculado por WhatsApp",
+      `${actor.nombre} (${actor.telefono}) ingreso al chat de WhatsApp y quedo en la lista de ${targetCircuito.nombre_club}.`,
+      "success"
     );
+
     writeState(state);
+    await syncToSupabaseIfConfigured(state);
     return state;
   }
 
@@ -256,6 +325,9 @@ export async function procesarEventoWebhookWhatsApp(params: {
     parsed.jornadaId,
     actor.id
   );
+  if (actor.rol === "adulto_mayor") {
+    upsertAsistencia(state, targetJornada.id, actor, {});
+  }
   const primerNombre = actor.nombre.split(" ")[0];
 
   appendUserMessage(state, actor, params.buttonTitle || params.buttonId);
