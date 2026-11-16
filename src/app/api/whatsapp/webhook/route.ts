@@ -4,6 +4,8 @@ import { getSupabaseEnvDiagnostics } from "@/lib/supabase";
 import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 /**
  * GET /api/whatsapp/webhook

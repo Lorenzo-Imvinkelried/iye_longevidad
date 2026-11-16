@@ -182,6 +182,9 @@ function DashboardCoordinadorInner({
       if (savedRaw) {
         const parsed = JSON.parse(savedRaw) as SessionData;
         if (parsed?.tutorId && !initialTutorId) {
+          setSnapshot((prev) =>
+            projectSnapshotForTutor(prev, parsed.tutorId, parsed.jornadaId || null)
+          );
           setLoggedInTutorId(parsed.tutorId);
           setSelectedJornadaId(parsed.jornadaId || null);
           saveSession(parsed.tutorId, parsed.jornadaId || null);

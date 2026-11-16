@@ -1,4 +1,5 @@
 import React from "react";
+import { unstable_noStore as noStore } from "next/cache";
 import { cookies } from "next/headers";
 import { readStateAsync } from "@/lib/store";
 import {
@@ -8,13 +9,16 @@ import {
 import DashboardCoordinador from "@/components/DashboardCoordinador";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 const SESSION_COOKIE_KEY = "sancor_tutor_session_v2";
 
 export default async function HomePage() {
-  const raw = await readStateAsync();
+  noStore();
   const cookieStore = cookies();
   const rawCookie = cookieStore.get(SESSION_COOKIE_KEY)?.value;
+  const raw = await readStateAsync();
 
   let initialTutorId: string | null = null;
   let initialJornadaId: string | null = null;

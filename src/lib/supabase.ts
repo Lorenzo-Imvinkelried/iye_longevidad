@@ -59,11 +59,22 @@ export function getSupabaseBrowserClient(): SupabaseClient | null {
   return browserClient;
 }
 
+function noStoreServerFetch(
+  input: RequestInfo | URL,
+  init?: RequestInit
+): Promise<Response> {
+  return fetch(input, {
+    ...init,
+    cache: "no-store",
+  });
+}
+
 export function getSupabaseServerClient(): SupabaseClient | null {
   if (!isSupabaseConfigured()) return null;
   if (!serverClient) {
     serverClient = createClient(supabaseUrl, supabaseServiceKey, {
       auth: { persistSession: false },
+      global: { fetch: noStoreServerFetch },
     });
   }
   return serverClient;

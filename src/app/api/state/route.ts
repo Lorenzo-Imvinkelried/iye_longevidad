@@ -24,6 +24,8 @@ import {
 } from "@/lib/domain-helpers";
 
 export const dynamic = "force-dynamic";
+export const fetchCache = "force-no-store";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -35,7 +37,11 @@ export async function GET(req: NextRequest) {
     ? projectSnapshotForTutor(raw, tutorId, jornadaId)
     : raw;
 
-  return NextResponse.json(sanitizeSnapshotForClient(projected));
+  return NextResponse.json(sanitizeSnapshotForClient(projected), {
+    headers: {
+      "Cache-Control": "no-store, no-cache, must-revalidate",
+    },
+  });
 }
 
 export async function POST(req: NextRequest) {
