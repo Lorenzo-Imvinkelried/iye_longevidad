@@ -120,8 +120,17 @@ export async function procesarEventoWebhookWhatsApp(params: {
 
   appendUserMessage(state, actor, params.buttonTitle || buttonId);
 
-  // MENU INICIAL (cuando el participante escribe "hola", "test", "menu", etc. desde su WhatsApp)
+  // MENU INICIAL (cuando el participante escribe "hola" o toca "Volver a sumarme")
   if (buttonId === "btn_menu_convocatoria") {
+    const asis = state.asistencias.find(
+      (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
+    );
+    if (asis && asis.modalidad_elegida === "no_asiste") {
+      asis.modalidad_elegida = "sin_respuesta";
+      asis.estado_padrino = "no_aplica";
+      asis.updated_at = new Date().toISOString();
+    }
+
     await appendBotMessage(
       state,
       actor,
@@ -350,20 +359,20 @@ export async function procesarEventoWebhookWhatsApp(params: {
       asis.estado_padrino = "no_aplica";
       asis.updated_at = new Date().toISOString();
 
-      await appendBotMessage(
-        state,
-        actor,
-        `Entendido, ${primerNombre}. Ya registramos que hoy no asistis y le avisamos a tu vecino padrino para que no pase por tu casa. Te esperamos en la proxima jornada.`,
-        {
-          buttons: [
-            {
-              id: "btn_nivel_1",
-              title: "Volver a sumarme",
-              variant: "neutral",
-            },
-          ],
-        }
-      );
+      const cancelMsg =
+        eraNivel1 && teniaPadrinoId
+          ? `Entendido, ${primerNombre}. Ya registramos que hoy no asistis y le avisamos a tu vecino padrino para que no pase por tu casa. Te esperamos en la proxima jornada.`
+          : `Entendido, ${primerNombre}. Ya registramos que hoy no asistis. Te esperamos en la proxima jornada.`;
+
+      await appendBotMessage(state, actor, cancelMsg, {
+        buttons: [
+          {
+            id: "btn_menu_convocatoria",
+            title: "Volver a sumarme",
+            variant: "neutral",
+          },
+        ],
+      });
 
       if (eraNivel1 && teniaPadrinoId) {
         const padrino = state.participantes.find((p) => p.id === teniaPadrinoId);
