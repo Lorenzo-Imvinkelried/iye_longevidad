@@ -157,6 +157,28 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
       updated_at: new Date().toISOString(),
     });
 
+    for (const p of state.participantes) {
+      await supabase.from("participantes").upsert({
+        id: p.id,
+        nombre: p.nombre,
+        edad: p.edad,
+        dni: p.dni,
+        telefono: p.telefono,
+        rol: p.rol,
+        direccion: p.direccion,
+        coords_domicilio: p.coords_domicilio,
+        nivel_autonomia_habitual: p.nivel_autonomia_habitual,
+        padrino_preferido_id: p.padrino_preferido_id,
+        acreditado_por_club: p.acreditado_por_club,
+        credencial_nro: p.credencial_nro,
+        saldo_reintegro_sancor: p.saldo_reintegro_sancor,
+        contacto_familiar_nombre: p.contacto_familiar_nombre,
+        contacto_familiar_tel: p.contacto_familiar_tel,
+        notas_vulnerabilidad: p.notas_vulnerabilidad,
+        estado_alta: p.estado_alta,
+      });
+    }
+
     for (const a of state.asistencias) {
       await supabase.from("asistencias").upsert({
         id: a.id,
