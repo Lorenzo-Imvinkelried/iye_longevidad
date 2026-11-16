@@ -14,7 +14,6 @@ import {
 import {
   addLog,
   appendBotMessage,
-  formatPesos,
   generateUuid,
   readStateAsync,
   syncToSupabaseIfConfigured,
@@ -857,32 +856,15 @@ export async function validarPresenciaEnClub(
       }
     }
 
-    const randomCode = Math.floor(100 + Math.random() * 900);
-    const codigoCanje = `SANCOR-FARMA-${randomCode}`;
-
     asis.presente_validado_en_club = true;
-    asis.codigo_canje_farmacia = codigoCanje;
+    asis.codigo_canje_farmacia = null;
     asis.updated_at = new Date().toISOString();
-
-    const montoAdulto = targetJornada.monto_reintegro_asistencia;
-    adulto.saldo_reintegro_sancor += montoAdulto;
 
     const primerNombre = adulto.nombre.split(" ")[0];
     await appendBotMessage(
       state,
       adulto,
-      `Que linda jornada compartimos en ${targetCircuito.nombre_club}, ${primerNombre}. Por tu participacion de hoy ya tenes acreditados *$${formatPesos(
-        montoAdulto
-      )} de reintegro directo en Farmacias adheridas*. Tu saldo acumulado en Sancor es de *$${formatPesos(
-        adulto.saldo_reintegro_sancor
-      )}*. Mostra este codigo en la farmacia: *${codigoCanje}*.`,
-      {
-        recompensaSancor: {
-          montoAcreditado: montoAdulto,
-          saldoTotal: adulto.saldo_reintegro_sancor,
-          codigoCanje,
-        },
-      }
+      `Que linda jornada compartimos en ${targetCircuito.nombre_club}, ${primerNombre}. Ya quedo registrada tu asistencia en el encuentro de hoy (${targetJornada.actividad_cierre}). Gracias por participar.`
     );
 
     if (
@@ -895,33 +877,11 @@ export async function validarPresenciaEnClub(
       );
       if (padrino) {
         padrinosBonificadosEnLote.add(`${padrino.id}-${adulto.id}`);
-        const plus = targetJornada.plus_reintegro_padrino;
-        const base = targetJornada.monto_reintegro_asistencia;
-        const totalPadrinoHoy = base + plus;
-        padrino.saldo_reintegro_sancor += totalPadrinoHoy;
-        const codigoPadrino = `SANCOR-FARMA-P${Math.floor(
-          100 + Math.random() * 899
-        )}`;
-
         const nombrePadrino = padrino.nombre.split(" ")[0];
         await appendBotMessage(
           state,
           padrino,
-          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en ${targetCircuito.nombre_club} tu llegada acompanando a *${adulto.nombre}*. Se acreditaron *$${formatPesos(
-            base
-          )}* de asistencia + *$${formatPesos(
-            plus
-          )} de Plus de Padrinazgo*. Tu saldo acumulado Sancor en Farmacias es de *$${formatPesos(
-            padrino.saldo_reintegro_sancor
-          )}*. Codigo de canje: *${codigoPadrino}*.`,
-          {
-            recompensaSancor: {
-              montoAcreditado: totalPadrinoHoy,
-              plusPadrinazgo: plus,
-              saldoTotal: padrino.saldo_reintegro_sancor,
-              codigoCanje: codigoPadrino,
-            },
-          }
+          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en ${targetCircuito.nombre_club} tu llegada acompanando a *${adulto.nombre}*.`
         );
       }
     }
@@ -930,7 +890,7 @@ export async function validarPresenciaEnClub(
       state,
       adulto.nombre,
       "Flujo 5: Llegada Validada",
-      `Se acreditaron $${formatPesos(montoAdulto)} en Farmacias Sancor (${targetCircuito.nombre_club}, Codigo ${codigoCanje}).`,
+      `Se registro la asistencia de ${adulto.nombre} en ${targetCircuito.nombre_club}.`,
       "success"
     );
   }

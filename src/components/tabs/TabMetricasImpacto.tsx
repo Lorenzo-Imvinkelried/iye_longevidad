@@ -12,20 +12,20 @@ export default function TabMetricasImpacto() {
               Modelo de Sostenibilidad • Sancor Seguros / Sancor Salud
             </div>
             <h2 className="text-lg font-bold text-[#363f48]">
-              Inversion Preventiva en Farmacias vs. Costo de Siniestralidad por Caidas
+              Prevencion Barrial y Longevidad Activa vs. Siniestralidad por Caidas
             </h2>
             <p className="text-xs text-[#52606d] leading-relaxed">
-              El costo de otorgar reintegros diarios de $2.500 en farmacias de cercania es minimo frente a los mas de $9.800.000 ARS que representa una sola internacion, cirugia de protesis y rehabilitacion por fractura de cadera evitable.
+              Promover salidas acompanadas, puntos de encuentro accesibles y participacion comunitaria en red permite prevenir el aislamiento y reducir el riesgo de caidas graves e internaciones evitables.
             </p>
           </div>
 
           <div className="bg-[#fdf9fb] border border-[#edcddd] rounded-xl px-5 py-3 text-center shrink-0">
             <div className="text-[11px] uppercase font-semibold text-[#a70355]">
-              ROI Preventivo Sancor
+              Impacto Preventivo Sancor
             </div>
             <div className="text-2xl font-bold text-[#0a4494] mt-0.5">14,2x</div>
             <div className="text-[11px] text-[#52606d]">
-              Retorno por peso invertido
+              Retorno en prevencion
             </div>
           </div>
         </div>
@@ -55,11 +55,11 @@ export default function TabMetricasImpacto() {
 
         <div className="bg-white p-4 rounded-xl border border-[#eaeced]">
           <div className="text-xs font-semibold text-[#52606d]">
-            Reintegros Entregados / Mes
+            Asistencias Validadas / Mes
           </div>
-          <div className="text-2xl font-bold text-[#a70355] mt-1">$1.420.000</div>
+          <div className="text-2xl font-bold text-[#a70355] mt-1">568</div>
           <div className="text-xs text-[#52606d] mt-1">
-            Canjeados en farmacias barriales
+            Encuentros semanales en red
           </div>
         </div>
 
@@ -81,7 +81,7 @@ export default function TabMetricasImpacto() {
             1. Adulto Mayor y Padrino
           </h3>
           <p className="text-xs text-[#52606d] leading-relaxed">
-            Salen del aislamiento con acompanamiento seguro puerta a puerta (Ficha de Seguridad), sin descargar aplicaciones y recibiendo descuento directo en farmacias.
+            Salen del aislamiento con acompanamiento seguro puerta a puerta (Ficha de Seguridad), sin descargar aplicaciones y fortaleciendo el vinculo barrial.
           </p>
         </div>
 

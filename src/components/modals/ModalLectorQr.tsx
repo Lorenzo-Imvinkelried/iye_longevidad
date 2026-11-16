@@ -41,7 +41,7 @@ export default function ModalLectorQr({
         </div>
 
         <p className="text-xs text-slate-600">
-          Selecciona el participante que ingresa al <strong>{nombreClub}</strong> para acreditar su reintegro Sancor:
+          Selecciona el participante que ingresa a <strong>{nombreClub}</strong> para validar su asistencia al encuentro:
         </p>
 
         <div className="space-y-2 max-h-64 overflow-y-auto">
@@ -63,12 +63,11 @@ export default function ModalLectorQr({
                 <div>
                   <div className="font-semibold text-xs">{ad.nombre}</div>
                   <div className="text-[11px] text-slate-500">
-                    DNI {ad.dni} • Reintegro +$
-                    {jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
+                    DNI {ad.dni} • {jornada.hora_encuentro_club} hs
                   </div>
                 </div>
                 <span className="text-xs font-bold text-[#0a4494]">
-                  {yaValidado ? "Ya acreditado" : "Validar QR"}
+                  {yaValidado ? "Ya validado" : "Validar QR"}
                 </span>
               </button>
             );

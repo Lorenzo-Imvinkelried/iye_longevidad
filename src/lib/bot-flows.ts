@@ -12,7 +12,6 @@ import {
   addLog,
   appendBotMessage,
   appendUserMessage,
-  formatPesos,
   generateUuid,
   readStateAsync,
   syncToSupabaseIfConfigured,
@@ -165,9 +164,7 @@ export async function dispararConvocatoriaJornada(
       await appendBotMessage(
         state,
         adulto,
-        `Buen dia, ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}) para caminar juntos y cerrar con ${targetJornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
-          targetJornada.monto_reintegro_asistencia
-        )} de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
+        `Buen dia, ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}) para caminar juntos y cerrar con ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
         { buttons: buildConvocatoriaButtons(targetJornada.id) }
       );
     }
@@ -237,9 +234,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     await appendBotMessage(
       state,
       actor,
-      `Hola ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} para caminar y cerrar con ${targetJornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
-        targetJornada.monto_reintegro_asistencia
-      )} de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
+      `Hola ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} para caminar y cerrar con ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
       { buttons: buildConvocatoriaButtons(targetJornada.id) }
     );
   } else if (parsed.baseAction === "btn_nivel_1") {
@@ -273,9 +268,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
       await appendBotMessage(
         state,
         padrino,
-        `Hola ${nombrePadrino}. Tu vecina *${actor.nombre}* (${actor.direccion}) pidio acompanamiento puerta a puerta para ir a *${targetCircuito.nombre_club}*. Si la acompanas sumas tu *Plus de Padrinazgo (+$${formatPesos(
-          targetJornada.plus_reintegro_padrino
-        )})*. ¿Podes pasar por su casa a las ${targetJornada.hora_inicio_caminata} hs?`,
+        `Hola ${nombrePadrino}. Tu vecina *${actor.nombre}* (${actor.direccion}) pidio acompanamiento puerta a puerta para ir a *${targetCircuito.nombre_club}*. ¿Podes pasar por su casa a las ${targetJornada.hora_inicio_caminata} hs?`,
         {
           buttons: [
             {
@@ -388,9 +381,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
         await appendBotMessage(
           state,
           padrinoReemplazo,
-          `*REEMPLAZO DE CERCANIA URGENTE (${targetCircuito.nombre_club}):* Hola ${nombreReemplazo}, el padrino ${actor.nombre} tuvo un imprevisto de ultimo momento. ¿Podes pasar a buscar a *${adulto.nombre}* (${adulto.direccion}) hoy a las ${targetJornada.hora_inicio_caminata} hs? Sumas *Plus de Padrinazgo (+$${formatPesos(
-            targetJornada.plus_reintegro_padrino
-          )})*.`,
+          `*REEMPLAZO DE CERCANIA URGENTE (${targetCircuito.nombre_club}):* Hola ${nombreReemplazo}, el padrino ${actor.nombre} tuvo un imprevisto de ultimo momento. ¿Podes pasar a buscar a *${adulto.nombre}* (${adulto.direccion}) hoy a las ${targetJornada.hora_inicio_caminata} hs?`,
           {
             esAlertaPrioritaria: true,
             buttons: [

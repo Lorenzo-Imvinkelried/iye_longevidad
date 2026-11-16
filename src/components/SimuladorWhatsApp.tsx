@@ -250,8 +250,10 @@ export default function SimuladorWhatsApp({
         <span>
           Titular: <strong>{participanteActual.nombre}</strong>
         </span>
-        <span className="font-semibold text-slate-900">
-          Saldo Farmacia: ${participanteActual.saldo_reintegro_sancor.toLocaleString("es-AR")}
+        <span className="font-semibold text-slate-700">
+          {participanteActual.rol === "padrino"
+            ? `Padrino ${participanteActual.credencial_nro || ""}`
+            : "Adulto mayor"}
         </span>
       </div>
 

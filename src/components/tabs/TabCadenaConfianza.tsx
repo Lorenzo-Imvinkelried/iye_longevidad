@@ -137,10 +137,7 @@ export default function TabCadenaConfianza({
 
                 <div className="pt-2 border-t border-[#eaeced] flex items-center justify-between text-xs">
                   <span className="text-[#52606d]">
-                    Saldo Farmacia:{" "}
-                    <strong className="text-[#363f48]">
-                      ${adulto.saldo_reintegro_sancor.toLocaleString("es-AR")}
-                    </strong>
+                    Estado: <strong className="text-[#168003]">Activo en la sede</strong>
                   </span>
                   <button
                     onClick={() => onOpenPhone(adulto.id)}
@@ -276,11 +273,8 @@ export default function TabCadenaConfianza({
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                   <span className="text-slate-600">
-                    Saldo Sancor:{" "}
-                    <strong className="text-slate-900">
-                      ${pad.saldo_reintegro_sancor.toLocaleString("es-AR")}
-                    </strong>{" "}
-                    ({asignadosHoy.length} acomp. hoy)
+                    Acompanamientos activos hoy:{" "}
+                    <strong className="text-slate-900">{asignadosHoy.length}</strong>
                   </span>
                   <button
                     onClick={() => onOpenPhone(pad.id)}

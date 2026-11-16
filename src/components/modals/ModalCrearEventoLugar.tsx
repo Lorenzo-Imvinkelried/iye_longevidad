@@ -46,8 +46,8 @@ export default function ModalCrearEventoLugar({
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
   const [horaCaminata, setHoraCaminata] = useState("16:00");
   const [horaEncuentro, setHoraEncuentro] = useState("16:20");
-  const [montoReintegro, setMontoReintegro] = useState(2500);
-  const [plusPadrino, setPlusPadrino] = useState(1500);
+  const [montoReintegro] = useState(0);
+  const [plusPadrino] = useState(0);
   const [incluirAbuelosDelTutor, setIncluirAbuelosDelTutor] = useState(true);
 
   useEffect(() => {
@@ -240,31 +240,6 @@ export default function ModalCrearEventoLugar({
                 value={horaEncuentro}
                 onChange={(e) => setHoraEncuentro(e.target.value)}
                 className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2"
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2.5">
-            <div>
-              <label className="font-semibold text-[#363f48] block mb-1">
-                Reintegro Farmacia Sancor ($)
-              </label>
-              <input
-                type="number"
-                value={montoReintegro}
-                onChange={(e) => setMontoReintegro(Number(e.target.value))}
-                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
-              />
-            </div>
-            <div>
-              <label className="font-semibold text-[#363f48] block mb-1">
-                Plus Vecino Padrino ($)
-              </label>
-              <input
-                type="number"
-                value={plusPadrino}
-                onChange={(e) => setPlusPadrino(Number(e.target.value))}
-                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
               />
             </div>
           </div>

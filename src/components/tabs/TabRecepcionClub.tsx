@@ -41,15 +41,7 @@ export default function TabRecepcionClub({
             Recepcion en {circuito.nombre_club}
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Al validar la asistencia se acreditan{" "}
-            <strong>
-              ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
-            </strong>{" "}
-            en farmacias (y{" "}
-            <strong>
-              +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
-            </strong>{" "}
-            al padrino Nivel 1) y se envia el codigo de canje por WhatsApp.
+            Registra y valida el ingreso de cada adulto mayor al punto de encuentro ({jornada.actividad_cierre}) y confirma su asistencia por WhatsApp.
           </p>
         </div>
 
@@ -123,17 +115,11 @@ export default function TabRecepcionClub({
                     </span>
                   </div>
                   <div className="text-xs text-slate-500">
-                    {adulto.direccion} • Saldo acumulado:{" "}
-                    <strong className="text-slate-800">
-                      ${adulto.saldo_reintegro_sancor.toLocaleString("es-AR")}
-                    </strong>
+                    {adulto.direccion} • DNI {adulto.dni}
                   </div>
-                  {validado && asis?.codigo_canje_farmacia && (
+                  {validado && (
                     <div className="text-xs font-semibold text-emerald-700">
-                      Reintegro acreditado • Codigo farmacia:{" "}
-                      <span className="font-mono font-bold">
-                        {asis.codigo_canje_farmacia}
-                      </span>
+                      Presencia registrada en el encuentro de hoy
                     </div>
                   )}
                 </div>

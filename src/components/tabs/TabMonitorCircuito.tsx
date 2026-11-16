@@ -118,14 +118,7 @@ export default function TabMonitorCircuito({
                 </span>
               )}
               <span className="text-[11px] text-[#52606d] truncate">
-                Reintegro:{" "}
-                <strong className="text-[#363f48]">
-                  ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
-                </strong>{" "}
-                • Plus Padrino:{" "}
-                <strong className="text-[#363f48]">
-                  +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
-                </strong>
+                {jornada.actividad_cierre} • {jornada.fecha} {jornada.hora_inicio_caminata} hs
               </span>
             </div>
           </div>

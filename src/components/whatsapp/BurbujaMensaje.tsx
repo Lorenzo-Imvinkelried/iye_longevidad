@@ -97,36 +97,6 @@ export default function BurbujaMensaje({
           </div>
         )}
 
-        {msg.recompensaSancor && (
-          <div className="mt-2.5 bg-sky-50 border border-sky-300 rounded-lg p-2.5">
-            <div className="text-sky-900 font-bold text-[11px] uppercase border-b border-sky-200 pb-1 mb-1.5">
-              Reintegro Sancor Acreditado
-            </div>
-            <div className="space-y-1 text-xs text-slate-800">
-              <div className="flex justify-between">
-                <span className="text-slate-600">Acreditado hoy:</span>
-                <span className="font-bold text-emerald-700">
-                  +${msg.recompensaSancor.montoAcreditado.toLocaleString("es-AR")}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-slate-600">Saldo total:</span>
-                <span className="font-bold text-slate-900">
-                  ${msg.recompensaSancor.saldoTotal.toLocaleString("es-AR")}
-                </span>
-              </div>
-              <div className="mt-1.5 pt-1.5 border-t border-sky-200 text-center">
-                <div className="text-[10px] text-slate-500 uppercase">
-                  Codigo para mostrar en farmacia
-                </div>
-                <div className="mt-0.5 font-mono font-bold text-xs bg-white text-sky-900 py-1 px-2 rounded border border-sky-200">
-                  {msg.recompensaSancor.codigoCanje}
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
         <div className="mt-1 flex items-center justify-end gap-1 text-[10px] text-slate-400">
           <span>{msg.timestamp}</span>
           {!isBot && <CheckCheck className="w-3.5 h-3.5 text-sky-500" />}
