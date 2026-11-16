@@ -119,7 +119,11 @@ export default function TabCadenaConfianza({
                       {adulto.nombre} ({adulto.edad} anos)
                     </span>
                     <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] px-2.5 py-0.5 rounded-full">
-                      Nivel habitual {adulto.nivel_autonomia_habitual}
+                      {adulto.nivel_autonomia_habitual === 1
+                        ? "Puerta a puerta"
+                        : adulto.nivel_autonomia_habitual === 2
+                        ? "Parada segura"
+                        : "Directo al club"}
                     </span>
                   </div>
                   <div className="text-xs text-[#52606d]">

@@ -169,7 +169,7 @@ export default function TabMonitorCircuito({
             <div className="space-y-1">
               <div className="flex items-center gap-1.5 text-xs font-bold text-red-800 uppercase">
                 <AlertTriangle className="w-4 h-4" />
-                <span>Imprevisto de Padrino (Nivel 1)</span>
+                <span>Imprevisto de Padrino (Puerta a puerta)</span>
               </div>
               <p className="text-sm font-semibold text-slate-900">
                 {padrinoCaido?.nombre || "El padrino"} ({padrinoCaido?.credencial_nro}) no
@@ -288,11 +288,11 @@ export default function TabMonitorCircuito({
       <div className="flex-1 min-h-0 grid grid-cols-1 lg:grid-cols-12 lg:grid-rows-[minmax(0,1fr)] gap-2.5 items-stretch">
         {/* Columna izquierda: 3 Anillos apilados */}
         <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:flex lg:flex-col gap-2 min-h-0 lg:overflow-y-auto pr-0.5">
-          {/* Nivel 1 */}
+          {/* Puerta a puerta */}
           <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#a70355]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
-                Nivel 1: Puerta a puerta
+                Puerta a puerta
               </span>
               <span className="text-base font-bold text-[#a70355]">
                 {asistenciasNivel1.length}
@@ -310,16 +310,16 @@ export default function TabMonitorCircuito({
                   const pad = participantes.find((p) => p.id === a.padrino_asignado_id);
                   if (!ad) return null;
 
-                  let estadoLabel = "Esperando padrino";
+                  let estadoLabel = "Esperando";
                   let badgeClass = "text-amber-800 bg-amber-50";
                   if (a.estado_padrino === "confirmado") {
-                    estadoLabel = `Confirmado (${pad?.credencial_nro})`;
+                    estadoLabel = "Confirmado";
                     badgeClass = "text-[#168003] bg-[#d0e6cd]/40";
                   } else if (a.estado_padrino === "rechazado_buscando_reemplazo") {
                     estadoLabel = "Sin padrino";
                     badgeClass = "text-[#bf2020] bg-[#f2d2d2]/40";
                   } else if (a.estado_padrino === "sin_padrino_frenado") {
-                    estadoLabel = "Salida frenada";
+                    estadoLabel = "Frenada";
                     badgeClass = "text-[#52606d] bg-[#f6f6f7]";
                   }
 
@@ -327,11 +327,19 @@ export default function TabMonitorCircuito({
                     <div
                       key={a.id}
                       onClick={() => onOpenPhone(ad.id)}
-                      className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-[#fdf9fb] cursor-pointer"
+                      className="flex items-center justify-between gap-2 text-xs py-1 px-1.5 rounded hover:bg-[#fdf9fb] cursor-pointer"
                     >
-                      <span className="font-medium text-[#363f48] truncate">
-                        {ad.nombre.split(" ")[0]}
-                      </span>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-[#363f48] truncate">
+                          {ad.nombre}
+                        </div>
+                        <div className="text-[10px] text-[#52606d] truncate">
+                          Busca:{" "}
+                          <strong className="text-[#0a4494]">
+                            {pad ? `${pad.nombre} (${pad.credencial_nro || ""})` : "Sin asignar"}
+                          </strong>
+                        </div>
+                      </div>
                       <span
                         className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${badgeClass}`}
                       >
@@ -344,11 +352,11 @@ export default function TabMonitorCircuito({
             </div>
           </div>
 
-          {/* Nivel 2 */}
+          {/* Paradas seguras */}
           <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
-                Nivel 2: Paradas seguras
+                Paradas seguras
               </span>
               <span className="text-base font-bold text-[#0a4494]">
                 {asistenciasNivel2.length}
@@ -371,7 +379,7 @@ export default function TabMonitorCircuito({
                       Parada {idx + 1} ({parada.horario_paso})
                     </span>
                     <span className="font-semibold text-[#0a4494] bg-[#cedaea]/40 px-2 py-0.5 rounded-full text-[10px] shrink-0">
-                      {count} anotados
+                      {count === 1 ? "1 anotado" : `${count} anotados`}
                     </span>
                   </div>
                 );
@@ -379,11 +387,11 @@ export default function TabMonitorCircuito({
             </div>
           </div>
 
-          {/* Nivel 3 */}
+          {/* Directo al club */}
           <div className="bg-white rounded-xl p-2.5 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold text-[#363f48]">
-                Nivel 3: Directo al club
+                Directo al club
               </span>
               <span className="text-base font-bold text-[#0a4494]">
                 {asistenciasNivel3.length}

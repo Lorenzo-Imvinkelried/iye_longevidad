@@ -86,16 +86,16 @@ export default function TabRecepcionClub({
 
             let modalidadTexto = "Sin respuesta aun";
             if (asis?.modalidad_elegida === "nivel_1_puerta") {
-              modalidadTexto = `Nivel 1: Con ${padrino?.nombre || "Padrino"} (${
+              modalidadTexto = `Puerta a puerta: Con ${padrino?.nombre || "Padrino"} (${
                 padrino?.credencial_nro || ""
               })`;
             } else if (asis?.modalidad_elegida === "nivel_2_esquina") {
               const par = circuito.paradas_seguras.find(
                 (ps) => ps.id === asis.parada_esquina_id
               );
-              modalidadTexto = `Nivel 2: ${par?.nombre_esquina || "Esquina"}`;
+              modalidadTexto = `Parada segura: ${par?.nombre_esquina || "Esquina"}`;
             } else if (asis?.modalidad_elegida === "nivel_3_directo") {
-              modalidadTexto = "Nivel 3: Directo al club";
+              modalidadTexto = "Directo al club";
             } else if (asis?.modalidad_elegida === "no_asiste") {
               modalidadTexto = "No asiste hoy";
             }

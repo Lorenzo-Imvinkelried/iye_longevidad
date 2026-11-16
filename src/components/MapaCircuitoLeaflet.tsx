@@ -273,7 +273,7 @@ export default function MapaCircuitoLeaflet({
                 etiquetaEstado = "Esp. padrino";
               } else if (asis.estado_padrino === "confirmado") {
                 colorHex = "#059669";
-                etiquetaEstado = `Con ${padrino?.credencial_nro || "padrino"}`;
+                etiquetaEstado = `Con ${padrino?.nombre?.split(" ")[0] || padrino?.credencial_nro || "padrino"}`;
               } else if (asis.estado_padrino === "rechazado_buscando_reemplazo") {
                 colorHex = "#dc2626";
                 etiquetaEstado = "Sin padrino";
@@ -314,6 +314,11 @@ export default function MapaCircuitoLeaflet({
                   <div className="text-slate-800">
                     Estado: <strong>{etiquetaEstado}</strong>
                   </div>
+                  {asis?.modalidad_elegida === "nivel_1_puerta" && padrino && (
+                    <div className="text-emerald-700 font-semibold">
+                      Pasa a buscar: {padrino.nombre} ({padrino.credencial_nro})
+                    </div>
+                  )}
                   {onSelectPhoneInSimulator && (
                     <button
                       onClick={() => onSelectPhoneInSimulator(adulto.id)}

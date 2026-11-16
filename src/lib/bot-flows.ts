@@ -288,7 +288,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
       addLog(
         state,
         actor.nombre,
-        "Flujo 2: Solicitud Nivel 1 (Puerta a Puerta)",
+        "Solicitud Puerta a Puerta",
         `${actor.nombre} pidio acompanamiento domiciliario (${targetCircuito.nombre_club}). Se notifico a ${padrino.nombre} (${padrino.credencial_nro}).`,
         "warning"
       );
@@ -492,7 +492,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     addLog(
       state,
       actor.nombre,
-      "Flujo 3: Consulta de Paradas Seguras (Nivel 2)",
+      "Consulta de Paradas Seguras",
       `${actor.nombre} solicito ver las esquinas seguras de ${targetCircuito.nombre_club}.`,
       "info"
     );
@@ -557,7 +557,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     addLog(
       state,
       actor.nombre,
-      "Anillo Nivel 3 Confirmado",
+      "Asistencia Directa Confirmada",
       `${actor.nombre} confirmo asistencia directa a ${targetCircuito.nombre_club} a las ${targetJornada.hora_encuentro_club} hs.`,
       "success"
     );

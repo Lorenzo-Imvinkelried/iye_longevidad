@@ -138,7 +138,7 @@ export default function SimuladorWhatsApp({
     {
       id: SEED_IDS.rosa,
       shortLabel: "Rosa (74)",
-      roleBadge: "Nivel 1",
+      roleBadge: "Puerta a puerta",
     },
     {
       id: SEED_IDS.padrinoCarlos,
@@ -148,7 +148,7 @@ export default function SimuladorWhatsApp({
     {
       id: SEED_IDS.jorge,
       shortLabel: "Jorge (71)",
-      roleBadge: "Nivel 2",
+      roleBadge: "Parada segura",
     },
   ];
 
@@ -213,11 +213,11 @@ export default function SimuladorWhatsApp({
           onChange={(e) => onSelectPhoneId(e.target.value)}
           className="mt-2 w-full bg-slate-700 text-slate-100 text-xs rounded-lg px-2.5 py-1.5 border border-slate-600 focus:outline-none"
         >
-          <option value={SEED_IDS.rosa}>Celular de Rosa Martinez (Nivel 1)</option>
+          <option value={SEED_IDS.rosa}>Celular de Rosa Martinez (Puerta a puerta)</option>
           <option value={SEED_IDS.padrinoCarlos}>
             Celular de Carlos Gomez (Padrino #104)
           </option>
-          <option value={SEED_IDS.jorge}>Celular de Jorge Molina (Nivel 2)</option>
+          <option value={SEED_IDS.jorge}>Celular de Jorge Molina (Parada segura)</option>
           {otrosParticipantes.map((p) => (
             <option key={p.id} value={p.id}>
               Celular de {p.nombre}

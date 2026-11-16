@@ -35,11 +35,11 @@ export default function TabMetricasImpacto() {
       <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
         <div className="bg-white p-4 rounded-xl border border-[#eaeced]">
           <div className="text-xs font-semibold text-[#52606d]">
-            Adultos Nivel 1 Activados
+            Adultos Acompanados (Puerta a puerta)
           </div>
           <div className="text-2xl font-bold text-[#363f48] mt-1">42</div>
           <div className="text-xs text-[#168003] font-medium mt-1">
-            86% pasa a Nivel 2 en 6 semanas
+            86% pasa a paradas grupales en 6 semanas
           </div>
         </div>
 
