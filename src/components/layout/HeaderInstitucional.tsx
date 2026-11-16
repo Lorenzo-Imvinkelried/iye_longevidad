@@ -57,49 +57,50 @@ export default function HeaderInstitucional({
 
   return (
     <header className="bg-[#003b6f] text-white border-b border-slate-200 sticky top-0 z-30">
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap items-center justify-between gap-3">
-        <div>
-          <div className="text-[11px] font-semibold uppercase tracking-wider text-sky-200">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2">
+        <div className="min-w-0">
+          <div className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-sky-200 truncate">
             Sancor Seguros / Sancor Salud • {nombreClub}
           </div>
-          <h1 className="text-lg font-bold tracking-tight">
+          <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">
             Panel de Coordinacion Barrial
           </h1>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
           <button
             onClick={onResetDemo}
             disabled={loadingReset}
-            className="bg-white/10 hover:bg-white/20 text-white text-xs font-medium px-3 py-2 rounded-lg transition flex items-center gap-1.5"
+            className="bg-white/10 hover:bg-white/20 text-white text-[11px] sm:text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingReset ? "animate-spin" : ""}`} />
-            <span>Reiniciar demo</span>
+            <span className="hidden xs:inline sm:inline">Reiniciar demo</span>
+            <span className="sm:hidden">Reiniciar</span>
           </button>
 
           <button
             onClick={onToggleSim}
             title="Abrir o cerrar Simulador de WhatsApp"
-            className={`text-xs font-medium px-2.5 py-2 rounded-lg transition flex items-center gap-1.5 border ${
+            className={`text-[11px] sm:text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 border ${
               simulatorOpen
                 ? "bg-emerald-600 border-emerald-500 text-white"
                 : "bg-white/10 hover:bg-white/20 border-white/15 text-sky-100"
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>{simulatorOpen ? "Ocultar simulador" : "Simulador"}</span>
+            <span>{simulatorOpen ? "Ocultar" : "Simulador"}</span>
           </button>
         </div>
       </div>
 
-      <div className="max-w-[1500px] mx-auto px-4 sm:px-6 flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-white/10">
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-white/10">
         {tabs.map((t) => {
           const active = activeTab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => onSelectTab(t.id)}
-              className={`px-4 py-2.5 text-xs sm:text-sm font-semibold transition flex items-center gap-2 whitespace-nowrap border-b-2 ${
+              className={`px-3 sm:px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
                 active
                   ? "border-white text-white bg-white/10"
                   : "border-transparent text-sky-100/80 hover:text-white hover:bg-white/5"

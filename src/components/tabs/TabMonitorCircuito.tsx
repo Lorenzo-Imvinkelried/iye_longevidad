@@ -10,7 +10,7 @@ const MapaCircuitoLeaflet = dynamic(
   {
     ssr: false,
     loading: () => (
-      <div className="w-full h-[430px] rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-medium">
+      <div className="w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-215px)] rounded-xl bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-500 text-xs font-medium">
         Cargando mapa del circuito barrial...
       </div>
     ),
@@ -52,11 +52,11 @@ export default function TabMonitorCircuito({
   );
 
   return (
-    <div className="space-y-4">
-      {/* Barra de control de la jornada */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2">
+    <div className="space-y-3">
+      {/* Barra de control compacta */}
+      <div className="bg-white rounded-xl px-4 py-2.5 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+        <div className="min-w-0">
+          <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-semibold text-slate-500">
               Jornada {jornada.hora_inicio_caminata} hs:
             </span>
@@ -70,8 +70,8 @@ export default function TabMonitorCircuito({
               </span>
             )}
           </div>
-          <p className="text-xs text-slate-500 mt-1">
-            Reintegro por asistencia:{" "}
+          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+            Reintegro:{" "}
             <strong>
               ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
             </strong>{" "}
@@ -79,7 +79,7 @@ export default function TabMonitorCircuito({
             <strong>
               +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
             </strong>{" "}
-            • WhatsApp Real:{" "}
+            • WhatsApp:{" "}
             <strong
               className={
                 snapshot.whatsappCloudConfigurado
@@ -89,16 +89,16 @@ export default function TabMonitorCircuito({
             >
               {snapshot.whatsappCloudConfigurado
                 ? "Conectado (Meta API)"
-                : "Solo simulador (faltan claves en servidor)"}
+                : "Solo simulador"}
             </strong>
           </p>
         </div>
 
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={() => onExecuteAction("lanzar_convocatoria")}
             disabled={loadingAction === "lanzar_convocatoria"}
-            className="bg-[#004b87] hover:bg-[#003966] text-white font-semibold text-xs px-3.5 py-2 rounded-lg transition"
+            className="bg-[#004b87] hover:bg-[#003966] text-white font-semibold text-xs px-3 py-2 rounded-lg transition"
           >
             {loadingAction === "lanzar_convocatoria"
               ? "Enviando..."
@@ -112,7 +112,7 @@ export default function TabMonitorCircuito({
               })
             }
             disabled={loadingAction === "suspender_emergencia"}
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg transition"
+            className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition"
           >
             Suspender por lluvia
           </button>
@@ -245,151 +245,156 @@ export default function TabMonitorCircuito({
         </div>
       )}
 
-      {/* Resumen simple de los 3 Anillos */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-        {/* Nivel 1 */}
-        <div className="bg-white rounded-xl p-3.5 border border-slate-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700">
-              Nivel 1: Puerta a puerta
-            </span>
-            <span className="text-lg font-bold text-slate-900">
-              {asistenciasNivel1.length}
-            </span>
+      {/* Vista principal: 3 Anillos a la izquierda + Mapa a la derecha (sin scroll en desktop) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
+        {/* Columna izquierda: 3 Anillos apilados */}
+        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 lg:max-h-[calc(100vh-170px)] lg:overflow-y-auto pr-0.5">
+          {/* Nivel 1 */}
+          <div className="bg-white rounded-xl p-3 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800">
+                Nivel 1: Puerta a puerta
+              </span>
+              <span className="text-base font-bold text-slate-900">
+                {asistenciasNivel1.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Padrino acreditado pasa por el domicilio.
+            </p>
+            <div className="mt-2 pt-1.5 border-t border-slate-100 space-y-1">
+              {asistenciasNivel1.length === 0 ? (
+                <div className="text-[11px] text-slate-400">Sin solicitudes aun.</div>
+              ) : (
+                asistenciasNivel1.map((a) => {
+                  const ad = participantes.find((p) => p.id === a.participante_id);
+                  const pad = participantes.find((p) => p.id === a.padrino_asignado_id);
+                  if (!ad) return null;
+
+                  let estadoLabel = "Esperando padrino";
+                  let badgeClass = "text-amber-700 bg-amber-50";
+                  if (a.estado_padrino === "confirmado") {
+                    estadoLabel = `Confirmado (${pad?.credencial_nro})`;
+                    badgeClass = "text-emerald-700 bg-emerald-50";
+                  } else if (a.estado_padrino === "rechazado_buscando_reemplazo") {
+                    estadoLabel = "Sin padrino";
+                    badgeClass = "text-red-700 bg-red-50";
+                  } else if (a.estado_padrino === "sin_padrino_frenado") {
+                    estadoLabel = "Salida frenada";
+                    badgeClass = "text-slate-600 bg-slate-100";
+                  }
+
+                  return (
+                    <div
+                      key={a.id}
+                      onClick={() => onOpenPhone(ad.id)}
+                      className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-slate-50 cursor-pointer"
+                    >
+                      <span className="font-medium text-slate-800 truncate">
+                        {ad.nombre.split(" ")[0]}
+                      </span>
+                      <span
+                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${badgeClass}`}
+                      >
+                        {estadoLabel}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
+            </div>
           </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Padrino acreditado pasa por el domicilio.
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1">
-            {asistenciasNivel1.length === 0 ? (
-              <div className="text-[11px] text-slate-400">Sin solicitudes aun.</div>
-            ) : (
-              asistenciasNivel1.map((a) => {
+
+          {/* Nivel 2 */}
+          <div className="bg-white rounded-xl p-3 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800">
+                Nivel 2: Paradas seguras
+              </span>
+              <span className="text-base font-bold text-slate-900">
+                {asistenciasNivel2.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Esquinas relevadas con horario de paso.
+            </p>
+            <div className="mt-2 pt-1.5 border-t border-slate-100 space-y-1">
+              {circuito.paradas_seguras.map((parada, idx) => {
+                const count = asistenciasNivel2.filter(
+                  (a) => a.parada_esquina_id === parada.id
+                ).length;
+                return (
+                  <div
+                    key={parada.id}
+                    className="flex items-center justify-between text-xs py-1 px-1.5"
+                  >
+                    <span className="text-slate-700 truncate">
+                      Parada {idx + 1} ({parada.horario_paso})
+                    </span>
+                    <span className="font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded text-[10px] shrink-0">
+                      {count} anotados
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Nivel 3 */}
+          <div className="bg-white rounded-xl p-3 border border-slate-200">
+            <div className="flex items-center justify-between">
+              <span className="text-xs font-bold text-slate-800">
+                Nivel 3: Directo al club
+              </span>
+              <span className="text-base font-bold text-slate-900">
+                {asistenciasNivel3.length}
+              </span>
+            </div>
+            <p className="text-[11px] text-slate-500">
+              Asisten a las {jornada.hora_encuentro_club} hs para los juegos.
+            </p>
+            <div className="mt-2 pt-1.5 border-t border-slate-100 space-y-1">
+              {asistenciasNivel3.map((a) => {
                 const ad = participantes.find((p) => p.id === a.participante_id);
-                const pad = participantes.find((p) => p.id === a.padrino_asignado_id);
                 if (!ad) return null;
-
-                let estadoLabel = "Esperando padrino";
-                let badgeClass = "text-amber-700 bg-amber-50";
-                if (a.estado_padrino === "confirmado") {
-                  estadoLabel = `Confirmado (${pad?.credencial_nro})`;
-                  badgeClass = "text-emerald-700 bg-emerald-50";
-                } else if (a.estado_padrino === "rechazado_buscando_reemplazo") {
-                  estadoLabel = "Sin padrino";
-                  badgeClass = "text-red-700 bg-red-50";
-                } else if (a.estado_padrino === "sin_padrino_frenado") {
-                  estadoLabel = "Salida frenada";
-                  badgeClass = "text-slate-600 bg-slate-100";
-                }
-
                 return (
                   <div
                     key={a.id}
                     onClick={() => onOpenPhone(ad.id)}
-                    className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-slate-50 cursor-pointer"
+                    className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-slate-50 cursor-pointer"
                   >
-                    <span className="font-medium text-slate-800">
-                      {ad.nombre.split(" ")[0]}
+                    <span className="font-medium text-slate-800 truncate">
+                      {ad.nombre}
                     </span>
-                    <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${badgeClass}`}>
-                      {estadoLabel}
+                    <span className="text-[10px] font-semibold text-sky-800 bg-sky-50 px-1.5 py-0.5 rounded shrink-0">
+                      {jornada.hora_encuentro_club} hs
                     </span>
                   </div>
                 );
-              })
-            )}
+              })}
+            </div>
           </div>
         </div>
 
-        {/* Nivel 2 */}
-        <div className="bg-white rounded-xl p-3.5 border border-slate-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700">
-              Nivel 2: Paradas seguras
-            </span>
-            <span className="text-lg font-bold text-slate-900">
-              {asistenciasNivel2.length}
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Esquinas relevadas con horario de paso.
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1">
-            {circuito.paradas_seguras.map((parada, idx) => {
-              const count = asistenciasNivel2.filter(
-                (a) => a.parada_esquina_id === parada.id
-              ).length;
-              return (
-                <div
-                  key={parada.id}
-                  className="flex items-center justify-between text-xs py-1 px-2"
-                >
-                  <span className="text-slate-700 truncate">
-                    Parada {idx + 1} ({parada.horario_paso})
-                  </span>
-                  <span className="font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded text-[11px]">
-                    {count} anotados
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {/* Nivel 3 */}
-        <div className="bg-white rounded-xl p-3.5 border border-slate-200">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-700">
-              Nivel 3: Directo al club
-            </span>
-            <span className="text-lg font-bold text-slate-900">
-              {asistenciasNivel3.length}
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-0.5">
-            Asisten a las {jornada.hora_encuentro_club} hs para los juegos.
-          </p>
-          <div className="mt-2.5 pt-2 border-t border-slate-100 space-y-1">
-            {asistenciasNivel3.map((a) => {
-              const ad = participantes.find((p) => p.id === a.participante_id);
-              if (!ad) return null;
-              return (
-                <div
-                  key={a.id}
-                  onClick={() => onOpenPhone(ad.id)}
-                  className="flex items-center justify-between text-xs py-1 px-2 rounded hover:bg-slate-50 cursor-pointer"
-                >
-                  <span className="font-medium text-slate-800">{ad.nombre}</span>
-                  <span className="text-[10px] font-semibold text-sky-800 bg-sky-50 px-1.5 py-0.5 rounded">
-                    16:00 hs
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* Mapa del circuito */}
-      <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-2.5">
-        <div className="flex items-center justify-between">
-          <div>
-            <h3 className="text-sm font-bold text-slate-900">
+        {/* Columna derecha: Mapa del circuito */}
+        <div className="lg:col-span-8 bg-white rounded-xl p-3 border border-slate-200 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-1">
+            <h3 className="text-xs sm:text-sm font-bold text-slate-900">
               Mapa del Circuito: {circuito.nombre_barrio}
             </h3>
-            <p className="text-xs text-slate-500">
-              Los marcadores se actualizan automaticamente cuando los participantes responden en WhatsApp.
-            </p>
+            <span className="text-[11px] text-slate-500">
+              Actualizacion en vivo via WhatsApp
+            </span>
           </div>
-        </div>
 
-        <MapaCircuitoLeaflet
-          circuito={circuito}
-          jornada={jornada}
-          participantes={participantes}
-          asistencias={asistencias}
-          onSelectPhoneInSimulator={onOpenPhone}
-        />
+          <MapaCircuitoLeaflet
+            circuito={circuito}
+            jornada={jornada}
+            participantes={participantes}
+            asistencias={asistencias}
+            onSelectPhoneInSimulator={onOpenPhone}
+          />
+        </div>
       </div>
     </div>
   );

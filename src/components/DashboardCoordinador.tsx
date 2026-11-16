@@ -101,7 +101,7 @@ export default function DashboardCoordinador({
         onToggleSim={() => setSimulatorOpen(!simulatorOpen)}
       />
 
-      <main className="flex-1 max-w-[1400px] w-full mx-auto px-4 sm:px-6 py-5">
+      <main className="flex-1 max-w-[1600px] w-full mx-auto px-3 sm:px-5 py-3">
         <div>
           {activeTab === "tab1_monitor" && (
             <TabMonitorCircuito
@@ -137,7 +137,7 @@ export default function DashboardCoordinador({
       </main>
 
       {simulatorOpen && (
-        <aside className="fixed right-4 bottom-4 top-24 w-[390px] max-w-[calc(100vw-2rem)] z-40 shadow-2xl rounded-xl">
+        <aside className="fixed inset-3 sm:inset-auto sm:right-4 sm:bottom-4 sm:top-20 sm:w-[390px] z-40 shadow-2xl rounded-xl">
           <button
             onClick={() => setSimulatorOpen(false)}
             aria-label="Cerrar simulador"

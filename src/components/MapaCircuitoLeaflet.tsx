@@ -35,6 +35,12 @@ function MapBoundsController({ center }: { center: [number, number] }) {
   const map = useMap();
   useEffect(() => {
     map.invalidateSize();
+    const container = map.getContainer();
+    const ro = new ResizeObserver(() => {
+      map.invalidateSize();
+    });
+    ro.observe(container);
+    return () => ro.disconnect();
   }, [map, center]);
   return null;
 }
@@ -61,7 +67,7 @@ export default function MapaCircuitoLeaflet({
   ).length;
 
   return (
-    <div className="relative w-full h-[430px] rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+    <div className="relative w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-215px)] lg:min-h-[380px] lg:max-h-[700px] rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
       <MapContainer
         center={center}
         zoom={16}
@@ -304,7 +310,7 @@ export default function MapaCircuitoLeaflet({
         })}
       </MapContainer>
 
-      <div className="absolute bottom-3 left-3 z-[400] bg-white/95 backdrop-blur px-3 py-2 rounded-lg shadow border border-slate-200 text-[11px] flex flex-wrap items-center gap-3">
+      <div className="absolute bottom-2.5 left-2.5 right-2.5 sm:right-auto z-[400] bg-white/95 backdrop-blur px-2.5 py-1.5 rounded-lg shadow border border-slate-200 text-[10px] sm:text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
         <span className="flex items-center gap-1.5 font-medium text-slate-700">
           <span className="w-3 h-1 rounded bg-emerald-600 inline-block"></span>
           Ruta segura
