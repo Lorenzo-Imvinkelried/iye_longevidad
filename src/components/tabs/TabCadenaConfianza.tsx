@@ -65,7 +65,7 @@ export default function TabCadenaConfianza({
             className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>+ Sumar abuelo a este lugar</span>
+            <span>Sumar abuelo a este lugar</span>
           </button>
 
           <button
@@ -100,7 +100,7 @@ export default function TabCadenaConfianza({
         {adultosDelLugar.length === 0 ? (
           <div className="p-6 text-center text-xs text-[#52606d]">
             Aun no hay abuelos vinculados a este evento/lugar. Toca{" "}
-            <strong>&ldquo;+ Sumar abuelo a este lugar&rdquo;</strong> para vincular un adulto mayor existente o cargar uno nuevo.
+            <strong>&ldquo;Sumar abuelo a este lugar&rdquo;</strong> para vincular un adulto mayor existente o cargar uno nuevo.
           </div>
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">

@@ -531,7 +531,7 @@ export default function TabMonitorCircuito({
             className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>+ Sumar Abuelo</span>
+            <span>Sumar Abuelo</span>
           </button>
 
           {jornada.estado === "convocando" ||
@@ -1373,7 +1373,7 @@ export default function TabMonitorCircuito({
                       className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
                     >
                       <UserPlus className="w-3.5 h-3.5" />
-                      <span>+ Sumar Abuelo</span>
+                      <span>Sumar Abuelo</span>
                     </button>
                     <a
                       href={buildWhatsAppInviteLink("Hola")}
