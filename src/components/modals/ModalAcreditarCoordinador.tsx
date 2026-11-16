@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { CircuitoBarrial, Coords } from "@/types/domain";
 import SelectorMapaLugar from "@/components/mapa/SelectorMapaLugar";
-import { ShieldCheck, X } from "lucide-react";
+import { Eye, EyeOff, ShieldCheck, X } from "lucide-react";
 
 interface ModalCoordinadorProps {
   open: boolean;
@@ -34,6 +34,7 @@ export default function ModalAcreditarCoordinador({
   onSubmit,
 }: ModalCoordinadorProps) {
   const [saving, setSaving] = useState(false);
+  const [mostrarClave, setMostrarClave] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [coordsCustom, setCoordsCustom] = useState<Coords | null>(null);
   const [barrioCustom, setBarrioCustom] = useState<string | undefined>(undefined);
@@ -141,18 +142,39 @@ export default function ModalAcreditarCoordinador({
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
-              <label className="font-semibold text-[#363f48] block mb-1">
+              <label
+                htmlFor="modal-coord-clave"
+                className="font-semibold text-[#363f48] block mb-1"
+              >
                 Clave / PIN inicial *
               </label>
-              <input
-                type="password"
-                required
-                minLength={4}
-                placeholder="Min. 4 caracteres"
-                value={form.claveTutor}
-                onChange={(e) => setForm({ ...form, claveTutor: e.target.value })}
-                className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2"
-              />
+              <div className="relative">
+                <input
+                  id="modal-coord-clave"
+                  type={mostrarClave ? "text" : "password"}
+                  required
+                  minLength={4}
+                  placeholder="Min. 4 caracteres"
+                  value={form.claveTutor}
+                  onChange={(e) =>
+                    setForm({ ...form, claveTutor: e.target.value })
+                  }
+                  className="w-full border border-[#c4c9cd] rounded-lg pl-3 pr-9 py-2"
+                />
+                <button
+                  type="button"
+                  onClick={() => setMostrarClave((v) => !v)}
+                  aria-label={mostrarClave ? "Ocultar clave" : "Ver clave"}
+                  title={mostrarClave ? "Ocultar clave" : "Ver clave"}
+                  className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#52606d] hover:text-[#0a4494] transition"
+                >
+                  {mostrarClave ? (
+                    <EyeOff className="w-4 h-4" />
+                  ) : (
+                    <Eye className="w-4 h-4" />
+                  )}
+                </button>
+              </div>
             </div>
 
             <div>

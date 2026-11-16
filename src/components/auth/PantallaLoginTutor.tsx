@@ -4,6 +4,8 @@ import React, { useState } from "react";
 import { CircuitoBarrial, Participante } from "@/types/domain";
 import {
   Building2,
+  Eye,
+  EyeOff,
   KeyRound,
   LogIn,
   MapPin,
@@ -28,6 +30,7 @@ export default function PantallaLoginTutor({
 }: LoginProps) {
   const [identificador, setIdentificador] = useState("");
   const [clave, setClave] = useState("");
+  const [mostrarClave, setMostrarClave] = useState(false);
   const [busquedaCoord, setBusquedaCoord] = useState("");
 
   const getCircuitosDeTutor = (tutorId: string): CircuitoBarrial[] => {
@@ -128,17 +131,36 @@ export default function PantallaLoginTutor({
               </div>
 
               <div className="sm:col-span-4">
-                <label className="font-semibold text-[#363f48] block mb-1">
+                <label
+                  htmlFor="login-clave-pin"
+                  className="font-semibold text-[#363f48] block mb-1"
+                >
                   Clave / PIN *
                 </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="Tu clave personal"
-                  value={clave}
-                  onChange={(e) => setClave(e.target.value)}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white text-[#363f48]"
-                />
+                <div className="relative">
+                  <input
+                    id="login-clave-pin"
+                    type={mostrarClave ? "text" : "password"}
+                    required
+                    placeholder="Tu clave personal"
+                    value={clave}
+                    onChange={(e) => setClave(e.target.value)}
+                    className="w-full border border-[#c4c9cd] rounded-lg pl-3 pr-9 py-2 bg-white text-[#363f48]"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setMostrarClave((v) => !v)}
+                    aria-label={mostrarClave ? "Ocultar clave" : "Ver clave"}
+                    title={mostrarClave ? "Ocultar clave" : "Ver clave"}
+                    className="absolute inset-y-0 right-0 px-2.5 flex items-center text-[#52606d] hover:text-[#0a4494] transition"
+                  >
+                    {mostrarClave ? (
+                      <EyeOff className="w-4 h-4" />
+                    ) : (
+                      <Eye className="w-4 h-4" />
+                    )}
+                  </button>
+                </div>
               </div>
 
               <div className="sm:col-span-3">
