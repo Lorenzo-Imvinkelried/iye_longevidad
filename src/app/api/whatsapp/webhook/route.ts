@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { procesarEventoWebhookWhatsApp } from "@/lib/store";
+import { getSupabaseEnvDiagnostics } from "@/lib/supabase";
+import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,9 @@ export async function GET(req: NextRequest) {
   const challenge = searchParams.get("hub.challenge");
 
   const expectedToken =
-    process.env.WHATSAPP_VERIFY_TOKEN || "sancor_comunidad_vital_2026";
+    (process.env.WHATSAPP_VERIFY_TOKEN || "sancor_comunidad_vital_2026")
+      .trim()
+      .replace(/^["']|["']$/g, "");
 
   if (mode === "subscribe" && token === expectedToken) {
     return new NextResponse(challenge, { status: 200 });
@@ -25,6 +29,8 @@ export async function GET(req: NextRequest) {
       status: "ok",
       endpoint: "WhatsApp Cloud API v21.0 Webhook — Sancor Seguros / Salud",
       verify_token_configured: Boolean(expectedToken),
+      whatsapp_configured: isWhatsAppCloudConfigured(),
+      supabase: getSupabaseEnvDiagnostics(),
     },
     { status: 200 }
   );
