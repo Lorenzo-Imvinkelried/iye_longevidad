@@ -18,9 +18,51 @@ export interface CloudApiResult {
   error?: string;
 }
 
+function buildMetaPayload(
+  cleanPhone: string,
+  bodyText: string,
+  activeButtons: WhatsAppReplyButton[]
+): Record<string, unknown> {
+  return activeButtons.length > 0
+    ? {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: cleanPhone,
+        type: "interactive",
+        interactive: {
+          type: "button",
+          body: {
+            text: bodyText,
+          },
+          footer: {
+            text: "Sancor Seguros / Sancor Salud",
+          },
+          action: {
+            buttons: activeButtons.map((btn) => ({
+              type: "reply",
+              reply: {
+                id: btn.id,
+                title: btn.title.slice(0, 20),
+              },
+            })),
+          },
+        },
+      }
+    : {
+        messaging_product: "whatsapp",
+        recipient_type: "individual",
+        to: cleanPhone,
+        type: "text",
+        text: {
+          preview_url: false,
+          body: bodyText,
+        },
+      };
+}
+
 /**
- * Envía un mensaje 1 a 1 por WhatsApp Cloud API Oficial (Meta Graph API v21.0).
- * Soporta botones táctiles interactivos (`type: "interactive"`, `interactive.type: "button"`).
+ * Envia un mensaje 1 a 1 por WhatsApp Cloud API Oficial (Meta Graph API v21.0).
+ * Soporta automaticamente la variante de numeracion Argentina con y sin el prefijo 9 (549... / 54...).
  */
 export async function sendWhatsAppCloudMessage(
   toPhone: string,
@@ -28,44 +70,8 @@ export async function sendWhatsAppCloudMessage(
   buttons?: WhatsAppReplyButton[]
 ): Promise<CloudApiResult> {
   const cleanPhone = toPhone.replace(/[^0-9]/g, "");
-  const activeButtons = (buttons || []).slice(0, 3); // Meta Graph API permite hasta 3 Reply Buttons por mensaje interactivo
-
-  const payload: Record<string, unknown> =
-    activeButtons.length > 0
-      ? {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanPhone,
-          type: "interactive",
-          interactive: {
-            type: "button",
-            body: {
-              text: bodyText,
-            },
-            footer: {
-              text: "Sancor Seguros / Sancor Salud",
-            },
-            action: {
-              buttons: activeButtons.map((btn) => ({
-                type: "reply",
-                reply: {
-                  id: btn.id,
-                  title: btn.title.slice(0, 20), // Meta limita el título de Reply Button a 20 chars en API real
-                },
-              })),
-            },
-          },
-        }
-      : {
-          messaging_product: "whatsapp",
-          recipient_type: "individual",
-          to: cleanPhone,
-          type: "text",
-          text: {
-            preview_url: false,
-            body: bodyText,
-          },
-        };
+  const activeButtons = (buttons || []).slice(0, 3);
+  const payload = buildMetaPayload(cleanPhone, bodyText, activeButtons);
 
   if (!isWhatsAppCloudConfigured()) {
     return {
@@ -79,7 +85,7 @@ export async function sendWhatsAppCloudMessage(
   const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
 
   try {
-    const res = await fetch(endpoint, {
+    let res = await fetch(endpoint, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -87,6 +93,23 @@ export async function sendWhatsAppCloudMessage(
       },
       body: JSON.stringify(payload),
     });
+
+    // Si es un numero de Argentina (549...) y Meta lo tiene agendado sin el 9 (54...), reintentar automaticamente
+    if (!res.ok && cleanPhone.startsWith("549")) {
+      const altPhone = "54" + cleanPhone.slice(3);
+      const altPayload = buildMetaPayload(altPhone, bodyText, activeButtons);
+      const altRes = await fetch(endpoint, {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(altPayload),
+      });
+      if (altRes.ok) {
+        res = altRes;
+      }
+    }
 
     return {
       dispatched: res.ok,

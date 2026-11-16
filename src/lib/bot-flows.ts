@@ -88,12 +88,15 @@ export async function procesarEventoWebhookWhatsApp(params: {
 }): Promise<SystemSnapshot> {
   const state = readState();
 
-  const actor = state.participantes.find(
-    (p) =>
-      (params.participanteId && p.id === params.participanteId) ||
-      (params.fromPhone &&
-        p.telefono.replace(/[^0-9]/g, "") === params.fromPhone.replace(/[^0-9]/g, ""))
-  );
+  const actor = state.participantes.find((p) => {
+    if (params.participanteId && p.id === params.participanteId) return true;
+    if (params.fromPhone) {
+      const pDigits = p.telefono.replace(/[^0-9]/g, "").slice(-10);
+      const fromDigits = params.fromPhone.replace(/[^0-9]/g, "").slice(-10);
+      if (pDigits && pDigits === fromDigits) return true;
+    }
+    return false;
+  });
 
   if (!actor) return state;
 
