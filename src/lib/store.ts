@@ -24,4 +24,5 @@ export {
   aprobarAltaDerivacionFamiliar,
   crearSolicitudNietoFamiliar,
   acreditarNuevoVecinoPadrino,
+  actualizarParticipanteAdulto,
 } from "@/lib/coordinator-actions";

@@ -1,7 +1,10 @@
 import crypto from "crypto";
 import {
+  Asistencia,
   CircuitoBarrial,
+  Coords,
   Jornada,
+  ModalidadElegida,
   ParadaSegura,
   Participante,
   SEED_IDS,
@@ -18,6 +21,7 @@ import {
   findExistingSeniorByDniOrPhone,
   findScheduleConflict,
   normalizeDni,
+  phonesMatch,
 } from "@/lib/domain-helpers";
 import {
   addLog,
@@ -1268,4 +1272,149 @@ export async function acreditarNuevoVecinoPadrino(input: {
   writeState(state);
   await syncToSupabaseIfConfigured(state);
   return state;
+}
+
+export async function actualizarParticipanteAdulto(input: {
+  participanteId: string;
+  jornadaId?: string;
+  nombre: string;
+  edad: number;
+  dni: string;
+  telefono: string;
+  direccion: string;
+  coordsDomicilio?: Coords;
+  padrinoPreferidoId?: string | null;
+  contactoFamiliarNombre?: string;
+  contactoFamiliarTel?: string;
+  notasVulnerabilidad?: string;
+  modalidadElegida?: ModalidadElegida;
+  paradaEsquinaId?: string | null;
+}): Promise<{
+  ok: boolean;
+  snapshot?: SystemSnapshot;
+  error?: string;
+  status?: number;
+}> {
+  const state = await readStateAsync();
+  const adulto = state.participantes.find(
+    (p) => p.id === input.participanteId && p.rol === "adulto_mayor"
+  );
+
+  if (!adulto) {
+    return {
+      ok: false,
+      status: 404,
+      error: "No se encontro el adulto mayor seleccionado.",
+    };
+  }
+
+  const nombreClean = (input.nombre || "").trim();
+  const dniClean = (input.dni || "").trim();
+  const telClean = (input.telefono || "").trim();
+  const dirClean = (input.direccion || "").trim();
+
+  if (!nombreClean || !telClean || !dirClean) {
+    return {
+      ok: false,
+      status: 400,
+      error: "Nombre, telefono WhatsApp y domicilio son obligatorios.",
+    };
+  }
+
+  const dniNorm = normalizeDni(dniClean);
+  const duplicado = state.participantes.find((p) => {
+    if (p.id === adulto.id) return false;
+    if (dniNorm && normalizeDni(p.dni) === dniNorm) return true;
+    return phonesMatch(p.telefono, telClean);
+  });
+
+  if (duplicado) {
+    return {
+      ok: false,
+      status: 409,
+      error: `El DNI o telefono ya pertenece a ${duplicado.nombre}.`,
+    };
+  }
+
+  adulto.nombre = nombreClean;
+  adulto.edad = Number(input.edad) > 0 ? Number(input.edad) : adulto.edad;
+  adulto.dni = dniClean || adulto.dni;
+  adulto.telefono = telClean;
+  adulto.direccion = dirClean;
+  if (
+    input.coordsDomicilio &&
+    Number.isFinite(input.coordsDomicilio.lat) &&
+    Number.isFinite(input.coordsDomicilio.lng)
+  ) {
+    adulto.coords_domicilio = input.coordsDomicilio;
+  }
+  if (input.padrinoPreferidoId !== undefined) {
+    adulto.padrino_preferido_id = input.padrinoPreferidoId || null;
+  }
+  if (input.contactoFamiliarNombre !== undefined) {
+    adulto.contacto_familiar_nombre =
+      input.contactoFamiliarNombre.trim() || adulto.contacto_familiar_nombre;
+  }
+  if (input.contactoFamiliarTel !== undefined) {
+    adulto.contacto_familiar_tel =
+      input.contactoFamiliarTel.trim() || adulto.contacto_familiar_tel;
+  }
+  if (input.notasVulnerabilidad !== undefined) {
+    adulto.notas_vulnerabilidad = input.notasVulnerabilidad.trim();
+  }
+
+  if (input.modalidadElegida === "nivel_1_puerta") {
+    adulto.nivel_autonomia_habitual = 1;
+  } else if (input.modalidadElegida === "nivel_2_esquina") {
+    adulto.nivel_autonomia_habitual = 2;
+  } else if (input.modalidadElegida === "nivel_3_directo") {
+    adulto.nivel_autonomia_habitual = 3;
+  }
+
+  if (input.jornadaId) {
+    const asis: Asistencia | undefined = state.asistencias.find(
+      (a) =>
+        a.jornada_id === input.jornadaId && a.participante_id === adulto.id
+    );
+    if (asis) {
+      if (input.modalidadElegida) {
+        asis.modalidad_elegida = input.modalidadElegida;
+      }
+      if (asis.modalidad_elegida === "nivel_1_puerta") {
+        asis.parada_esquina_id = null;
+        asis.padrino_asignado_id =
+          input.padrinoPreferidoId ||
+          adulto.padrino_preferido_id ||
+          SEED_IDS.padrinoCarlos;
+        if (
+          asis.estado_padrino === "no_aplica" ||
+          asis.estado_padrino === "rechazado_buscando_reemplazo"
+        ) {
+          asis.estado_padrino = "confirmado";
+        }
+      } else if (asis.modalidad_elegida === "nivel_2_esquina") {
+        asis.parada_esquina_id =
+          input.paradaEsquinaId || asis.parada_esquina_id || null;
+        asis.padrino_asignado_id = null;
+        asis.estado_padrino = "no_aplica";
+      } else {
+        asis.parada_esquina_id = null;
+        asis.padrino_asignado_id = null;
+        asis.estado_padrino = "no_aplica";
+      }
+      asis.updated_at = new Date().toISOString();
+    }
+  }
+
+  addLog(
+    state,
+    adulto.nombre,
+    "Ficha de Adulto Mayor Editada",
+    `Se actualizaron los datos de ${adulto.nombre} (Tel: ${adulto.telefono}, ${adulto.direccion}).`,
+    "info"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return { ok: true, snapshot: state };
 }

@@ -75,6 +75,10 @@ const ACTION_LOADING_MESSAGES: Record<
     title: "Actualizando presencias...",
     detail: "Registrando asistencia del encuentro en la base...",
   },
+  actualizar_participante_adulto: {
+    title: "Guardando ficha del abuelo...",
+    detail: "Actualizando telefono, domicilio y modalidad en la base...",
+  },
   aprobar_solicitud_familiar: {
     title: "Aprobando alta de participante...",
     detail: "Activando adulto mayor y asignando padrino responsable...",

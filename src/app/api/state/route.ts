@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import {
   acreditarNuevoVecinoPadrino,
+  actualizarParticipanteAdulto,
   actualizarRutaCircuito,
   aprobarAltaDerivacionFamiliar,
   crearNuevoEventoOLugar,
@@ -199,6 +200,19 @@ export async function POST(req: NextRequest) {
       case "acreditar_padrino": {
         const snapshot = await acreditarNuevoVecinoPadrino(body.payload);
         return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
+      }
+      case "actualizar_participante_adulto": {
+        const res = await actualizarParticipanteAdulto({
+          ...body.payload,
+          jornadaId: body.jornadaId || activeJornadaId,
+        });
+        if (!res.ok || !res.snapshot) {
+          return NextResponse.json(
+            { ok: false, error: res.error || "No se pudo actualizar el participante." },
+            { status: res.status || 400 }
+          );
+        }
+        return NextResponse.json({ ok: true, snapshot: finalize(res.snapshot) });
       }
       case "reset_demo": {
         const snapshot = await resetStateAsync();
