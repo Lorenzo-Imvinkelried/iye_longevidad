@@ -7,7 +7,8 @@ import {
   addLog,
   appendBotMessage,
   formatPesos,
-  readState,
+  generateUuid,
+  readStateAsync,
   syncToSupabaseIfConfigured,
   writeState,
 } from "@/lib/state-persistence";
@@ -15,7 +16,7 @@ import {
 export async function suspenderJornadaPorEmergencia(
   motivo?: string
 ): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   state.jornada.estado = "suspendida_emergencia";
   state.jornada.motivo_suspension =
     motivo || "Condiciones climaticas adversas y riesgo de resbalones en veredas";
@@ -46,7 +47,7 @@ export async function suspenderJornadaPorEmergencia(
         buttons: [
           {
             id: "btn_acuse_suspension",
-            title: "Entendido, me quedo en casa",
+            title: "Me quedo en casa",
             variant: "success",
           },
         ],
@@ -71,7 +72,7 @@ export async function reasignarTutorManualCoordinador(
   adultoId: string,
   nuevoPadrinoId?: string
 ): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   const adulto = state.participantes.find((p) => p.id === adultoId);
   const asis = state.asistencias.find(
     (a) => a.jornada_id === state.jornada.id && a.participante_id === adultoId
@@ -108,7 +109,7 @@ export async function reasignarTutorManualCoordinador(
         buttons: [
           {
             id: "btn_adulto_cancela",
-            title: "Cambio de planes, no voy",
+            title: "No voy hoy",
             variant: "danger",
           },
         ],
@@ -132,7 +133,7 @@ export async function reasignarTutorManualCoordinador(
 export async function frenarSalidaAdultoPorSeguridad(
   adultoId: string
 ): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   const adulto = state.participantes.find((p) => p.id === adultoId);
   const asis = state.asistencias.find(
     (a) => a.jornada_id === state.jornada.id && a.participante_id === adultoId
@@ -152,7 +153,7 @@ export async function frenarSalidaAdultoPorSeguridad(
         buttons: [
           {
             id: "btn_acuse_suspension",
-            title: "Entendido, me quedo en casa",
+            title: "Me quedo en casa",
             variant: "success",
           },
         ],
@@ -176,7 +177,7 @@ export async function frenarSalidaAdultoPorSeguridad(
 export async function validarPresenciaEnClub(
   participanteIds: string[]
 ): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   const padrinosBonificadosEnLote = new Set<string>();
 
   for (const partId of participanteIds) {
@@ -294,7 +295,7 @@ export async function aprobarAltaDerivacionFamiliar(
   participanteId: string,
   padrinoAsignadoId: string
 ): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   const adulto = state.participantes.find((p) => p.id === participanteId);
   const padrino = state.participantes.find((p) => p.id === padrinoAsignadoId);
 
@@ -308,7 +309,7 @@ export async function aprobarAltaDerivacionFamiliar(
     );
     if (!existeAsis) {
       state.asistencias.push({
-        id: `asis-${Date.now()}`,
+        id: generateUuid(),
         jornada_id: state.jornada.id,
         participante_id: adulto.id,
         modalidad_elegida: "nivel_1_puerta",
@@ -368,13 +369,13 @@ export async function crearSolicitudNietoFamiliar(input: {
   telefonoFamiliar: string;
   notas: string;
 }): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
 
   const jitterLat = (Math.random() - 0.5) * 0.0025;
   const jitterLng = (Math.random() - 0.5) * 0.0025;
 
   const nuevo: Participante = {
-    id: `part-fam-${Date.now()}`,
+    id: generateUuid(),
     nombre: input.nombreAdulto,
     edad: Number(input.edad) || 76,
     dni: input.dni || "09.123.456",
@@ -424,14 +425,14 @@ export async function acreditarNuevoVecinoPadrino(input: {
   telefono: string;
   direccion: string;
 }): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   const padrinosCount = state.participantes.filter(
     (p) => p.rol === "padrino"
   ).length;
   const nuevaCredencial = `#${104 + padrinosCount * 4 + 1}`;
 
   const nuevoPadrino: Participante = {
-    id: `padrino-${Date.now()}`,
+    id: generateUuid(),
     nombre: input.nombre,
     edad: Number(input.edad) || 65,
     dni: input.dni,

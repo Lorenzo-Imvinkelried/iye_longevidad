@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 /**
  * GET /api/whatsapp/webhook
- * Endpoint oficial de verificación de Webhook para Meta for Developers (WhatsApp Cloud API v21.0)
+ * Verificacion oficial de Webhook para Meta for Developers (WhatsApp Cloud API v21.0)
  */
 export async function GET(req: NextRequest) {
   const { searchParams } = new URL(req.url);
@@ -13,7 +13,8 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get("hub.verify_token");
   const challenge = searchParams.get("hub.challenge");
 
-  const expectedToken = process.env.WHATSAPP_VERIFY_TOKEN || "sancor_comunidad_vital_2026";
+  const expectedToken =
+    process.env.WHATSAPP_VERIFY_TOKEN || "sancor_comunidad_vital_2026";
 
   if (mode === "subscribe" && token === expectedToken) {
     return new NextResponse(challenge, { status: 200 });
@@ -31,14 +32,14 @@ export async function GET(req: NextRequest) {
 
 /**
  * POST /api/whatsapp/webhook
- * Procesa los eventos de botones táctiles (`type: "interactive"`, `interactive.type: "button_reply"`)
- * provenientes tanto de Meta Graph API v21.0 real como del Simulador de WhatsApp en Pantalla.
+ * Procesa botones tactiles (interactive.button_reply), botones heredados y texto libre.
  */
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
+    console.log("[Webhook WhatsApp POST]", JSON.stringify(body).slice(0, 500));
 
-    // 1. Formato Estándar de Meta Graph API v21.0 (usado por Meta real Y por nuestro Simulador)
+    // 1. Formato Estandar Meta Graph API v21.0 (Meta real o Simulador en pantalla)
     const entry = body?.entry?.[0];
     const change = entry?.changes?.[0];
     const value = change?.value;
@@ -46,7 +47,7 @@ export async function POST(req: NextRequest) {
 
     if (message) {
       const fromPhone: string | undefined = message.from;
-      const participanteId: string | undefined = message.participante_id; // metadato opcional del simulador
+      const participanteId: string | undefined = message.participante_id;
       const buttonReply = message?.interactive?.button_reply;
 
       if (buttonReply?.id) {
@@ -64,9 +65,55 @@ export async function POST(req: NextRequest) {
           snapshot,
         });
       }
+
+      // Soporte de respuestas de botones tipo template/legacy
+      if (message?.button?.payload || message?.button?.text) {
+        const payloadId = message.button.payload || "btn_menu_convocatoria";
+        const snapshot = await procesarEventoWebhookWhatsApp({
+          fromPhone,
+          participanteId,
+          buttonId: payloadId,
+          buttonTitle: message.button.text,
+        });
+        return NextResponse.json({
+          ok: true,
+          processed_via: "meta_graph_legacy_button",
+          snapshot,
+        });
+      }
+
+      // Soporte de texto libre enviado desde el telefono fisico ("hola", "test", "1", "2", "3")
+      const textBody: string = (message?.text?.body || "").trim();
+      if (textBody) {
+        const lower = textBody.toLowerCase();
+        let mappedButton = "btn_menu_convocatoria";
+        if (lower === "1" || lower.includes("buscar")) {
+          mappedButton = "btn_nivel_1";
+        } else if (lower === "2" || lower.includes("esquina") || lower.includes("parada")) {
+          mappedButton = "btn_nivel_2";
+        } else if (lower === "3" || lower.includes("club") || lower.includes("directo")) {
+          mappedButton = "btn_nivel_3";
+        } else if (lower.includes("cancel") || lower.includes("no voy")) {
+          mappedButton = "btn_adulto_cancela";
+        }
+
+        const snapshot = await procesarEventoWebhookWhatsApp({
+          fromPhone,
+          participanteId,
+          buttonId: mappedButton,
+          buttonTitle: textBody,
+        });
+
+        return NextResponse.json({
+          ok: true,
+          processed_via: "meta_graph_text_message",
+          mapped_button: mappedButton,
+          snapshot,
+        });
+      }
     }
 
-    // 2. Fallback directo si se invoca con { participanteId, buttonId, buttonTitle }
+    // 2. Fallback directo
     if (body?.buttonId) {
       const snapshot = await procesarEventoWebhookWhatsApp({
         fromPhone: body.fromPhone,
@@ -83,7 +130,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    return NextResponse.json({ ok: true, note: "Evento sin acción interactiva" });
+    return NextResponse.json({ ok: true, note: "Evento procesado (status o sin mensajes)" });
   } catch (err: unknown) {
     console.error("Error en /api/whatsapp/webhook:", err);
     return NextResponse.json(

@@ -1,5 +1,11 @@
 export { SEED_IDS } from "@/types/domain";
-export { readState, writeState, resetState } from "@/lib/state-persistence";
+export {
+  readState,
+  readStateAsync,
+  writeState,
+  resetState,
+  resetStateAsync,
+} from "@/lib/state-persistence";
 export {
   dispararConvocatoriaJornada,
   procesarEventoWebhookWhatsApp,

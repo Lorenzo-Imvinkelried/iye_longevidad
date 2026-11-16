@@ -1,7 +1,12 @@
 import fs from "fs";
 import path from "path";
+import crypto from "crypto";
 import {
+  Asistencia,
+  CircuitoBarrial,
+  Jornada,
   Participante,
+  SEED_IDS,
   SystemSnapshot,
   WebhookEventLog,
   WhatsAppMessage,
@@ -14,6 +19,10 @@ import { isWhatsAppCloudConfigured, sendWhatsAppCloudMessage } from "@/lib/whats
 const STATE_FILE_PATH = process.env.VERCEL
   ? path.join("/tmp", ".demo-runtime-state.json")
   : path.join(process.cwd(), ".demo-runtime-state.json");
+
+export function generateUuid(): string {
+  return crypto.randomUUID();
+}
 
 export function nowTimeStr(): string {
   const now = new Date();
@@ -43,6 +52,64 @@ export function readState(): SystemSnapshot {
   return initial;
 }
 
+/**
+ * Lee el estado compartiendo la fuente de verdad en Supabase cuando esta configurado.
+ * Esto permite que un webhook ejecutado en Vercel actualice inmediatamente la UI en Vercel y en localhost.
+ */
+export async function readStateAsync(): Promise<SystemSnapshot> {
+  const state = readState();
+  const supabase = getSupabaseServerClient();
+  if (!supabase) return state;
+
+  try {
+    const [circRes, partRes, jorRes, asisRes] = await Promise.all([
+      supabase.from("circuitos_barriales").select("*").limit(1),
+      supabase.from("participantes").select("*"),
+      supabase
+        .from("jornadas")
+        .select("*")
+        .eq("id", SEED_IDS.jornada)
+        .limit(1),
+      supabase
+        .from("asistencias")
+        .select("*")
+        .eq("jornada_id", SEED_IDS.jornada),
+    ]);
+
+    if (circRes.data && circRes.data.length > 0) {
+      state.circuito = circRes.data[0] as CircuitoBarrial;
+    }
+
+    if (partRes.data && partRes.data.length > 0) {
+      state.participantes = partRes.data.map((row) => ({
+        ...(row as Participante),
+        saldo_reintegro_sancor: Number(row.saldo_reintegro_sancor || 0),
+      }));
+    }
+
+    if (jorRes.data && jorRes.data.length > 0) {
+      const j = jorRes.data[0];
+      state.jornada = {
+        ...(j as Jornada),
+        monto_reintegro_asistencia: Number(j.monto_reintegro_asistencia || 2500),
+        plus_reintegro_padrino: Number(j.plus_reintegro_padrino || 1500),
+      };
+    }
+
+    if (asisRes.data && asisRes.data.length > 0) {
+      state.asistencias = asisRes.data as Asistencia[];
+    }
+
+    state.modoConexion = "supabase_realtime";
+    state.whatsappCloudConfigurado = isWhatsAppCloudConfigured();
+    writeState(state);
+  } catch (err) {
+    console.warn("Lectura desde Supabase omitida (usando estado local):", err);
+  }
+
+  return state;
+}
+
 export function writeState(state: SystemSnapshot): void {
   try {
     fs.writeFileSync(STATE_FILE_PATH, JSON.stringify(state, null, 2), "utf-8");
@@ -54,6 +121,51 @@ export function writeState(state: SystemSnapshot): void {
 export function resetState(): SystemSnapshot {
   const fresh = buildInitialState();
   writeState(fresh);
+  return fresh;
+}
+
+export async function resetStateAsync(): Promise<SystemSnapshot> {
+  const fresh = buildInitialState();
+  writeState(fresh);
+
+  const supabase = getSupabaseServerClient();
+  if (supabase) {
+    try {
+      const seedPartIds = fresh.participantes.map((p) => p.id);
+      const seedAsisIds = fresh.asistencias.map((a) => a.id);
+
+      // Limpiar registros agregados durante pruebas
+      const { data: existingAsis } = await supabase
+        .from("asistencias")
+        .select("id")
+        .eq("jornada_id", SEED_IDS.jornada);
+      if (existingAsis) {
+        const extraAsis = existingAsis
+          .map((r) => r.id as string)
+          .filter((id) => !seedAsisIds.includes(id));
+        if (extraAsis.length > 0) {
+          await supabase.from("asistencias").delete().in("id", extraAsis);
+        }
+      }
+
+      const { data: existingParts } = await supabase
+        .from("participantes")
+        .select("id");
+      if (existingParts) {
+        const extraParts = existingParts
+          .map((r) => r.id as string)
+          .filter((id) => !seedPartIds.includes(id));
+        if (extraParts.length > 0) {
+          await supabase.from("participantes").delete().in("id", extraParts);
+        }
+      }
+
+      await syncToSupabaseIfConfigured(fresh);
+    } catch (err) {
+      console.warn("Error reseteando datos en Supabase:", err);
+    }
+  }
+
   return fresh;
 }
 

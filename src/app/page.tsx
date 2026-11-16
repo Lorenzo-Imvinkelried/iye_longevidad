@@ -1,10 +1,10 @@
 import React from "react";
-import { readState } from "@/lib/store";
+import { readStateAsync } from "@/lib/store";
 import DashboardCoordinador from "@/components/DashboardCoordinador";
 
 export const dynamic = "force-dynamic";
 
-export default function HomePage() {
-  const initialSnapshot = readState();
+export default async function HomePage() {
+  const initialSnapshot = await readStateAsync();
   return <DashboardCoordinador initialSnapshot={initialSnapshot} />;
 }

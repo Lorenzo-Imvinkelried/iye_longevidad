@@ -8,13 +8,28 @@ import {
   appendBotMessage,
   appendUserMessage,
   formatPesos,
-  readState,
+  generateUuid,
+  readStateAsync,
   syncToSupabaseIfConfigured,
   writeState,
 } from "@/lib/state-persistence";
 
+function phonesMatch(phoneA: string, phoneB: string): boolean {
+  const normA = phoneA.replace(/[^0-9]/g, "").replace(/^549?/, "");
+  const normB = phoneB.replace(/[^0-9]/g, "").replace(/^549?/, "");
+  if (!normA || !normB) return false;
+  if (normA === normB) return true;
+  return normA.slice(0, 3) === normB.slice(0, 3) && normA.slice(-6) === normB.slice(-6);
+}
+
+const CONVOCATORIA_BUTTONS: WhatsAppReplyButton[] = [
+  { id: "btn_nivel_1", title: "Pasen a buscarme", variant: "primary" },
+  { id: "btn_nivel_2", title: "Voy a la esquina", variant: "primary" },
+  { id: "btn_nivel_3", title: "Voy directo al club", variant: "primary" },
+];
+
 export async function dispararConvocatoriaJornada(): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
   state.jornada.estado = "convocando";
   state.jornada.motivo_suspension = null;
   state.jornada.updated_at = new Date().toISOString();
@@ -23,19 +38,13 @@ export async function dispararConvocatoriaJornada(): Promise<SystemSnapshot> {
     (p) => p.rol === "adulto_mayor" && p.estado_alta === "activo"
   );
 
-  const convocatoriaButtons: WhatsAppReplyButton[] = [
-    { id: "btn_nivel_1", title: "Pasen a buscarme", variant: "primary" },
-    { id: "btn_nivel_2", title: "Voy a la esquina", variant: "primary" },
-    { id: "btn_nivel_3", title: "Voy directo al club", variant: "primary" },
-  ];
-
   for (const adulto of adultosActivos) {
     let asis = state.asistencias.find(
       (a) => a.jornada_id === state.jornada.id && a.participante_id === adulto.id
     );
     if (!asis) {
       asis = {
-        id: `asis-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        id: generateUuid(),
         jornada_id: state.jornada.id,
         participante_id: adulto.id,
         modalidad_elegida: "sin_respuesta",
@@ -62,7 +71,7 @@ export async function dispararConvocatoriaJornada(): Promise<SystemSnapshot> {
         `Buen dia, ${primerNombre}. Hoy ${state.jornada.hora_inicio_caminata} hs nos encontramos en el ${state.circuito.nombre_club} para caminar juntos y cerrar con ${state.jornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
           state.jornada.monto_reintegro_asistencia
         )} de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
-        { buttons: convocatoriaButtons }
+        { buttons: CONVOCATORIA_BUTTONS }
       );
     }
   }
@@ -86,15 +95,11 @@ export async function procesarEventoWebhookWhatsApp(params: {
   buttonId: string;
   buttonTitle?: string;
 }): Promise<SystemSnapshot> {
-  const state = readState();
+  const state = await readStateAsync();
 
   const actor = state.participantes.find((p) => {
     if (params.participanteId && p.id === params.participanteId) return true;
-    if (params.fromPhone) {
-      const pDigits = p.telefono.replace(/[^0-9]/g, "").slice(-6);
-      const fromDigits = params.fromPhone.replace(/[^0-9]/g, "").slice(-6);
-      if (pDigits && pDigits === fromDigits) return true;
-    }
+    if (params.fromPhone && phonesMatch(p.telefono, params.fromPhone)) return true;
     return false;
   });
 
@@ -105,8 +110,20 @@ export async function procesarEventoWebhookWhatsApp(params: {
 
   appendUserMessage(state, actor, params.buttonTitle || buttonId);
 
+  // MENU INICIAL (cuando el participante escribe "hola", "test", "menu", etc. desde su WhatsApp)
+  if (buttonId === "btn_menu_convocatoria") {
+    await appendBotMessage(
+      state,
+      actor,
+      `Hola ${primerNombre}. Hoy ${state.jornada.hora_inicio_caminata} hs nos encontramos en el ${state.circuito.nombre_club} para caminar y cerrar con ${state.jornada.actividad_cierre}. Asistiendo hoy sumas *$${formatPesos(
+        state.jornada.monto_reintegro_asistencia
+      )} de reintegro Sancor en Farmacias*. ¿Como te sumas hoy?`,
+      { buttons: CONVOCATORIA_BUTTONS }
+    );
+  }
+
   // FLUJO 2: NIVEL 1 (PUERTA A PUERTA)
-  if (buttonId === "btn_nivel_1") {
+  else if (buttonId === "btn_nivel_1") {
     let asis = state.asistencias.find(
       (a) => a.jornada_id === state.jornada.id && a.participante_id === actor.id
     );
@@ -115,7 +132,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
 
     if (!asis) {
       asis = {
-        id: `asis-${Date.now()}`,
+        id: generateUuid(),
         jornada_id: state.jornada.id,
         participante_id: actor.id,
         modalidad_elegida: "nivel_1_puerta",
@@ -144,7 +161,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
         buttons: [
           {
             id: "btn_adulto_cancela",
-            title: "Cambio de planes, no voy",
+            title: "No voy hoy",
             variant: "danger",
           },
         ],
@@ -208,7 +225,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
           buttons: [
             {
               id: `btn_padrino_imprevisto:${adulto.id}`,
-              title: "Tuve un imprevisto, no puedo ir",
+              title: "Tuve un imprevisto",
               variant: "danger",
             },
           ],
@@ -230,7 +247,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
           buttons: [
             {
               id: "btn_adulto_cancela",
-              title: "Cambio de planes, no voy",
+              title: "No voy hoy",
               variant: "danger",
             },
           ],
@@ -331,7 +348,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
           buttons: [
             {
               id: "btn_nivel_1",
-              title: "Quiero volver a sumarme hoy",
+              title: "Volver a sumarme",
               variant: "neutral",
             },
           ],
@@ -365,24 +382,25 @@ export async function procesarEventoWebhookWhatsApp(params: {
     const paradaButtons: WhatsAppReplyButton[] = state.circuito.paradas_seguras.map(
       (parada, idx) => ({
         id: `btn_parada:${parada.id}`,
-        title: `Parada ${idx + 1}: ${parada.nombre_esquina.replace(
-          /^Parada \d+:\s*/,
-          ""
-        )} (${parada.horario_paso})`,
+        title: `Parada ${idx + 1} (${parada.horario_paso})`,
         variant: "primary",
       })
     );
 
     paradaButtons.push({
       id: "btn_adulto_cancela",
-      title: "Cambio de planes, no voy",
+      title: "No voy hoy",
       variant: "danger",
     });
+
+    const detalleParadas = state.circuito.paradas_seguras
+      .map((p, idx) => `• *Parada ${idx + 1}:* ${p.nombre_esquina.replace(/^Parada \d+:\s*/, "")} (${p.horario_paso})`)
+      .join("\n");
 
     await appendBotMessage(
       state,
       actor,
-      `Muy bien, ${primerNombre}. Elegi en cual de las *Paradas Seguras relevadas por Sancor* (esquinas con rampa peatonal, veredas sanas y buena iluminacion) te sumas hoy al paso de la caravana:`,
+      `Muy bien, ${primerNombre}. Elegi en cual de las *Paradas Seguras relevadas por Sancor* te sumas hoy:\n${detalleParadas}`,
       { buttons: paradaButtons }
     );
 
@@ -405,7 +423,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     );
     if (!asis) {
       asis = {
-        id: `asis-${Date.now()}`,
+        id: generateUuid(),
         jornada_id: state.jornada.id,
         participante_id: actor.id,
         modalidad_elegida: "nivel_2_esquina",
@@ -434,7 +452,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
           buttons: [
             {
               id: "btn_adulto_cancela",
-              title: "Cambio de planes, no voy",
+              title: "No voy hoy",
               variant: "danger",
             },
           ],
@@ -458,7 +476,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     );
     if (!asis) {
       asis = {
-        id: `asis-${Date.now()}`,
+        id: generateUuid(),
         jornada_id: state.jornada.id,
         participante_id: actor.id,
         modalidad_elegida: "nivel_3_directo",
@@ -486,7 +504,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
         buttons: [
           {
             id: "btn_adulto_cancela",
-            title: "Cambio de planes, no voy",
+            title: "No voy hoy",
             variant: "danger",
           },
         ],

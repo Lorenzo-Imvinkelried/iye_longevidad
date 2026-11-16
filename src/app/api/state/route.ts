@@ -5,9 +5,9 @@ import {
   crearSolicitudNietoFamiliar,
   dispararConvocatoriaJornada,
   frenarSalidaAdultoPorSeguridad,
-  readState,
+  readStateAsync,
   reasignarTutorManualCoordinador,
-  resetState,
+  resetStateAsync,
   suspenderJornadaPorEmergencia,
   validarPresenciaEnClub,
 } from "@/lib/store";
@@ -15,7 +15,7 @@ import {
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  const snapshot = readState();
+  const snapshot = await readStateAsync();
   return NextResponse.json(snapshot);
 }
 
@@ -67,12 +67,12 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({ ok: true, snapshot });
       }
       case "reset_demo": {
-        const snapshot = resetState();
+        const snapshot = await resetStateAsync();
         return NextResponse.json({ ok: true, snapshot });
       }
       default:
         return NextResponse.json(
-          { ok: false, error: `Acción desconocida: ${action}` },
+          { ok: false, error: `Accion desconocida: ${action}` },
           { status: 400 }
         );
     }
@@ -81,7 +81,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json(
       {
         ok: false,
-        error: err instanceof Error ? err.message : "Error procesando acción",
+        error: err instanceof Error ? err.message : "Error procesando accion",
       },
       { status: 500 }
     );

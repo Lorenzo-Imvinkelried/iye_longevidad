@@ -71,7 +71,26 @@ export default function TabMonitorCircuito({
             )}
           </div>
           <p className="text-xs text-slate-500 mt-1">
-            Reintegro por asistencia: <strong>${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}</strong> • Plus Padrino: <strong>+${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}</strong>
+            Reintegro por asistencia:{" "}
+            <strong>
+              ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
+            </strong>{" "}
+            • Plus Padrino:{" "}
+            <strong>
+              +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
+            </strong>{" "}
+            • WhatsApp Real:{" "}
+            <strong
+              className={
+                snapshot.whatsappCloudConfigurado
+                  ? "text-emerald-700"
+                  : "text-amber-700"
+              }
+            >
+              {snapshot.whatsappCloudConfigurado
+                ? "Conectado (Meta API)"
+                : "Solo simulador (faltan claves en servidor)"}
+            </strong>
           </p>
         </div>
 
