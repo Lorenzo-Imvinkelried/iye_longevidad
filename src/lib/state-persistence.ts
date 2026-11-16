@@ -11,7 +11,9 @@ import { buildInitialState } from "@/lib/seed-data";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import { isWhatsAppCloudConfigured, sendWhatsAppCloudMessage } from "@/lib/whatsapp-cloud";
 
-const STATE_FILE_PATH = path.join(process.cwd(), ".demo-runtime-state.json");
+const STATE_FILE_PATH = process.env.VERCEL
+  ? path.join("/tmp", ".demo-runtime-state.json")
+  : path.join(process.cwd(), ".demo-runtime-state.json");
 
 export function nowTimeStr(): string {
   const now = new Date();
