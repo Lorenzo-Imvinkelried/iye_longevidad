@@ -48,7 +48,7 @@ export default function TabRecepcionClub({
         <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onOpenQrModal}
-            className="bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
+            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
           >
             <QrCode className="w-3.5 h-3.5" />
             <span>Lector QR</span>
@@ -61,7 +61,7 @@ export default function TabRecepcionClub({
               })
             }
             disabled={loadingAction === "validar_club"}
-            className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
+            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
             <span>Validar todos</span>
@@ -128,13 +128,13 @@ export default function TabRecepcionClub({
                 <div className="flex items-center gap-2 shrink-0">
                   <button
                     onClick={() => onOpenPhone(adulto.id)}
-                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-medium px-3 py-2 rounded-lg"
+                    className="border border-[#c4c9cd] text-[#52606d] hover:border-[#0a4494] hover:text-[#0a4494] text-xs font-medium px-3 py-1.5 rounded-full transition"
                   >
                     Ver chat
                   </button>
 
                   {validado ? (
-                    <span className="bg-emerald-50 text-emerald-800 border border-emerald-200 font-semibold text-xs px-3 py-2 rounded-lg">
+                    <span className="bg-[#d0e6cd]/50 text-[#168003] border border-[#a2cc9a] font-semibold text-xs px-3.5 py-1.5 rounded-full">
                       Presente validado
                     </span>
                   ) : (
@@ -146,7 +146,7 @@ export default function TabRecepcionClub({
                         });
                       }}
                       disabled={loadingAction === "validar_club"}
-                      className="bg-[#004b87] hover:bg-[#003966] text-white font-semibold text-xs px-3.5 py-2 rounded-lg transition"
+                      className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
                     >
                       Validar presencia
                     </button>

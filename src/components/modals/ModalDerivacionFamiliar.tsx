@@ -175,13 +175,13 @@ export default function ModalDerivacionFamiliar({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2 rounded-lg border border-slate-300 text-slate-600 font-medium"
+              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="bg-[#004b87] hover:bg-[#003966] text-white font-semibold px-4 py-2 rounded-lg"
+              className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold px-5 py-2 rounded-full transition"
             >
               Enviar solicitud
             </button>

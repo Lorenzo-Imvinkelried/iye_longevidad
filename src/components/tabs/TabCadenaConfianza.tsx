@@ -48,7 +48,7 @@ export default function TabCadenaConfianza({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={onOpenFamiliarModal}
-            className="bg-[#004b87] hover:bg-[#003966] text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
+            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
           >
             <UserPlus className="w-3.5 h-3.5" />
             <span>Inscribir abuelo / familiar</span>
@@ -56,7 +56,7 @@ export default function TabCadenaConfianza({
 
           <button
             onClick={onOpenPadrinoModal}
-            className="bg-slate-800 hover:bg-slate-900 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center gap-1.5"
+            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
           >
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Acreditar nuevo padrino</span>
@@ -131,7 +131,7 @@ export default function TabCadenaConfianza({
                           padrinoId: chosenPadrinoId,
                         });
                       }}
-                      className="bg-emerald-600 hover:bg-emerald-700 text-white font-semibold text-xs px-3.5 py-2 rounded-lg flex items-center justify-center gap-1.5"
+                      className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center justify-center gap-1.5 transition"
                     >
                       <UserCheck className="w-3.5 h-3.5" />
                       <span>Aprobar y asignar</span>

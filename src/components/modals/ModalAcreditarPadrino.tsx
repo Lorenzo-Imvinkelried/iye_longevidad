@@ -112,13 +112,13 @@ export default function ModalAcreditarPadrino({
             <button
               type="button"
               onClick={onClose}
-              className="px-3.5 py-2 rounded-lg border border-slate-300 text-slate-600 font-medium"
+              className="px-4 py-2 rounded-full border border-[#c4c9cd] text-[#52606d] font-medium"
             >
               Cancelar
             </button>
             <button
               type="submit"
-              className="bg-slate-900 hover:bg-slate-800 text-white font-semibold px-4 py-2 rounded-lg"
+              className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold px-5 py-2 rounded-full transition"
             >
               Emitir credencial
             </button>

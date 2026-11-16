@@ -53,38 +53,38 @@ export default function TabMonitorCircuito({
 
   return (
     <div className="space-y-3">
-      {/* Barra de control compacta */}
-      <div className="bg-white rounded-xl px-4 py-2.5 border border-slate-200 flex flex-col md:flex-row md:items-center justify-between gap-2.5">
+      {/* Barra de control compacta estilo Sancor */}
+      <div className="bg-white rounded-xl px-4 py-2.5 border border-[#eaeced] flex flex-col md:flex-row md:items-center justify-between gap-2.5 shadow-xs">
         <div className="min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="text-xs font-semibold text-slate-500">
+            <span className="text-xs font-semibold text-[#52606d]">
               Jornada {jornada.hora_inicio_caminata} hs:
             </span>
             {jornada.estado === "suspendida_emergencia" ? (
-              <span className="text-xs font-bold text-red-700 bg-red-50 px-2 py-0.5 rounded border border-red-200">
+              <span className="text-xs font-bold text-[#bf2020] bg-[#f2d2d2]/40 px-2.5 py-0.5 rounded-full border border-[#e5a6a6]">
                 Suspendida por clima
               </span>
             ) : (
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+              <span className="text-xs font-bold text-[#168003] bg-[#d0e6cd]/40 px-2.5 py-0.5 rounded-full border border-[#a2cc9a]">
                 Activa ({jornada.actividad_cierre})
               </span>
             )}
           </div>
-          <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 truncate">
+          <p className="text-[11px] sm:text-xs text-[#52606d] mt-0.5 truncate">
             Reintegro:{" "}
-            <strong>
+            <strong className="text-[#363f48]">
               ${jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
             </strong>{" "}
             • Plus Padrino:{" "}
-            <strong>
+            <strong className="text-[#363f48]">
               +${jornada.plus_reintegro_padrino.toLocaleString("es-AR")}
             </strong>{" "}
             • WhatsApp:{" "}
             <strong
               className={
                 snapshot.whatsappCloudConfigurado
-                  ? "text-emerald-700"
-                  : "text-amber-700"
+                  ? "text-[#168003]"
+                  : "text-[#a70355]"
               }
             >
               {snapshot.whatsappCloudConfigurado
@@ -98,7 +98,7 @@ export default function TabMonitorCircuito({
           <button
             onClick={() => onExecuteAction("lanzar_convocatoria")}
             disabled={loadingAction === "lanzar_convocatoria"}
-            className="bg-[#004b87] hover:bg-[#003966] text-white font-semibold text-xs px-3 py-2 rounded-lg transition"
+            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full transition shadow-xs"
           >
             {loadingAction === "lanzar_convocatoria"
               ? "Enviando..."
@@ -112,7 +112,7 @@ export default function TabMonitorCircuito({
               })
             }
             disabled={loadingAction === "suspender_emergencia"}
-            className="bg-red-600 hover:bg-red-700 text-white font-semibold text-xs px-3 py-2 rounded-lg transition"
+            className="bg-[#bf2020] hover:bg-[#991919] text-white font-semibold text-xs px-4 py-2 rounded-full transition"
           >
             Suspender por lluvia
           </button>
@@ -248,23 +248,23 @@ export default function TabMonitorCircuito({
       {/* Vista principal: 3 Anillos a la izquierda + Mapa a la derecha (sin scroll en desktop) */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-3 items-stretch">
         {/* Columna izquierda: 3 Anillos apilados */}
-        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 lg:max-h-[calc(100vh-170px)] lg:overflow-y-auto pr-0.5">
+        <div className="lg:col-span-4 grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-1 gap-2.5 lg:max-h-[calc(100vh-175px)] lg:overflow-y-auto pr-0.5">
           {/* Nivel 1 */}
-          <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <div className="bg-white rounded-xl p-3 border border-[#eaeced] border-t-2 border-t-[#a70355]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-xs font-bold text-[#363f48]">
                 Nivel 1: Puerta a puerta
               </span>
-              <span className="text-base font-bold text-slate-900">
+              <span className="text-base font-bold text-[#a70355]">
                 {asistenciasNivel1.length}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[#52606d]">
               Padrino acreditado pasa por el domicilio.
             </p>
-            <div className="mt-2 pt-1.5 border-t border-slate-100 space-y-1">
+            <div className="mt-2 pt-1.5 border-t border-[#eaeced] space-y-1">
               {asistenciasNivel1.length === 0 ? (
-                <div className="text-[11px] text-slate-400">Sin solicitudes aun.</div>
+                <div className="text-[11px] text-[#9ea6ad]">Sin solicitudes aun.</div>
               ) : (
                 asistenciasNivel1.map((a) => {
                   const ad = participantes.find((p) => p.id === a.participante_id);
@@ -272,29 +272,29 @@ export default function TabMonitorCircuito({
                   if (!ad) return null;
 
                   let estadoLabel = "Esperando padrino";
-                  let badgeClass = "text-amber-700 bg-amber-50";
+                  let badgeClass = "text-amber-800 bg-amber-50";
                   if (a.estado_padrino === "confirmado") {
                     estadoLabel = `Confirmado (${pad?.credencial_nro})`;
-                    badgeClass = "text-emerald-700 bg-emerald-50";
+                    badgeClass = "text-[#168003] bg-[#d0e6cd]/40";
                   } else if (a.estado_padrino === "rechazado_buscando_reemplazo") {
                     estadoLabel = "Sin padrino";
-                    badgeClass = "text-red-700 bg-red-50";
+                    badgeClass = "text-[#bf2020] bg-[#f2d2d2]/40";
                   } else if (a.estado_padrino === "sin_padrino_frenado") {
                     estadoLabel = "Salida frenada";
-                    badgeClass = "text-slate-600 bg-slate-100";
+                    badgeClass = "text-[#52606d] bg-[#f6f6f7]";
                   }
 
                   return (
                     <div
                       key={a.id}
                       onClick={() => onOpenPhone(ad.id)}
-                      className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-slate-50 cursor-pointer"
+                      className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-[#fdf9fb] cursor-pointer"
                     >
-                      <span className="font-medium text-slate-800 truncate">
+                      <span className="font-medium text-[#363f48] truncate">
                         {ad.nombre.split(" ")[0]}
                       </span>
                       <span
-                        className={`text-[10px] font-semibold px-1.5 py-0.5 rounded shrink-0 ${badgeClass}`}
+                        className={`text-[10px] font-semibold px-2 py-0.5 rounded-full shrink-0 ${badgeClass}`}
                       >
                         {estadoLabel}
                       </span>
@@ -306,19 +306,19 @@ export default function TabMonitorCircuito({
           </div>
 
           {/* Nivel 2 */}
-          <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <div className="bg-white rounded-xl p-3 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-xs font-bold text-[#363f48]">
                 Nivel 2: Paradas seguras
               </span>
-              <span className="text-base font-bold text-slate-900">
+              <span className="text-base font-bold text-[#0a4494]">
                 {asistenciasNivel2.length}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[#52606d]">
               Esquinas relevadas con horario de paso.
             </p>
-            <div className="mt-2 pt-1.5 border-t border-slate-100 space-y-1">
+            <div className="mt-2 pt-1.5 border-t border-[#eaeced] space-y-1">
               {circuito.paradas_seguras.map((parada, idx) => {
                 const count = asistenciasNivel2.filter(
                   (a) => a.parada_esquina_id === parada.id
@@ -328,10 +328,10 @@ export default function TabMonitorCircuito({
                     key={parada.id}
                     className="flex items-center justify-between text-xs py-1 px-1.5"
                   >
-                    <span className="text-slate-700 truncate">
+                    <span className="text-[#52606d] truncate">
                       Parada {idx + 1} ({parada.horario_paso})
                     </span>
-                    <span className="font-semibold text-teal-800 bg-teal-50 px-2 py-0.5 rounded text-[10px] shrink-0">
+                    <span className="font-semibold text-[#0a4494] bg-[#cedaea]/40 px-2 py-0.5 rounded-full text-[10px] shrink-0">
                       {count} anotados
                     </span>
                   </div>
@@ -341,19 +341,19 @@ export default function TabMonitorCircuito({
           </div>
 
           {/* Nivel 3 */}
-          <div className="bg-white rounded-xl p-3 border border-slate-200">
+          <div className="bg-white rounded-xl p-3 border border-[#eaeced] border-t-2 border-t-[#0a4494]">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-slate-800">
+              <span className="text-xs font-bold text-[#363f48]">
                 Nivel 3: Directo al club
               </span>
-              <span className="text-base font-bold text-slate-900">
+              <span className="text-base font-bold text-[#0a4494]">
                 {asistenciasNivel3.length}
               </span>
             </div>
-            <p className="text-[11px] text-slate-500">
+            <p className="text-[11px] text-[#52606d]">
               Asisten a las {jornada.hora_encuentro_club} hs para los juegos.
             </p>
-            <div className="mt-2 pt-1.5 border-t border-slate-100 space-y-1">
+            <div className="mt-2 pt-1.5 border-t border-[#eaeced] space-y-1">
               {asistenciasNivel3.map((a) => {
                 const ad = participantes.find((p) => p.id === a.participante_id);
                 if (!ad) return null;
@@ -361,12 +361,12 @@ export default function TabMonitorCircuito({
                   <div
                     key={a.id}
                     onClick={() => onOpenPhone(ad.id)}
-                    className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-slate-50 cursor-pointer"
+                    className="flex items-center justify-between text-xs py-1 px-1.5 rounded hover:bg-[#fdf9fb] cursor-pointer"
                   >
-                    <span className="font-medium text-slate-800 truncate">
+                    <span className="font-medium text-[#363f48] truncate">
                       {ad.nombre}
                     </span>
-                    <span className="text-[10px] font-semibold text-sky-800 bg-sky-50 px-1.5 py-0.5 rounded shrink-0">
+                    <span className="text-[10px] font-semibold text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full shrink-0">
                       {jornada.hora_encuentro_club} hs
                     </span>
                   </div>
@@ -377,12 +377,12 @@ export default function TabMonitorCircuito({
         </div>
 
         {/* Columna derecha: Mapa del circuito */}
-        <div className="lg:col-span-8 bg-white rounded-xl p-3 border border-slate-200 flex flex-col gap-2">
+        <div className="lg:col-span-8 bg-white rounded-xl p-3 border border-[#eaeced] flex flex-col gap-2">
           <div className="flex flex-wrap items-center justify-between gap-1">
-            <h3 className="text-xs sm:text-sm font-bold text-slate-900">
+            <h3 className="text-xs sm:text-sm font-bold text-[#363f48]">
               Mapa del Circuito: {circuito.nombre_barrio}
             </h3>
-            <span className="text-[11px] text-slate-500">
+            <span className="text-[11px] text-[#52606d]">
               Actualizacion en vivo via WhatsApp
             </span>
           </div>

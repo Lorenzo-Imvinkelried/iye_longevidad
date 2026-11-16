@@ -35,56 +35,72 @@ export default function HeaderInstitucional({
   const tabs: { id: TabId; label: string; badge?: string; isAlert?: boolean }[] = [
     {
       id: "tab1_monitor",
-      label: "1. Mapa y Monitoreo",
+      label: "Mapa y Monitoreo",
       badge: alertasCount > 0 ? `${alertasCount} alerta` : undefined,
       isAlert: alertasCount > 0,
     },
     {
       id: "tab2_club",
-      label: "2. Recepcion en el Club",
+      label: "Recepcion en el Club",
       badge: `${validadosCount}/${totalAdultos}`,
     },
     {
       id: "tab3_confianza",
-      label: "3. Padrinos y Familiares",
-      badge: solicitudesCount > 0 ? `${solicitudesCount} pendiente` : undefined,
+      label: "Padrinos y Familiares",
+      badge: solicitudesCount > 0 ? `${solicitudesCount}` : undefined,
     },
     {
       id: "tab4_impacto",
-      label: "4. Impacto Sancor",
+      label: "Impacto Sancor",
     },
   ];
 
   return (
-    <header className="bg-[#003b6f] text-white border-b border-slate-200 sticky top-0 z-30">
-      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-2 flex flex-wrap items-center justify-between gap-2">
-        <div className="min-w-0">
-          <div className="text-[10px] sm:text-[11px] font-semibold uppercase tracking-wider text-sky-200 truncate">
-            Sancor Seguros / Sancor Salud • {nombreClub}
-          </div>
-          <h1 className="text-sm sm:text-base font-bold tracking-tight truncate">
+    <header className="bg-white border-b border-[#eaeced] sticky top-0 z-30 shadow-xs">
+      {/* Franja superior institucional estilo Sancor Seguros */}
+      <div className="bg-[#a70355] text-white text-[11px] font-medium">
+        <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-1 flex items-center justify-between gap-2">
+          <span className="truncate">
+            Programa de Longevidad Activa • {nombreClub}
+          </span>
+          <span className="hidden sm:inline text-pink-100 shrink-0">
+            Sancor Seguros • Sancor Salud
+          </span>
+        </div>
+      </div>
+
+      {/* Navbar principal blanco con logo oficial Sancor Seguros */}
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-2.5 flex flex-wrap items-center justify-between gap-2.5">
+        <div className="flex items-center gap-3 min-w-0">
+          <img
+            src="/sancor-logo.svg"
+            alt="Sancor Seguros"
+            className="h-7 sm:h-8 w-auto shrink-0"
+          />
+          <span className="hidden sm:inline-block h-5 w-px bg-[#eaeced]" />
+          <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
             Panel de Coordinacion Barrial
           </h1>
         </div>
 
-        <div className="flex items-center gap-1.5 sm:gap-2 shrink-0">
+        <div className="flex items-center gap-2 shrink-0">
           <button
             onClick={onResetDemo}
             disabled={loadingReset}
-            className="bg-white/10 hover:bg-white/20 text-white text-[11px] sm:text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5"
+            className="rounded-full border border-[#c4c9cd] text-[#52606d] hover:border-[#0a4494] hover:text-[#0a4494] bg-white text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingReset ? "animate-spin" : ""}`} />
-            <span className="hidden xs:inline sm:inline">Reiniciar demo</span>
+            <span className="hidden sm:inline">Reiniciar demo</span>
             <span className="sm:hidden">Reiniciar</span>
           </button>
 
           <button
             onClick={onToggleSim}
             title="Abrir o cerrar Simulador de WhatsApp"
-            className={`text-[11px] sm:text-xs font-medium px-2.5 py-1.5 rounded-lg transition flex items-center gap-1.5 border ${
+            className={`rounded-full text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 transition flex items-center gap-1.5 border ${
               simulatorOpen
-                ? "bg-emerald-600 border-emerald-500 text-white"
-                : "bg-white/10 hover:bg-white/20 border-white/15 text-sky-100"
+                ? "bg-[#a70355] border-[#a70355] text-white"
+                : "border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white bg-white"
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
@@ -93,26 +109,29 @@ export default function HeaderInstitucional({
         </div>
       </div>
 
-      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-white/10">
+      {/* Navegacion horizontal por pestanas */}
+      <div className="max-w-[1600px] mx-auto px-3 sm:px-5 flex items-center gap-1 overflow-x-auto no-scrollbar border-t border-[#eaeced] bg-[#fdf9fb]">
         {tabs.map((t) => {
           const active = activeTab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => onSelectTab(t.id)}
-              className={`px-3 sm:px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
+              className={`px-3.5 sm:px-4 py-2 text-xs font-semibold transition flex items-center gap-1.5 whitespace-nowrap border-b-2 ${
                 active
-                  ? "border-white text-white bg-white/10"
-                  : "border-transparent text-sky-100/80 hover:text-white hover:bg-white/5"
+                  ? "border-[#a70355] text-[#a70355] bg-white"
+                  : "border-transparent text-[#52606d] hover:text-[#0a4494]"
               }`}
             >
               <span>{t.label}</span>
               {t.badge && (
                 <span
-                  className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${
+                  className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
                     t.isAlert
-                      ? "bg-red-600 text-white"
-                      : "bg-white/20 text-white"
+                      ? "bg-[#bf2020] text-white"
+                      : active
+                      ? "bg-[#faf0f5] text-[#a70355]"
+                      : "bg-[#eaeced] text-[#38414a]"
                   }`}
                 >
                   {t.badge}

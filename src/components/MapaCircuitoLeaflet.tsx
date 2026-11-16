@@ -67,7 +67,7 @@ export default function MapaCircuitoLeaflet({
   ).length;
 
   return (
-    <div className="relative w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-215px)] lg:min-h-[380px] lg:max-h-[700px] rounded-xl overflow-hidden border border-slate-200 bg-slate-100">
+    <div className="relative w-full h-[320px] sm:h-[380px] lg:h-[calc(100vh-225px)] lg:min-h-[380px] lg:max-h-[700px] rounded-xl overflow-hidden border border-[#eaeced] bg-[#f6f6f7]">
       <MapContainer
         center={center}
         zoom={16}

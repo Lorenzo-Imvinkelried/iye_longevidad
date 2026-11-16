@@ -30,7 +30,7 @@ export default function ModalLectorQr({
       <div className="bg-white rounded-xl max-w-md w-full p-5 shadow-xl border border-slate-200 space-y-4">
         <div className="flex items-center justify-between border-b border-slate-100 pb-3">
           <div className="flex items-center gap-2">
-            <QrCode className="w-5 h-5 text-[#004b87]" />
+            <QrCode className="w-5 h-5 text-[#a70355]" />
             <h3 className="font-bold text-sm text-slate-900">
               Lector QR de Recepcion en el Club
             </h3>
@@ -67,7 +67,7 @@ export default function ModalLectorQr({
                     {jornada.monto_reintegro_asistencia.toLocaleString("es-AR")}
                   </div>
                 </div>
-                <span className="text-xs font-bold text-[#004b87]">
+                <span className="text-xs font-bold text-[#0a4494]">
                   {yaValidado ? "Ya acreditado" : "Validar QR"}
                 </span>
               </button>
