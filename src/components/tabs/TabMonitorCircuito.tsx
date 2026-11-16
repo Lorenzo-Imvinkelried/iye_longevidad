@@ -11,10 +11,13 @@ import EditorRutaPanel, {
 } from "@/components/mapa/EditorRutaPanel";
 import {
   AlertTriangle,
+  ChevronDown,
   MapPin,
   Pencil,
   PhoneCall,
   UserPlus,
+  Users,
+  X,
 } from "lucide-react";
 
 const MapaCircuitoLeaflet = dynamic(
@@ -60,6 +63,7 @@ export default function TabMonitorCircuito({
   const routeActionRef = useRef<boolean>(false);
 
   const [isEditingRoute, setIsEditingRoute] = useState(false);
+  const [listaAbuelosOpen, setListaAbuelosOpen] = useState(false);
   const [clickTool, setClickTool] = useState<"via" | "parada">("via");
   const [draftNodes, setDraftNodes] = useState<EditableRouteNode[]>([]);
   const [draftPolyline, setDraftPolyline] = useState<[number, number][]>([]);
@@ -70,10 +74,11 @@ export default function TabMonitorCircuito({
 
   useEffect(() => {
     setIsEditingRoute(false);
+    setListaAbuelosOpen(false);
     setDraftNodes([]);
     setDraftPolyline([]);
     setDistanceMeters(undefined);
-  }, [circuito.id]);
+  }, [circuito.id, jornada.id]);
 
   const recomputeStreetRoute = async (nodes: EditableRouteNode[]) => {
     const waypoints: [number, number][] = [
@@ -302,17 +307,20 @@ export default function TabMonitorCircuito({
     <div className="flex-1 min-h-0 flex flex-col gap-2">
       {/* Barra de control compacta estilo Sancor con selector de Evento / Lugar */}
       <div className="bg-white rounded-xl px-3 py-1.5 border border-[#eaeced] flex flex-col lg:flex-row lg:items-center justify-between gap-2 shadow-xs shrink-0">
-        <div className="min-w-0 flex flex-col sm:flex-row sm:items-center gap-2.5">
-          <div className="flex items-center gap-1.5 bg-[#f6f6f7] border border-[#eaeced] rounded-lg px-2.5 py-1.5">
+        <div className="flex-1 min-w-0 flex flex-wrap lg:flex-nowrap items-center gap-2">
+          <div className="flex items-center gap-1.5 bg-[#f6f6f7] border border-[#eaeced] rounded-lg px-2.5 py-1 min-w-0 w-full sm:w-auto sm:max-w-[300px] xl:max-w-[340px] shrink-0 overflow-hidden">
             <MapPin className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
-            <label htmlFor="selector-evento-activo" className="text-[11px] font-bold text-[#363f48] shrink-0">
+            <label
+              htmlFor="selector-evento-activo"
+              className="text-[11px] font-bold text-[#363f48] shrink-0 whitespace-nowrap"
+            >
               Evento / Lugar:
             </label>
             <select
               id="selector-evento-activo"
               value={jornada.id}
               onChange={(e) => onSelectEvento(e.target.value)}
-              className="bg-transparent text-xs font-bold text-[#0a4494] focus:outline-hidden max-w-[260px] sm:max-w-[340px] truncate cursor-pointer"
+              className="flex-1 min-w-0 w-full bg-transparent text-xs font-bold text-[#0a4494] focus:outline-hidden truncate cursor-pointer"
             >
               {listaEventos.map((j) => {
                 const c =
@@ -327,22 +335,35 @@ export default function TabMonitorCircuito({
             </select>
           </div>
 
-          <div className="min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              {jornada.estado === "suspendida_emergencia" ? (
-                <span className="text-[11px] font-bold text-[#bf2020] bg-[#f2d2d2]/40 px-2.5 py-0.5 rounded-full border border-[#e5a6a6]">
-                  Suspendida{jornada.motivo_suspension ? `: ${jornada.motivo_suspension.slice(0, 42)}` : ""}
-                </span>
-              ) : (
-                <span className="text-[11px] font-bold text-[#168003] bg-[#d0e6cd]/40 px-2.5 py-0.5 rounded-full border border-[#a2cc9a]">
-                  Activa ({adultosActivos.length} abuelos en lista)
-                </span>
-              )}
-              <span className="text-[11px] text-[#52606d] truncate">
-                {jornada.actividad_cierre} • {jornada.fecha} {jornada.hora_inicio_caminata} hs
+          {jornada.estado === "suspendida_emergencia" ? (
+            <button
+              type="button"
+              onClick={() => setListaAbuelosOpen(true)}
+              title="Ver lista de abuelos en este evento"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#bf2020] bg-[#f2d2d2]/40 hover:bg-[#f2d2d2]/70 px-2.5 py-1 rounded-full border border-[#e5a6a6] whitespace-nowrap transition cursor-pointer"
+            >
+              <span>
+                Suspendida ({adultosActivos.length} abuelos)
               </span>
-            </div>
-          </div>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setListaAbuelosOpen(true)}
+              title="Ver lista de abuelos en este evento"
+              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#168003] bg-[#d0e6cd]/40 hover:bg-[#d0e6cd]/75 px-2.5 py-1 rounded-full border border-[#a2cc9a] whitespace-nowrap transition cursor-pointer"
+            >
+              <span>
+                Activa ({adultosActivos.length} {adultosActivos.length === 1 ? "abuelo" : "abuelos"} en lista)
+              </span>
+              <ChevronDown className="w-3 h-3" />
+            </button>
+          )}
+
+          <span className="hidden xl:block text-[11px] text-[#52606d] truncate min-w-0">
+            {jornada.actividad_cierre} • {jornada.fecha} {jornada.hora_inicio_caminata} hs
+          </span>
         </div>
 
         <div className="flex flex-wrap items-center gap-2 shrink-0">
@@ -711,6 +732,158 @@ export default function TabMonitorCircuito({
           </div>
         </div>
       </div>
+
+      {listaAbuelosOpen && (
+        <div
+          className="fixed inset-0 z-[700] bg-slate-900/55 flex items-center justify-center p-4"
+          onClick={() => setListaAbuelosOpen(false)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-2xl w-full p-5 shadow-2xl border border-[#eaeced] flex flex-col gap-3 max-h-[85vh]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-[#eaeced] pb-3 shrink-0">
+              <div className="flex items-center gap-2 min-w-0">
+                <Users className="w-5 h-5 text-[#a70355] shrink-0" />
+                <div className="min-w-0">
+                  <div className="text-[10px] font-bold uppercase text-[#a70355]">
+                    {circuito.nombre_club} • {jornada.fecha} {jornada.hora_inicio_caminata} hs
+                  </div>
+                  <h3 className="font-bold text-sm text-[#363f48] truncate">
+                    Lista de abuelos en este evento ({adultosActivos.length})
+                  </h3>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setListaAbuelosOpen(false)}
+                className="text-[#52606d] hover:text-[#363f48] p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {adultosActivos.length === 0 ? (
+              <div className="py-8 text-center text-xs text-[#52606d]">
+                Todavia no hay abuelos enlistados en este evento.
+              </div>
+            ) : (
+              <div className="overflow-y-auto divide-y divide-[#eaeced] pr-1">
+                {adultosActivos.map((ad) => {
+                  const asis = asistenciasEvento.find(
+                    (a) => a.participante_id === ad.id
+                  );
+                  const padrino = participantes.find(
+                    (p) =>
+                      p.id ===
+                      (asis?.padrino_asignado_id || ad.padrino_preferido_id)
+                  );
+                  const parada = asis?.parada_esquina_id
+                    ? circuito.paradas_seguras.find(
+                        (ps) => ps.id === asis.parada_esquina_id
+                      )
+                    : undefined;
+
+                  let estadoTexto = "Sin respuesta aun";
+                  let estadoBadgeClass =
+                    "bg-[#f6f6f7] text-[#52606d] border-[#eaeced]";
+
+                  if (asis?.modalidad_elegida === "nivel_1_puerta") {
+                    estadoTexto = `Puerta a puerta • Busca: ${
+                      padrino?.nombre || "Padrino asignado"
+                    }`;
+                    estadoBadgeClass =
+                      asis.estado_padrino === "confirmado"
+                        ? "bg-[#d0e6cd]/45 text-[#168003] border-[#a2cc9a]"
+                        : asis.estado_padrino === "rechazado_buscando_reemplazo"
+                        ? "bg-red-50 text-red-700 border-red-200"
+                        : "bg-amber-50 text-amber-800 border-amber-200";
+                  } else if (asis?.modalidad_elegida === "nivel_2_esquina") {
+                    estadoTexto = `Parada segura • ${
+                      parada?.nombre_esquina || "Esquina elegida"
+                    } (${parada?.horario_paso || jornada.hora_inicio_caminata})`;
+                    estadoBadgeClass =
+                      "bg-[#d0e6cd]/45 text-[#168003] border-[#a2cc9a]";
+                  } else if (asis?.modalidad_elegida === "nivel_3_directo") {
+                    estadoTexto = "Directo al club";
+                    estadoBadgeClass =
+                      "bg-[#cedaea]/45 text-[#0a4494] border-[#b7c9e2]";
+                  } else if (asis?.modalidad_elegida === "no_asiste") {
+                    estadoTexto = "No asiste hoy";
+                    estadoBadgeClass =
+                      "bg-slate-100 text-slate-500 border-slate-200";
+                  }
+
+                  return (
+                    <div
+                      key={ad.id}
+                      className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                    >
+                      <div className="min-w-0 space-y-0.5">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="font-bold text-[#363f48]">
+                            {ad.nombre}
+                          </span>
+                          <span className="text-[11px] text-[#52606d]">
+                            ({ad.edad} anos • DNI {ad.dni})
+                          </span>
+                          {asis?.presente_validado_en_club && (
+                            <span className="text-[10px] font-bold bg-[#d0e6cd]/60 text-[#168003] px-2 py-0.5 rounded-full">
+                              Presente en sede
+                            </span>
+                          )}
+                        </div>
+                        <div className="text-[11px] text-[#52606d] truncate">
+                          {ad.direccion} • Tel: {ad.telefono}
+                        </div>
+                      </div>
+
+                      <div className="flex items-center gap-2 shrink-0">
+                        <span
+                          className={`text-[11px] font-semibold px-2.5 py-0.5 rounded-full border ${estadoBadgeClass}`}
+                        >
+                          {estadoTexto}
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setListaAbuelosOpen(false);
+                            onOpenPhone(ad.id);
+                          }}
+                          className="text-[11px] font-semibold text-[#0a4494] hover:underline whitespace-nowrap"
+                        >
+                          Ver WhatsApp
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between pt-3 border-t border-[#eaeced] shrink-0">
+              <button
+                type="button"
+                onClick={() => {
+                  setListaAbuelosOpen(false);
+                  onOpenFamiliarModal();
+                }}
+                className="border border-[#0a4494] text-[#0a4494] hover:bg-[#0a4494] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+              >
+                <UserPlus className="w-3.5 h-3.5" />
+                <span>+ Sumar Abuelo</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setListaAbuelosOpen(false)}
+                className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
