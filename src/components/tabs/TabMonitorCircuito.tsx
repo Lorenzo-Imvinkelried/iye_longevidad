@@ -18,9 +18,7 @@ import {
   WHATSAPP_BOT_DISPLAY_PHONE,
 } from "@/lib/whatsapp-cloud";
 import { useGlobalLoading } from "@/components/modals/ModalCargando";
-import EditorRutaPanel, {
-  EditableRouteNode,
-} from "@/components/mapa/EditorRutaPanel";
+import type { EditableRouteNode } from "@/components/mapa/EditorRutaPanel";
 import {
   AlertTriangle,
   ArrowLeft,
@@ -37,6 +35,11 @@ import {
   Users,
   X,
 } from "lucide-react";
+
+const EditorRutaPanel = dynamic(
+  () => import("@/components/mapa/EditorRutaPanel"),
+  { ssr: false }
+);
 
 const MapaCircuitoLeaflet = dynamic(
   () => import("@/components/MapaCircuitoLeaflet"),

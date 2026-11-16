@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
+import dynamic from "next/dynamic";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
 import {
   getTutorCircuitos,
@@ -10,20 +11,48 @@ import HeaderInstitucional, { TabId } from "@/components/layout/HeaderInstitucio
 import FooterInstitucional from "@/components/layout/FooterInstitucional";
 import PantallaLoginTutor from "@/components/auth/PantallaLoginTutor";
 import TabMonitorCircuito from "@/components/tabs/TabMonitorCircuito";
-import TabRecepcionClub from "@/components/tabs/TabRecepcionClub";
-import TabCadenaConfianza from "@/components/tabs/TabCadenaConfianza";
-import ModalLectorQr from "@/components/modals/ModalLectorQr";
-import ModalDerivacionFamiliar from "@/components/modals/ModalDerivacionFamiliar";
-import ModalAcreditarPadrino from "@/components/modals/ModalAcreditarPadrino";
-import ModalAcreditarCoordinador from "@/components/modals/ModalAcreditarCoordinador";
-import ModalCrearEventoLugar from "@/components/modals/ModalCrearEventoLugar";
-import ModalSuspenderEvento from "@/components/modals/ModalSuspenderEvento";
 import {
   GlobalLoadingProvider,
   useGlobalLoading,
 } from "@/components/modals/ModalCargando";
-import SimuladorWhatsApp from "@/components/SimuladorWhatsApp";
 import { AlertTriangle, X } from "lucide-react";
+
+const TabRecepcionClub = dynamic(
+  () => import("@/components/tabs/TabRecepcionClub"),
+  { ssr: false }
+);
+const TabCadenaConfianza = dynamic(
+  () => import("@/components/tabs/TabCadenaConfianza"),
+  { ssr: false }
+);
+const ModalLectorQr = dynamic(
+  () => import("@/components/modals/ModalLectorQr"),
+  { ssr: false }
+);
+const ModalDerivacionFamiliar = dynamic(
+  () => import("@/components/modals/ModalDerivacionFamiliar"),
+  { ssr: false }
+);
+const ModalAcreditarPadrino = dynamic(
+  () => import("@/components/modals/ModalAcreditarPadrino"),
+  { ssr: false }
+);
+const ModalAcreditarCoordinador = dynamic(
+  () => import("@/components/modals/ModalAcreditarCoordinador"),
+  { ssr: false }
+);
+const ModalCrearEventoLugar = dynamic(
+  () => import("@/components/modals/ModalCrearEventoLugar"),
+  { ssr: false }
+);
+const ModalSuspenderEvento = dynamic(
+  () => import("@/components/modals/ModalSuspenderEvento"),
+  { ssr: false }
+);
+const SimuladorWhatsApp = dynamic(
+  () => import("@/components/SimuladorWhatsApp"),
+  { ssr: false }
+);
 
 const SESSION_STORAGE_KEY = "sancor_tutor_session_v2";
 
@@ -493,104 +522,116 @@ function DashboardCoordinadorInner({
         </aside>
       )}
 
-      <ModalLectorQr
-        open={qrModalOpen}
-        onClose={() => setQrModalOpen(false)}
-        nombreClub={circuito.nombre_club}
-        jornada={jornada}
-        adultosActivos={adultosActivos}
-        asistencias={asistenciasEvento}
-        onValidarParticipante={async (partId) => {
-          await executeCoordinatorAction("validar_club", {
-            participanteId: partId,
-            presente: true,
-          });
-          setQrModalOpen(false);
-        }}
-      />
+      {qrModalOpen && (
+        <ModalLectorQr
+          open={qrModalOpen}
+          onClose={() => setQrModalOpen(false)}
+          nombreClub={circuito.nombre_club}
+          jornada={jornada}
+          adultosActivos={adultosActivos}
+          asistencias={asistenciasEvento}
+          onValidarParticipante={async (partId) => {
+            await executeCoordinatorAction("validar_club", {
+              participanteId: partId,
+              presente: true,
+            });
+            setQrModalOpen(false);
+          }}
+        />
+      )}
 
-      <ModalDerivacionFamiliar
-        open={familiarModalOpen}
-        onClose={() => setFamiliarModalOpen(false)}
-        nombreClub={circuito.nombre_club}
-        jornada={jornada}
-        jornadas={jornadas || [jornada]}
-        circuitos={circuitos || [circuito]}
-        participantes={participantes}
-        asistencias={asistencias}
-        onVincularExistente={async (adultoId) => {
-          const res = await executeCoordinatorAction("vincular_abuelo_evento", {
-            adultoId,
-            jornadaId: jornada.id,
-          });
-          return { ok: res.ok, error: res.error };
-        }}
-        onSubmit={async (payload) => {
-          const res = await executeCoordinatorAction("crear_solicitud_familiar", {
-            payload,
-            jornadaId: jornada.id,
-          });
-          return { ok: res.ok, error: res.error };
-        }}
-      />
+      {familiarModalOpen && (
+        <ModalDerivacionFamiliar
+          open={familiarModalOpen}
+          onClose={() => setFamiliarModalOpen(false)}
+          nombreClub={circuito.nombre_club}
+          jornada={jornada}
+          jornadas={jornadas || [jornada]}
+          circuitos={circuitos || [circuito]}
+          participantes={participantes}
+          asistencias={asistencias}
+          onVincularExistente={async (adultoId) => {
+            const res = await executeCoordinatorAction("vincular_abuelo_evento", {
+              adultoId,
+              jornadaId: jornada.id,
+            });
+            return { ok: res.ok, error: res.error };
+          }}
+          onSubmit={async (payload) => {
+            const res = await executeCoordinatorAction("crear_solicitud_familiar", {
+              payload,
+              jornadaId: jornada.id,
+            });
+            return { ok: res.ok, error: res.error };
+          }}
+        />
+      )}
 
-      <ModalAcreditarPadrino
-        open={padrinoModalOpen}
-        onClose={() => setPadrinoModalOpen(false)}
-        onSubmit={async (payload) => {
-          const res = await executeCoordinatorAction("acreditar_padrino", {
-            payload,
-          });
-          return { ok: res.ok, error: res.error };
-        }}
-      />
+      {padrinoModalOpen && (
+        <ModalAcreditarPadrino
+          open={padrinoModalOpen}
+          onClose={() => setPadrinoModalOpen(false)}
+          onSubmit={async (payload) => {
+            const res = await executeCoordinatorAction("acreditar_padrino", {
+              payload,
+            });
+            return { ok: res.ok, error: res.error };
+          }}
+        />
+      )}
 
-      <ModalAcreditarCoordinador
-        open={coordinadorModalOpen}
-        onClose={() => setCoordinadorModalOpen(false)}
-        circuitosExistentes={circuitos || [circuito]}
-        onSubmit={async (payload) => {
-          const res = await executeCoordinatorAction("registrar_tutor_lugar", {
-            payload,
-          });
-          return { ok: res.ok, error: res.error };
-        }}
-      />
+      {coordinadorModalOpen && (
+        <ModalAcreditarCoordinador
+          open={coordinadorModalOpen}
+          onClose={() => setCoordinadorModalOpen(false)}
+          circuitosExistentes={circuitos || [circuito]}
+          onSubmit={async (payload) => {
+            const res = await executeCoordinatorAction("registrar_tutor_lugar", {
+              payload,
+            });
+            return { ok: res.ok, error: res.error };
+          }}
+        />
+      )}
 
-      <ModalCrearEventoLugar
-        open={crearEventoModalOpen}
-        onClose={() => setCrearEventoModalOpen(false)}
-        tutorId={tutorActivo?.id || loggedInTutorId}
-        circuitosDelTutor={
-          circuitosDelTutor.length > 0 ? circuitosDelTutor : [circuito]
-        }
-        circuitoActualId={circuito.id}
-        onSubmit={async (payload) => {
-          const res = await executeCoordinatorAction("crear_evento_lugar", {
-            payload,
-          });
-          if (res.ok && res.snapshot) {
-            setSelectedJornadaId(res.snapshot.jornada.id);
-            saveSession(loggedInTutorId, res.snapshot.jornada.id);
+      {crearEventoModalOpen && (
+        <ModalCrearEventoLugar
+          open={crearEventoModalOpen}
+          onClose={() => setCrearEventoModalOpen(false)}
+          tutorId={tutorActivo?.id || loggedInTutorId}
+          circuitosDelTutor={
+            circuitosDelTutor.length > 0 ? circuitosDelTutor : [circuito]
           }
-          return { ok: res.ok, error: res.error };
-        }}
-      />
+          circuitoActualId={circuito.id}
+          onSubmit={async (payload) => {
+            const res = await executeCoordinatorAction("crear_evento_lugar", {
+              payload,
+            });
+            if (res.ok && res.snapshot) {
+              setSelectedJornadaId(res.snapshot.jornada.id);
+              saveSession(loggedInTutorId, res.snapshot.jornada.id);
+            }
+            return { ok: res.ok, error: res.error };
+          }}
+        />
+      )}
 
-      <ModalSuspenderEvento
-        open={suspenderModalOpen}
-        onClose={() => setSuspenderModalOpen(false)}
-        circuito={circuito}
-        jornada={jornada}
-        cantidadAbuelos={adultosActivos.length}
-        loading={loadingAction === "suspender_emergencia"}
-        onConfirm={async (motivo) => {
-          await executeCoordinatorAction("suspender_emergencia", {
-            motivo,
-            jornadaId: jornada.id,
-          });
-        }}
-      />
+      {suspenderModalOpen && (
+        <ModalSuspenderEvento
+          open={suspenderModalOpen}
+          onClose={() => setSuspenderModalOpen(false)}
+          circuito={circuito}
+          jornada={jornada}
+          cantidadAbuelos={adultosActivos.length}
+          loading={loadingAction === "suspender_emergencia"}
+          onConfirm={async (motivo) => {
+            await executeCoordinatorAction("suspender_emergencia", {
+              motivo,
+              jornadaId: jornada.id,
+            });
+          }}
+        />
+      )}
     </div>
   );
 }
