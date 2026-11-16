@@ -452,9 +452,9 @@ export default function TabMonitorCircuito({
         <div className="bg-white border border-red-300 rounded-xl p-4 space-y-3">
           <div className="flex items-center justify-between border-b border-slate-100 pb-2">
             <div>
-              <h3 className="text-sm font-bold text-slate-900">
+              <h2 className="text-sm font-bold text-slate-900">
                 Control de Acuse de Recibo por Suspension
-              </h3>
+              </h2>
               <p className="text-xs text-slate-500">
                 {jornada.motivo_suspension && (
                   <span>
@@ -696,9 +696,9 @@ export default function TabMonitorCircuito({
         {/* Columna derecha: Mapa del circuito */}
         <div className="lg:col-span-8 bg-white rounded-xl p-2.5 border border-[#eaeced] flex flex-col gap-1.5 min-h-0">
           <div className="flex flex-wrap items-center justify-between gap-2 shrink-0">
-            <h3 className="text-xs sm:text-sm font-bold text-[#363f48]">
+            <h2 className="text-xs sm:text-sm font-bold text-[#363f48]">
               Mapa del Circuito: {circuito.nombre_barrio}
-            </h3>
+            </h2>
             <div className="flex items-center gap-2.5">
               <span className="hidden sm:inline text-[11px] text-[#52606d]">
                 Actualizacion en vivo via WhatsApp
@@ -756,6 +756,7 @@ export default function TabMonitorCircuito({
               </div>
               <button
                 type="button"
+                aria-label="Cerrar lista de abuelos"
                 onClick={() => setListaAbuelosOpen(false)}
                 className="text-[#52606d] hover:text-[#363f48] p-1"
               >

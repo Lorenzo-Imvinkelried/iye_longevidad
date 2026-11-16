@@ -100,27 +100,43 @@ interface SessionData {
 
 export default function DashboardCoordinador({
   initialSnapshot,
+  initialTutorId = null,
+  initialJornadaId = null,
 }: {
   initialSnapshot: SystemSnapshot;
+  initialTutorId?: string | null;
+  initialJornadaId?: string | null;
 }) {
   return (
     <GlobalLoadingProvider>
-      <DashboardCoordinadorInner initialSnapshot={initialSnapshot} />
+      <DashboardCoordinadorInner
+        initialSnapshot={initialSnapshot}
+        initialTutorId={initialTutorId}
+        initialJornadaId={initialJornadaId}
+      />
     </GlobalLoadingProvider>
   );
 }
 
 function DashboardCoordinadorInner({
   initialSnapshot,
+  initialTutorId = null,
+  initialJornadaId = null,
 }: {
   initialSnapshot: SystemSnapshot;
+  initialTutorId?: string | null;
+  initialJornadaId?: string | null;
 }) {
   const { startTask } = useGlobalLoading();
   const actionInFlightRef = useRef<boolean>(false);
 
   const [snapshot, setSnapshot] = useState<SystemSnapshot>(initialSnapshot);
-  const [loggedInTutorId, setLoggedInTutorId] = useState<string | null>(null);
-  const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(null);
+  const [loggedInTutorId, setLoggedInTutorId] = useState<string | null>(
+    initialTutorId
+  );
+  const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(
+    initialJornadaId
+  );
   const [loginError, setLoginError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
 
@@ -137,14 +153,22 @@ function DashboardCoordinadorInner({
   const [suspenderModalOpen, setSuspenderModalOpen] = useState<boolean>(false);
 
   const saveSession = (tutorId: string, jornadaId?: string | null) => {
+    const payload: SessionData = {
+      tutorId,
+      jornadaId: jornadaId || undefined,
+    };
+    const encoded = JSON.stringify(payload);
     try {
-      const payload: SessionData = {
-        tutorId,
-        jornadaId: jornadaId || undefined,
-      };
-      window.sessionStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(payload));
+      window.sessionStorage.setItem(SESSION_STORAGE_KEY, encoded);
     } catch {
       // Ignore storage access errors
+    }
+    try {
+      document.cookie = `${SESSION_STORAGE_KEY}=${encodeURIComponent(
+        encoded
+      )}; path=/; max-age=604800; SameSite=Lax`;
+    } catch {
+      // Ignore cookie errors
     }
   };
 
@@ -153,15 +177,20 @@ function DashboardCoordinadorInner({
       const savedRaw = window.sessionStorage.getItem(SESSION_STORAGE_KEY);
       if (savedRaw) {
         const parsed = JSON.parse(savedRaw) as SessionData;
-        if (parsed?.tutorId) {
+        if (parsed?.tutorId && !initialTutorId) {
           setLoggedInTutorId(parsed.tutorId);
           setSelectedJornadaId(parsed.jornadaId || null);
+          saveSession(parsed.tutorId, parsed.jornadaId || null);
+          return;
         }
+      }
+      if (initialTutorId) {
+        saveSession(initialTutorId, initialJornadaId);
       }
     } catch {
       // Ignore malformed sessionStorage
     }
-  }, []);
+  }, [initialTutorId, initialJornadaId]);
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -275,6 +304,11 @@ function DashboardCoordinadorInner({
     setActionError(null);
     try {
       window.sessionStorage.removeItem(SESSION_STORAGE_KEY);
+    } catch {
+      // Ignore
+    }
+    try {
+      document.cookie = `${SESSION_STORAGE_KEY}=; path=/; max-age=0; SameSite=Lax`;
     } catch {
       // Ignore
     }

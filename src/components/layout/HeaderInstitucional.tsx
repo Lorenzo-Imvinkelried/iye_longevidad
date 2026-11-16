@@ -90,6 +90,8 @@ export default function HeaderInstitucional({
           <img
             src="/sancor-logo.svg"
             alt="Sancor Seguros"
+            width={110}
+            height={28}
             className="h-6 sm:h-7 w-auto shrink-0"
           />
           <span className="hidden sm:inline-block h-5 w-px bg-[#eaeced]" />
@@ -115,6 +117,8 @@ export default function HeaderInstitucional({
           <button
             onClick={onResetDemo}
             disabled={loadingReset}
+            aria-label="Reiniciar configuracion inicial"
+            title="Reiniciar configuracion inicial"
             className="rounded-full border border-[#c4c9cd] text-[#52606d] hover:border-[#0a4494] hover:text-[#0a4494] bg-white text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loadingReset ? "animate-spin" : ""}`} />

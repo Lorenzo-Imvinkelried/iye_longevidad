@@ -28,6 +28,23 @@ export default function RootLayout({
 }) {
   return (
     <html lang="es" className={montserrat.className}>
+      <head>
+        <link
+          rel="preconnect"
+          href="https://a.tile.openstreetmap.org"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://b.tile.openstreetmap.org"
+          crossOrigin="anonymous"
+        />
+        <link
+          rel="preconnect"
+          href="https://c.tile.openstreetmap.org"
+          crossOrigin="anonymous"
+        />
+      </head>
       <body className="antialiased bg-[#f6f6f7] text-[#363f48] selection:bg-[#a70355] selection:text-white">
         {children}
       </body>

@@ -73,6 +73,8 @@ export default function PantallaLoginTutor({
             <img
               src="/sancor-logo.svg"
               alt="Sancor Seguros"
+              width={126}
+              height={32}
               className="h-8 w-auto"
             />
             <span className="h-5 w-px bg-[#eaeced]" />
