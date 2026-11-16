@@ -29,45 +29,56 @@ function buildMetaPayload(
 ): Record<string, unknown> {
   return activeButtons.length > 0
     ? {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: cleanPhone,
-        type: "interactive",
-        interactive: {
-          type: "button",
-          body: {
-            text: bodyText,
-          },
-          footer: {
-            text: "Sancor Seguros / Sancor Salud",
-          },
-          action: {
-            buttons: activeButtons.map((btn) => ({
-              type: "reply",
-              reply: {
-                id: btn.id,
-                title: btn.title.slice(0, 20),
-              },
-            })),
-          },
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: cleanPhone,
+      type: "interactive",
+      interactive: {
+        type: "button",
+        body: {
+          text: bodyText,
         },
-      }
+        footer: {
+          text: "Sancor Seguros / Sancor Salud",
+        },
+        action: {
+          buttons: activeButtons.map((btn) => ({
+            type: "reply",
+            reply: {
+              id: btn.id,
+              title: btn.title.slice(0, 20),
+            },
+          })),
+        },
+      },
+    }
     : {
-        messaging_product: "whatsapp",
-        recipient_type: "individual",
-        to: cleanPhone,
-        type: "text",
-        text: {
-          preview_url: false,
-          body: bodyText,
-        },
-      };
+      messaging_product: "whatsapp",
+      recipient_type: "individual",
+      to: cleanPhone,
+      type: "text",
+      text: {
+        preview_url: false,
+        body: bodyText,
+      },
+    };
 }
 
 function buildArgentinaPhoneCandidates(cleanPhone: string): string[] {
   const candidates = new Set<string>([cleanPhone]);
+  let rest = "";
   if (cleanPhone.startsWith("549") && cleanPhone.length === 13) {
-    const rest = cleanPhone.slice(3);
+    rest = cleanPhone.slice(3);
+  } else if (
+    cleanPhone.startsWith("54") &&
+    !cleanPhone.startsWith("549") &&
+    cleanPhone.length === 12
+  ) {
+    rest = cleanPhone.slice(2);
+  }
+
+  if (rest.length === 10) {
+    candidates.add(`549${rest}`);
     candidates.add(`54${rest}`);
     candidates.add(`54${rest.slice(0, 4)}15${rest.slice(4)}`);
     candidates.add(`54${rest.slice(0, 3)}15${rest.slice(3)}`);
@@ -77,6 +88,7 @@ function buildArgentinaPhoneCandidates(cleanPhone: string): string[] {
   } else if (cleanPhone.startsWith("54") && !cleanPhone.startsWith("549")) {
     candidates.add(`549${cleanPhone.slice(2)}`);
   }
+
   return Array.from(candidates);
 }
 
@@ -136,9 +148,8 @@ export async function sendWhatsAppCloudMessage(
           error?: { message?: string; code?: number };
         };
         if (parsedJson?.error?.message) {
-          parsedMessage = `${parsedJson.error.message}${
-            parsedJson.error.code ? ` (code ${parsedJson.error.code})` : ""
-          }`;
+          parsedMessage = `${parsedJson.error.message}${parsedJson.error.code ? ` (code ${parsedJson.error.code})` : ""
+            }`;
         }
       } catch {
         // Use raw text

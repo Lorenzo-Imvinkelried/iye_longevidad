@@ -206,7 +206,13 @@ export async function dispararConvocatoriaJornada(
     warning
       ? `${sentCount} abuelo(s) cargados en simulador; Meta API respondio: ${cloudErrors[0]}`
       : `Mensajes 1 a 1 enviados a ${sentCount} de ${adultosActivos.length} abuelo(s) de ${targetCircuito.nombre_club}.${
-          cloudConfigured ? ` Despachados por WhatsApp Cloud API: ${cloudSentCount}.` : ""
+          cloudConfigured
+            ? ` Despachados por WhatsApp Cloud API: ${cloudSentCount}.${
+                cloudErrors.length > 0
+                  ? ` Rechazos Meta: ${cloudErrors.slice(0, 2).join(" | ")}`
+                  : ""
+              }`
+            : ""
         }`,
     warning ? "warning" : "info"
   );
