@@ -638,24 +638,31 @@ export async function suspenderJornadaPorEmergencia(
     state,
     jornadaId
   );
+  const mensajePersonalizado =
+    (motivo || "").trim() || "Hoy suspendemos la actividad.";
+
   targetJornada.estado = "suspendida_emergencia";
-  targetJornada.motivo_suspension =
-    motivo || "Condiciones climaticas adversas y riesgo de resbalones en veredas";
+  targetJornada.motivo_suspension = mensajePersonalizado;
   targetJornada.updated_at = new Date().toISOString();
   syncActiveJornadaIntoArray(state);
 
-  const idsDelEvento = new Set(
-    state.asistencias
-      .filter((a) => a.jornada_id === targetJornada.id)
-      .map((a) => a.participante_id)
+  const asistenciasDelEvento = state.asistencias.filter(
+    (a) => a.jornada_id === targetJornada.id
+  );
+  const idsAdultosEvento = new Set(
+    asistenciasDelEvento.map((a) => a.participante_id)
+  );
+  const idsPadrinosEvento = new Set(
+    asistenciasDelEvento
+      .filter((a) => a.modalidad_elegida === "nivel_1_puerta" && a.padrino_asignado_id)
+      .map((a) => a.padrino_asignado_id as string)
   );
 
   const participantesNotificables = state.participantes.filter(
     (p) =>
       p.estado_alta === "activo" &&
-      ((p.rol === "adulto_mayor" &&
-        (idsDelEvento.size === 0 || idsDelEvento.has(p.id))) ||
-        p.rol === "padrino")
+      ((p.rol === "adulto_mayor" && idsAdultosEvento.has(p.id)) ||
+        (p.rol === "padrino" && idsPadrinosEvento.has(p.id)))
   );
 
   for (const part of participantesNotificables) {
@@ -671,13 +678,13 @@ export async function suspenderJornadaPorEmergencia(
     await appendBotMessage(
       state,
       part,
-      `*AVISO IMPORTANTE (${targetCircuito.nombre_club}):* ${primerNombre}, por condiciones climaticas y para cuidar tu seguridad en las veredas, *SE SUSPENDE el encuentro de hoy*. Quedate en casa. Por favor toca el boton de abajo para que sepamos que leiste este aviso.`,
+      `*AVISO DE SUSPENSION — ${targetCircuito.nombre_club}:* Hola ${primerNombre}, te avisamos que se *SUSPENDE* la actividad *"${targetJornada.actividad_cierre}"* del *${targetJornada.fecha}* a las *${targetJornada.hora_inicio_caminata} hs*.\n\n*Mensaje del organizador:* ${mensajePersonalizado}\n\nPor favor toca el boton de abajo para confirmar que leiste este aviso.`,
       {
         esAlertaPrioritaria: true,
         buttons: [
           {
             id: `btn_acuse_suspension:${targetJornada.id}`,
-            title: "Me quedo en casa",
+            title: "Entendido, recibido",
             variant: "success",
           },
         ],
@@ -688,8 +695,8 @@ export async function suspenderJornadaPorEmergencia(
   addLog(
     state,
     targetCircuito.nombre_club,
-    "Caso 4A: Jornada Suspendida por Clima",
-    `Se enviaron alertas prioritarias para ${targetCircuito.nombre_club} con requerimiento de acuse.`,
+    "Actividad Suspendida y Avisos Enviados",
+    `Se suspendio "${targetJornada.actividad_cierre}" (${targetJornada.hora_inicio_caminata} hs): "${mensajePersonalizado}". Notificados: ${participantesNotificables.length}.`,
     "danger"
   );
 

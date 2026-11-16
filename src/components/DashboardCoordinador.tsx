@@ -17,6 +17,7 @@ import ModalDerivacionFamiliar from "@/components/modals/ModalDerivacionFamiliar
 import ModalAcreditarPadrino from "@/components/modals/ModalAcreditarPadrino";
 import ModalAcreditarCoordinador from "@/components/modals/ModalAcreditarCoordinador";
 import ModalCrearEventoLugar from "@/components/modals/ModalCrearEventoLugar";
+import ModalSuspenderEvento from "@/components/modals/ModalSuspenderEvento";
 import SimuladorWhatsApp from "@/components/SimuladorWhatsApp";
 import { AlertTriangle, X } from "lucide-react";
 
@@ -48,6 +49,7 @@ export default function DashboardCoordinador({
   const [padrinoModalOpen, setPadrinoModalOpen] = useState<boolean>(false);
   const [coordinadorModalOpen, setCoordinadorModalOpen] = useState<boolean>(false);
   const [crearEventoModalOpen, setCrearEventoModalOpen] = useState<boolean>(false);
+  const [suspenderModalOpen, setSuspenderModalOpen] = useState<boolean>(false);
 
   const saveSession = (tutorId: string, jornadaId?: string | null) => {
     try {
@@ -291,6 +293,7 @@ export default function DashboardCoordinador({
               onSelectEvento={handleSelectEventoDelTutor}
               onOpenPhone={handleOpenPhoneInSimulator}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
+              onOpenSuspenderModal={() => setSuspenderModalOpen(true)}
             />
           )}
 
@@ -413,6 +416,21 @@ export default function DashboardCoordinador({
             setSelectedJornadaId(res.snapshot.jornada.id);
             saveSession(loggedInTutorId, res.snapshot.jornada.id);
           }
+        }}
+      />
+
+      <ModalSuspenderEvento
+        open={suspenderModalOpen}
+        onClose={() => setSuspenderModalOpen(false)}
+        circuito={circuito}
+        jornada={jornada}
+        cantidadAbuelos={adultosActivos.length}
+        loading={loadingAction === "suspender_emergencia"}
+        onConfirm={async (motivo) => {
+          await executeCoordinatorAction("suspender_emergencia", {
+            motivo,
+            jornadaId: jornada.id,
+          });
         }}
       />
     </div>

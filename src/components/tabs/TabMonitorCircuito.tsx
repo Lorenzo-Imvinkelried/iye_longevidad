@@ -26,6 +26,7 @@ interface TabMonitorProps {
   onSelectEvento: (jornadaId: string) => void;
   onOpenPhone: (participanteId: string) => void;
   onOpenFamiliarModal: () => void;
+  onOpenSuspenderModal: () => void;
 }
 
 export default function TabMonitorCircuito({
@@ -36,6 +37,7 @@ export default function TabMonitorCircuito({
   onSelectEvento,
   onOpenPhone,
   onOpenFamiliarModal,
+  onOpenSuspenderModal,
 }: TabMonitorProps) {
   const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
     snapshot;
@@ -108,7 +110,7 @@ export default function TabMonitorCircuito({
             <div className="flex items-center gap-2 flex-wrap">
               {jornada.estado === "suspendida_emergencia" ? (
                 <span className="text-[11px] font-bold text-[#bf2020] bg-[#f2d2d2]/40 px-2.5 py-0.5 rounded-full border border-[#e5a6a6]">
-                  Suspendida por clima
+                  Suspendida{jornada.motivo_suspension ? `: ${jornada.motivo_suspension.slice(0, 42)}` : ""}
                 </span>
               ) : (
                 <span className="text-[11px] font-bold text-[#168003] bg-[#d0e6cd]/40 px-2.5 py-0.5 rounded-full border border-[#a2cc9a]">
@@ -149,15 +151,11 @@ export default function TabMonitorCircuito({
           </button>
 
           <button
-            onClick={() =>
-              onExecuteAction("suspender_emergencia", {
-                motivo: "Condiciones climaticas adversas y veredas resbaladizas",
-              })
-            }
+            onClick={onOpenSuspenderModal}
             disabled={loadingAction === "suspender_emergencia"}
-            className="bg-[#bf2020] hover:bg-[#991919] text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition"
+            className="bg-[#bf2020] hover:bg-[#991919] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
           >
-            Suspender por lluvia
+            Suspender
           </button>
         </div>
       </div>
@@ -223,12 +221,17 @@ export default function TabMonitorCircuito({
                 Control de Acuse de Recibo por Suspension
               </h3>
               <p className="text-xs text-slate-500">
+                {jornada.motivo_suspension && (
+                  <span>
+                    Motivo enviado: <strong className="text-slate-700">&ldquo;{jornada.motivo_suspension}&rdquo;</strong> •{" "}
+                  </span>
+                )}
                 Quienes figuran sin acuse deben ser llamados por telefono antes de las{" "}
                 {jornada.hora_inicio_caminata} hs.
               </p>
             </div>
             <div className="text-xs font-semibold text-slate-700">
-              Confirmados en casa:{" "}
+              Confirmados:{" "}
               {asistenciasEvento.filter((a) => a.acuse_suspension_leido).length}/
               {adultosActivos.length}
             </div>
@@ -260,7 +263,7 @@ export default function TabMonitorCircuito({
                           : "bg-red-100 text-red-800"
                       }`}
                     >
-                      {leido ? "Acuse recibido (En casa)" : "SIN ACUSE — LLAMAR"}
+                      {leido ? "Aviso leido (Confirmado)" : "SIN ACUSE — LLAMAR"}
                     </span>
                   </div>
 

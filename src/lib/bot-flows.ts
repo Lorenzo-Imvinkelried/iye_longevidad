@@ -582,14 +582,14 @@ export async function procesarEventoWebhookWhatsApp(params: {
     await appendBotMessage(
       state,
       actor,
-      `Gracias por confirmar, ${primerNombre}. Ya registramos que leiste el aviso de ${targetCircuito.nombre_club} y te quedas en casa. Nos vemos en la proxima salida.`
+      `Gracias por confirmar, ${primerNombre}. Ya registramos que recibiste el aviso de suspension de ${targetCircuito.nombre_club} (${targetJornada.actividad_cierre}). Nos vemos en la proxima salida.`
     );
 
     addLog(
       state,
       actor.nombre,
-      "Caso 4A: Acuse de Suspension Recibido",
-      `${actor.nombre} confirmo lectura de suspension (${targetCircuito.nombre_club}).`,
+      "Acuse de Suspension Recibido",
+      `${actor.nombre} confirmo lectura del aviso de suspension (${targetCircuito.nombre_club}).`,
       "success"
     );
   }
