@@ -43,7 +43,7 @@ export async function sendWhatsAppCloudMessage(
               text: bodyText,
             },
             footer: {
-              text: "Nos encontramos al paso • Sancor Seguros / Salud",
+              text: "Sancor Seguros / Sancor Salud",
             },
             action: {
               buttons: activeButtons.map((btn) => ({

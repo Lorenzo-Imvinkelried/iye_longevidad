@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title:
-    "Nos encontramos al paso — Red Comunitaria de Movimiento Activo y Pertenencia Barrial | Sancor Seguros / Sancor Salud",
+    "Panel de Coordinacion Barrial | Sancor Seguros / Sancor Salud",
   description:
     "Prototipo Funcional de Alta Fidelidad (MVP de Servicio) para Longevidad Activa (Silver Economy) — UTN Facultad Regional Santa Fe (Equipo 5).",
 };

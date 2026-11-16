@@ -1,5 +1,5 @@
 -- =====================================================================================
--- PROYECTO: "NOS ENCONTRAMOS AL PASO" — Red Comunitaria de Movimiento Activo y Pertenencia Barrial
+-- PROYECTO: Red Comunitaria de Movimiento Activo y Pertenencia Barrial
 -- ALIANZA CORPORATIVA: Sancor Seguros / Sancor Salud (Silver Economy & Longevidad Activa)
 -- UBICACIÓN PILOTO: Barrio Candioti, Santa Fe Capital, Argentina
 -- MOTOR: Supabase (PostgreSQL 15+ con Supabase Realtime habilitado)
@@ -98,8 +98,13 @@ CREATE TABLE asistencias (
 );
 
 -- =====================================================================================
--- HABILITAR SUPABASE REALTIME EN TABLAS CRÍTICAS
+-- HABILITAR SUPABASE REALTIME Y PERMISOS DE ACCESO PARA EL PROTOTIPO
 -- =====================================================================================
+ALTER TABLE circuitos_barriales DISABLE ROW LEVEL SECURITY;
+ALTER TABLE participantes DISABLE ROW LEVEL SECURITY;
+ALTER TABLE jornadas DISABLE ROW LEVEL SECURITY;
+ALTER TABLE asistencias DISABLE ROW LEVEL SECURITY;
+
 ALTER PUBLICATION supabase_realtime ADD TABLE jornadas;
 ALTER PUBLICATION supabase_realtime ADD TABLE asistencias;
 ALTER PUBLICATION supabase_realtime ADD TABLE participantes;

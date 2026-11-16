@@ -61,7 +61,7 @@ export default function HeaderInstitucional({
             Sancor Seguros / Sancor Salud • {nombreClub}
           </div>
           <h1 className="text-lg font-bold tracking-tight">
-            Nos encontramos al paso — Panel de Coordinacion Barrial
+            Panel de Coordinacion Barrial
           </h1>
         </div>
 

@@ -22,7 +22,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json(
     {
       status: "ok",
-      endpoint: "WhatsApp Cloud API v21.0 Webhook — Nos encontramos al paso (Sancor)",
+      endpoint: "WhatsApp Cloud API v21.0 Webhook — Sancor Seguros / Salud",
       verify_token_configured: Boolean(expectedToken),
     },
     { status: 200 }
