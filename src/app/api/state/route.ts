@@ -176,7 +176,8 @@ export async function POST(req: NextRequest) {
           : [body.participanteId];
         const snapshot = await validarPresenciaEnClub(
           ids,
-          body.jornadaId || activeJornadaId
+          body.jornadaId || activeJornadaId,
+          body.presente !== false
         );
         return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }

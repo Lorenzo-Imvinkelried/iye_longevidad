@@ -2,7 +2,7 @@
 
 import React from "react";
 import { SystemSnapshot } from "@/types/domain";
-import { CheckCircle2, QrCode } from "lucide-react";
+import { CheckCircle2, QrCode, UserCheck, UserX } from "lucide-react";
 
 interface TabRecepcionProps {
   snapshot: SystemSnapshot;
@@ -33,38 +33,79 @@ export default function TabRecepcionClub({
       idsDelEvento.has(p.id)
   );
 
+  const validadosCount = adultosActivos.filter((ad) =>
+    asistenciasEvento.some(
+      (a) => a.participante_id === ad.id && a.presente_validado_en_club
+    )
+  ).length;
+  const hayPendientes = validadosCount < adultosActivos.length;
+  const hayValidados = validadosCount > 0;
+
   return (
     <div className="space-y-4">
-      <div className="bg-white rounded-xl p-4 border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      <div className="bg-white rounded-xl p-4 border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
         <div>
-          <h2 className="text-base font-bold text-slate-900">
-            Recepcion en {circuito.nombre_club}
-          </h2>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <h2 className="text-base font-bold text-slate-900">
+              Recepcion en {circuito.nombre_club}
+            </h2>
+            <span className="text-[11px] font-bold bg-[#cedaea]/45 text-[#0a4494] px-2.5 py-0.5 rounded-full">
+              Presentes: {validadosCount} / {adultosActivos.length}
+            </span>
+          </div>
           <p className="text-xs text-slate-500 mt-0.5">
-            Registra y valida el ingreso de cada adulto mayor al punto de encuentro ({jornada.actividad_cierre}) y confirma su asistencia por WhatsApp.
+            Marca a todos presentes de una sola vez y quita unicamente a quien no vino ({jornada.actividad_cierre}).
           </p>
         </div>
 
-        <div className="flex items-center gap-2 shrink-0">
+        <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
+            type="button"
             onClick={onOpenQrModal}
-            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
+            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-2 rounded-full transition flex items-center gap-1.5"
           >
             <QrCode className="w-3.5 h-3.5" />
             <span>Lector QR</span>
           </button>
 
+          {hayValidados && (
+            <button
+              type="button"
+              onClick={() =>
+                onExecuteAction("validar_club", {
+                  participanteIds: adultosActivos.map((a) => a.id),
+                  presente: false,
+                })
+              }
+              disabled={loadingAction === "validar_club"}
+              className="border border-[#c4c9cd] text-[#52606d] hover:border-[#bf2020] hover:text-[#bf2020] bg-white font-semibold text-xs px-3.5 py-2 rounded-full transition flex items-center gap-1.5 disabled:opacity-50"
+            >
+              <UserX className="w-3.5 h-3.5" />
+              <span>Desmarcar todos</span>
+            </button>
+          )}
+
           <button
+            type="button"
             onClick={() =>
               onExecuteAction("validar_club", {
                 participanteIds: adultosActivos.map((a) => a.id),
+                presente: true,
               })
             }
-            disabled={loadingAction === "validar_club"}
-            className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
+            disabled={
+              loadingAction === "validar_club" ||
+              adultosActivos.length === 0 ||
+              !hayPendientes
+            }
+            className="bg-[#0a4494] hover:bg-[#08397c] disabled:bg-slate-300 text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
           >
             <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>Validar todos</span>
+            <span>
+              {hayPendientes
+                ? "Validar todos presentes"
+                : "Todos marcados presentes"}
+            </span>
           </button>
         </div>
       </div>
@@ -133,17 +174,36 @@ export default function TabRecepcionClub({
                   </button>
 
                   {validado ? (
-                    <span className="bg-[#d0e6cd]/50 text-[#168003] border border-[#a2cc9a] font-semibold text-xs px-3.5 py-1.5 rounded-full">
-                      Presente validado
-                    </span>
+                    <div className="flex items-center gap-1.5">
+                      <span className="bg-[#d0e6cd]/50 text-[#168003] border border-[#a2cc9a] font-semibold text-xs px-3 py-1.5 rounded-full inline-flex items-center gap-1">
+                        <UserCheck className="w-3.5 h-3.5" />
+                        <span>Presente</span>
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          onExecuteAction("validar_club", {
+                            participanteId: adulto.id,
+                            presente: false,
+                          })
+                        }
+                        disabled={loadingAction === "validar_club"}
+                        title="Quitar asistencia (no aparecio)"
+                        className="border border-[#e5a6a6] text-[#bf2020] hover:bg-[#f2d2d2]/40 text-xs font-semibold px-3 py-1.5 rounded-full transition inline-flex items-center gap-1"
+                      >
+                        <UserX className="w-3.5 h-3.5" />
+                        <span>Quitar (No vino)</span>
+                      </button>
+                    </div>
                   ) : (
                     <button
-                      onClick={() => {
-                        onOpenPhone(adulto.id);
+                      type="button"
+                      onClick={() =>
                         onExecuteAction("validar_club", {
                           participanteId: adulto.id,
-                        });
-                      }}
+                          presente: true,
+                        })
+                      }
                       disabled={loadingAction === "validar_club"}
                       className="bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs px-4 py-1.5 rounded-full transition"
                     >

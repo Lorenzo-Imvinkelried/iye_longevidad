@@ -885,7 +885,8 @@ export async function frenarSalidaAdultoPorSeguridad(
 
 export async function validarPresenciaEnClub(
   participanteIds: string[],
-  jornadaId?: string
+  jornadaId?: string,
+  presente: boolean = true
 ): Promise<SystemSnapshot> {
   const state = await readStateAsync();
   const { targetJornada, targetCircuito } = resolveEventForCoordinator(
@@ -900,7 +901,25 @@ export async function validarPresenciaEnClub(
     );
     const adulto = state.participantes.find((p) => p.id === partId);
 
-    if (!asis || !adulto || asis.presente_validado_en_club) continue;
+    if (!asis || !adulto) continue;
+
+    if (!presente) {
+      if (!asis.presente_validado_en_club) continue;
+      asis.presente_validado_en_club = false;
+      asis.codigo_canje_farmacia = null;
+      asis.updated_at = new Date().toISOString();
+
+      addLog(
+        state,
+        adulto.nombre,
+        "Presencia quitada (Ausente)",
+        `Se quito la validacion de asistencia para ${adulto.nombre} en ${targetCircuito.nombre_club}.`,
+        "warning"
+      );
+      continue;
+    }
+
+    if (asis.presente_validado_en_club) continue;
 
     if (
       asis.modalidad_elegida === "sin_respuesta" ||
@@ -958,7 +977,16 @@ export async function validarPresenciaEnClub(
     );
   }
 
-  targetJornada.estado = "en_club";
+  if (presente) {
+    targetJornada.estado = "en_club";
+  } else {
+    const quedaAlguienValidado = state.asistencias.some(
+      (a) => a.jornada_id === targetJornada.id && a.presente_validado_en_club
+    );
+    if (!quedaAlguienValidado && targetJornada.estado === "en_club") {
+      targetJornada.estado = "convocando";
+    }
+  }
   targetJornada.updated_at = new Date().toISOString();
   syncActiveJornadaIntoArray(state);
 

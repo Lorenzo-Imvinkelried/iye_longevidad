@@ -72,8 +72,8 @@ const ACTION_LOADING_MESSAGES: Record<
     detail: "Notificando al adulto mayor para evitar salida sin compania...",
   },
   validar_club: {
-    title: "Validando presencia en el club...",
-    detail: "Registrando asistencia confirmada en el encuentro...",
+    title: "Actualizando presencias...",
+    detail: "Registrando asistencia del encuentro en la base...",
   },
   aprobar_solicitud_familiar: {
     title: "Aprobando alta de participante...",
@@ -490,9 +490,9 @@ function DashboardCoordinadorInner({
         adultosActivos={adultosActivos}
         asistencias={asistenciasEvento}
         onValidarParticipante={async (partId) => {
-          handleOpenPhoneInSimulator(partId);
           await executeCoordinatorAction("validar_club", {
             participanteId: partId,
+            presente: true,
           });
           setQrModalOpen(false);
         }}
