@@ -57,25 +57,25 @@ export default function PantallaLoginTutor({
   };
 
   return (
-    <div className="min-h-screen bg-[#f6f6f7] flex flex-col">
+    <div className="min-h-screen lg:h-screen bg-[#f6f6f7] flex flex-col lg:overflow-hidden">
       {/* Franja superior Sancor Seguros */}
-      <div className="bg-[#a70355] text-white text-[11px] font-medium">
-        <div className="max-w-[1200px] mx-auto px-4 py-1.5 flex items-center justify-between">
+      <div className="bg-[#a70355] text-white text-[11px] font-medium shrink-0">
+        <div className="max-w-[1200px] mx-auto px-4 py-1 flex items-center justify-between">
           <span>Programa de Longevidad Activa y Comunidad Barrial</span>
           <span>Sancor Seguros • Sancor Salud</span>
         </div>
       </div>
 
       {/* Navbar blanca limpia */}
-      <div className="bg-white border-b border-[#eaeced]">
-        <div className="max-w-[1200px] mx-auto px-4 py-3 flex items-center justify-between">
+      <div className="bg-white border-b border-[#eaeced] shrink-0">
+        <div className="max-w-[1200px] mx-auto px-4 py-2 flex items-center justify-between">
           <div className="flex items-center gap-3">
             <img
               src="/sancor-logo.svg"
               alt="Sancor Seguros"
-              width={126}
-              height={32}
-              className="h-8 w-auto"
+              width={110}
+              height={28}
+              className="h-7 w-auto"
             />
             <span className="h-5 w-px bg-[#eaeced]" />
             <span className="text-xs sm:text-sm font-bold text-[#363f48]">
@@ -89,29 +89,30 @@ export default function PantallaLoginTutor({
         </div>
       </div>
 
-      {/* Contenedor central */}
-      <main className="flex-1 max-w-[900px] w-full mx-auto px-4 py-6 sm:py-8 space-y-6">
+      {/* Contenedor central (sin scroll general en desktop; solo scrollea la lista de coordinadores) */}
+      <main className="flex-1 min-h-0 max-w-[1000px] w-full mx-auto px-4 py-3 sm:py-4 flex flex-col gap-3">
         {/* Card unica de Ingreso con mi cuenta */}
-        <section className="bg-white rounded-2xl border border-[#eaeced] shadow-xs overflow-hidden">
-          <div className="px-5 sm:px-7 py-3.5 border-b border-[#eaeced] bg-[#fdf9fb] flex items-center gap-2">
-            <LogIn className="w-4 h-4 text-[#a70355]" />
-            <h1 className="text-sm sm:text-base font-bold text-[#363f48]">
-              Ingresar con mi cuenta
-            </h1>
+        <section className="bg-white rounded-2xl border border-[#eaeced] shadow-xs overflow-hidden shrink-0">
+          <div className="px-5 py-2.5 border-b border-[#eaeced] bg-[#fdf9fb] flex items-center justify-between gap-2">
+            <div className="flex items-center gap-2">
+              <LogIn className="w-4 h-4 text-[#a70355]" />
+              <h1 className="text-sm sm:text-base font-bold text-[#363f48]">
+                Ingresar con mi cuenta
+              </h1>
+            </div>
+            <span className="hidden md:inline text-[11px] text-[#52606d]">
+              Acceso exclusivo para coordinadores y referentes acreditados
+            </span>
           </div>
 
-          <form onSubmit={handleSubmitLogin} className="p-5 sm:p-7 space-y-4">
-            <p className="text-xs text-[#52606d]">
-              Acceso exclusivo para coordinadores, profesionales y referentes barriales acreditados por Sancor y las instituciones adheridas.
-            </p>
-
+          <form onSubmit={handleSubmitLogin} className="px-5 py-3.5 space-y-2.5">
             {errorMessage && (
-              <div className="p-3 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
+              <div className="p-2.5 rounded-xl bg-red-50 border border-red-200 text-xs font-semibold text-red-700">
                 {errorMessage}
               </div>
             )}
 
-            <div className="grid grid-cols-1 sm:grid-cols-12 gap-3 items-end text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-end text-xs">
               <div className="sm:col-span-5">
                 <label className="font-semibold text-[#363f48] block mb-1">
                   DNI o Nombre completo *
@@ -122,7 +123,7 @@ export default function PantallaLoginTutor({
                   placeholder="Ingresa tu DNI acreditado"
                   value={identificador}
                   onChange={(e) => setIdentificador(e.target.value)}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2.5 bg-white text-[#363f48]"
+                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white text-[#363f48]"
                 />
               </div>
 
@@ -136,7 +137,7 @@ export default function PantallaLoginTutor({
                   placeholder="Tu clave personal"
                   value={clave}
                   onChange={(e) => setClave(e.target.value)}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2.5 bg-white text-[#363f48]"
+                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-2 bg-white text-[#363f48]"
                 />
               </div>
 
@@ -144,7 +145,7 @@ export default function PantallaLoginTutor({
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs py-2.5 px-4 rounded-full transition flex items-center justify-center gap-1.5"
+                  className="w-full bg-[#0a4494] hover:bg-[#08397c] text-white font-semibold text-xs py-2 px-4 rounded-full transition flex items-center justify-center gap-1.5"
                 >
                   <KeyRound className="w-3.5 h-3.5" />
                   <span>{loading ? "Verificando..." : "Ingresar"}</span>
@@ -153,54 +154,55 @@ export default function PantallaLoginTutor({
             </div>
 
             <div className="pt-2 border-t border-[#eaeced] text-[11px] text-[#52606d]">
-              Para cuidar la seguridad de los adultos mayores, el registro de nuevos coordinadores o referentes se habilita unicamente previa validacion presencial de DNI y sede a traves de la administracion de Sancor / Club.
+              El registro de nuevos coordinadores se habilita previa validacion presencial de DNI y sede a traves de la administracion de Sancor / Club.
             </div>
           </form>
         </section>
 
-        {/* Directorio informativo de coordinadores actuales (solo lectura) */}
-        <section className="bg-white rounded-2xl border border-[#eaeced] shadow-xs overflow-hidden">
-          <div className="px-5 sm:px-7 py-4 border-b border-[#eaeced] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div>
+        {/* Directorio informativo de coordinadores actuales (solo lectura, scrollea internamente) */}
+        <section className="flex-1 min-h-0 bg-white rounded-2xl border border-[#eaeced] shadow-xs overflow-hidden flex flex-col">
+          <div className="px-5 py-2.5 border-b border-[#eaeced] flex flex-col sm:flex-row sm:items-center justify-between gap-2 shrink-0">
+            <div className="min-w-0">
               <h2 className="text-sm font-bold text-[#363f48] flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#a70355]" />
+                <Users className="w-4 h-4 text-[#a70355] shrink-0" />
                 <span>Coordinadores y Referentes Actuales ({tutores.length})</span>
               </h2>
-              <p className="text-[11px] text-[#52606d] mt-0.5">
-                Podes consultar quienes coordinan cada club, sala o punto de encuentro barrial (vecinos referentes, adultos mayores o profesionales acreditados).
+              <p className="text-[11px] text-[#52606d] truncate">
+                Consulta quienes coordinan cada club, sala o punto de encuentro barrial.
               </p>
             </div>
 
             <input
               type="text"
+              aria-label="Buscar coordinadores por nombre, barrio o sede"
               placeholder="Buscar por nombre, barrio o sede..."
               value={busquedaCoord}
               onChange={(e) => setBusquedaCoord(e.target.value)}
-              className="border border-[#c4c9cd] rounded-full px-3.5 py-1.5 text-xs text-[#363f48] w-full sm:w-60 focus:outline-none focus:border-[#0a4494]"
+              className="border border-[#c4c9cd] rounded-full px-3.5 py-1.5 text-xs text-[#363f48] w-full sm:w-64 shrink-0 focus:outline-none focus:border-[#0a4494]"
             />
           </div>
 
-          <div className="p-5 sm:p-6">
+          <div className="flex-1 min-h-0 overflow-y-auto p-3.5 sm:p-4">
             {tutoresFiltrados.length === 0 ? (
               <p className="text-xs text-[#52606d] text-center py-4">
                 No se encontraron coordinadores con ese filtro.
               </p>
             ) : (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                 {tutoresFiltrados.map((tutor) => {
                   const sedes = getCircuitosDeTutor(tutor.id);
 
                   return (
                     <div
                       key={tutor.id}
-                      className="border border-[#eaeced] rounded-xl p-4 bg-[#f6f6f7]/50 space-y-2.5"
+                      className="border border-[#eaeced] rounded-xl p-3 bg-[#f6f6f7]/50 space-y-2"
                     >
                       <div className="flex items-start justify-between gap-2">
-                        <div>
-                          <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2.5 py-0.5 rounded-full">
+                        <div className="min-w-0">
+                          <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full">
                             {tutor.credencial_nro || "Coordinador Acreditado"}
                           </span>
-                          <h3 className="text-sm font-bold text-[#363f48] mt-1">
+                          <h3 className="text-sm font-bold text-[#363f48] mt-1 truncate">
                             {tutor.nombre}
                           </h3>
                         </div>
@@ -209,11 +211,11 @@ export default function PantallaLoginTutor({
                         </span>
                       </div>
 
-                      <div className="space-y-1 pt-2 border-t border-[#eaeced] text-xs text-[#52606d]">
+                      <div className="space-y-1 pt-1.5 border-t border-[#eaeced] text-xs text-[#52606d]">
                         {sedes.length === 0 ? (
                           <div className="text-[11px] flex items-center gap-1.5">
-                            <MapPin className="w-3.5 h-3.5 text-[#0a4494]" />
-                            <span>{tutor.direccion}</span>
+                            <MapPin className="w-3.5 h-3.5 text-[#0a4494] shrink-0" />
+                            <span className="truncate">{tutor.direccion}</span>
                           </div>
                         ) : (
                           sedes.map((s) => (
