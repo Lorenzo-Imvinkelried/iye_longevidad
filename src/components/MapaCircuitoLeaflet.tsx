@@ -196,7 +196,7 @@ export default function MapaCircuitoLeaflet({
             asis.estado_padrino === "confirmado"
               ? "#a70355"
               : asis.estado_padrino === "esperando_confirmacion"
-              ? "#67717c"
+              ? "#c2387c"
               : "#bf2020";
 
           return (
@@ -362,7 +362,7 @@ export default function MapaCircuitoLeaflet({
 
           if (jornada.estado === "suspendida_emergencia") {
             if (asis?.acuse_suspension_leido) {
-              colorHex = "#363f48";
+              colorHex = "#b5286f";
               etiquetaEstado = "En casa";
             } else {
               colorHex = "#bf2020";
@@ -371,11 +371,11 @@ export default function MapaCircuitoLeaflet({
             }
           } else if (asis) {
             if (asis.presente_validado_en_club) {
-              colorHex = "#363f48";
+              colorHex = "#8c0347";
               etiquetaEstado = "En club";
             } else if (asis.modalidad_elegida === "nivel_1_puerta") {
               if (asis.estado_padrino === "esperando_confirmacion") {
-                colorHex = "#67717c";
+                colorHex = "#c94485";
                 etiquetaEstado = "Esp. padrino";
               } else if (asis.estado_padrino === "confirmado") {
                 colorHex = "#a70355";
@@ -385,14 +385,14 @@ export default function MapaCircuitoLeaflet({
                 etiquetaEstado = "Sin padrino";
                 isAlert = true;
               } else if (asis.estado_padrino === "sin_padrino_frenado") {
-                colorHex = "#45515c";
+                colorHex = "#52606d";
                 etiquetaEstado = "Salida frenada";
               }
             } else if (asis.modalidad_elegida === "nivel_2_esquina") {
-              colorHex = "#7d0240";
+              colorHex = "#b5286f";
               etiquetaEstado = "En esquina";
             } else if (asis.modalidad_elegida === "nivel_3_directo") {
-              colorHex = "#45515c";
+              colorHex = "#c2387c";
               etiquetaEstado = "Va directo";
             } else if (asis.modalidad_elegida === "no_asiste") {
               colorHex = "#9ea6ad";
