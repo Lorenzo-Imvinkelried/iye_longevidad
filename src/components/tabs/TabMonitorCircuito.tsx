@@ -11,7 +11,11 @@ import {
   SEED_IDS,
   SystemSnapshot,
 } from "@/types/domain";
-import { getTutorJornadas } from "@/lib/domain-helpers";
+import {
+  getParticipanteAvatarUrl,
+  getTutorJornadas,
+} from "@/lib/domain-helpers";
+import { compressImageFileToDataUrl } from "@/components/modals/ModalDerivacionFamiliar";
 import { fetchStreetWalkingRoute } from "@/lib/street-routing";
 import {
   buildWhatsAppInviteLink,
@@ -100,6 +104,7 @@ export default function TabMonitorCircuito({
     contactoFamiliarNombre: string;
     contactoFamiliarTel: string;
     notasVulnerabilidad: string;
+    avatarUrl: string;
     padrinoPreferidoId: string;
     modalidadElegida: ModalidadElegida;
     paradaEsquinaId: string;
@@ -113,6 +118,7 @@ export default function TabMonitorCircuito({
     contactoFamiliarNombre: "",
     contactoFamiliarTel: "",
     notasVulnerabilidad: "",
+    avatarUrl: "",
     padrinoPreferidoId: "",
     modalidadElegida: "sin_respuesta",
     paradaEsquinaId: "",
@@ -153,6 +159,7 @@ export default function TabMonitorCircuito({
       contactoFamiliarNombre: ad.contacto_familiar_nombre || "",
       contactoFamiliarTel: ad.contacto_familiar_tel || "",
       notasVulnerabilidad: ad.notas_vulnerabilidad || "",
+      avatarUrl: getParticipanteAvatarUrl(ad),
       padrinoPreferidoId:
         asis?.padrino_asignado_id ||
         ad.padrino_preferido_id ||
@@ -221,6 +228,7 @@ export default function TabMonitorCircuito({
           contactoFamiliarNombre: editAdultoForm.contactoFamiliarNombre,
           contactoFamiliarTel: editAdultoForm.contactoFamiliarTel,
           notasVulnerabilidad: editAdultoForm.notasVulnerabilidad,
+          avatarUrl: editAdultoForm.avatarUrl || undefined,
           modalidadElegida: editAdultoForm.modalidadElegida,
           paradaEsquinaId:
             editAdultoForm.modalidadElegida === "nivel_2_esquina"
@@ -1020,6 +1028,45 @@ export default function TabMonitorCircuito({
                   </div>
                 )}
 
+                <div className="p-2.5 rounded-xl bg-[#f6f6f7] border border-[#eaeced] flex items-center justify-between gap-3">
+                  <div className="flex items-center gap-3">
+                    <img
+                      src={editAdultoForm.avatarUrl || "/participantes/rosa.jpg"}
+                      alt={editAdultoForm.nombre}
+                      width={48}
+                      height={48}
+                      className="w-12 h-12 rounded-xl object-cover border-2 border-white shadow-xs bg-white"
+                    />
+                    <div>
+                      <div className="font-bold text-[#363f48]">Foto de Perfil</div>
+                      <div className="text-[11px] text-[#52606d]">
+                        Se guarda en la ficha del adulto mayor en Supabase
+                      </div>
+                    </div>
+                  </div>
+                  <label className="cursor-pointer border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-[11px] px-3 py-1.5 rounded-full transition">
+                    <span>Cambiar foto</span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={async (e) => {
+                        const file = e.target.files?.[0];
+                        if (!file) return;
+                        try {
+                          const dataUrl = await compressImageFileToDataUrl(file);
+                          setEditAdultoForm((prev) => ({
+                            ...prev,
+                            avatarUrl: dataUrl,
+                          }));
+                        } catch {
+                          // Ignore invalid file
+                        }
+                      }}
+                    />
+                  </label>
+                </div>
+
                 <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5">
                   <div className="sm:col-span-6">
                     <label className="font-semibold text-[#363f48] block mb-1">
@@ -1268,7 +1315,7 @@ export default function TabMonitorCircuito({
                   </div>
                 ) : (
                   <div className="overflow-y-auto divide-y divide-[#eaeced] pr-1">
-                    {adultosActivos.map((ad) => {
+                    {adultosActivos.map((ad, idx) => {
                       const asis = asistenciasEvento.find(
                         (a) => a.participante_id === ad.id
                       );
@@ -1282,6 +1329,7 @@ export default function TabMonitorCircuito({
                             (ps) => ps.id === asis.parada_esquina_id
                           )
                         : undefined;
+                      const avatarUrl = getParticipanteAvatarUrl(ad, idx);
 
                       let estadoTexto = "Sin respuesta aun";
                       let estadoBadgeClass =
@@ -1318,29 +1366,38 @@ export default function TabMonitorCircuito({
                           key={ad.id}
                           className="py-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 text-xs"
                         >
-                          <div className="flex-1 min-w-0 space-y-1">
-                            <div className="flex items-center gap-2 flex-wrap">
-                              <span className="font-bold text-[#363f48]">
-                                {ad.nombre}
-                              </span>
-                              <span className="text-[11px] text-[#52606d] whitespace-nowrap">
-                                ({ad.edad} anos • DNI {ad.dni})
-                              </span>
-                              {asis?.presente_validado_en_club && (
-                                <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2 py-0.5 rounded-full whitespace-nowrap">
-                                  Presente en sede
+                          <div className="flex items-center gap-3 flex-1 min-w-0">
+                            <img
+                              src={avatarUrl}
+                              alt={ad.nombre}
+                              width={40}
+                              height={40}
+                              className="w-10 h-10 rounded-xl object-cover border border-[#eaeced] shrink-0 bg-[#f6f6f7]"
+                            />
+                            <div className="flex-1 min-w-0 space-y-1">
+                              <div className="flex items-center gap-2 flex-wrap">
+                                <span className="font-bold text-[#363f48]">
+                                  {ad.nombre}
                                 </span>
-                              )}
-                            </div>
-                            <div className="text-[11px] text-[#52606d] flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                              <span>{ad.direccion}</span>
-                              <span className="text-[#c4c9cd]">•</span>
-                              <span className="whitespace-nowrap">
-                                Tel:{" "}
-                                <strong className="text-[#363f48] font-semibold select-all">
-                                  {ad.telefono}
-                                </strong>
-                              </span>
+                                <span className="text-[11px] text-[#52606d] whitespace-nowrap">
+                                  ({ad.edad} anos • DNI {ad.dni})
+                                </span>
+                                {asis?.presente_validado_en_club && (
+                                  <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2 py-0.5 rounded-full whitespace-nowrap">
+                                    Presente en sede
+                                  </span>
+                                )}
+                              </div>
+                              <div className="text-[11px] text-[#52606d] flex flex-wrap items-center gap-x-2 gap-y-0.5">
+                                <span>{ad.direccion}</span>
+                                <span className="text-[#c4c9cd]">•</span>
+                                <span className="whitespace-nowrap">
+                                  Tel:{" "}
+                                  <strong className="text-[#363f48] font-semibold select-all">
+                                    {ad.telefono}
+                                  </strong>
+                                </span>
+                              </div>
                             </div>
                           </div>
 

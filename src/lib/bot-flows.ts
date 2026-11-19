@@ -721,6 +721,24 @@ export async function procesarEventoWebhookWhatsApp(params: {
       `${actor.nombre} confirmo lectura del aviso de suspension (${targetCircuito.nombre_club}).`,
       "success"
     );
+  } else if (parsed.baseAction === "btn_checkin_qr") {
+    upsertAsistencia(state, targetJornada.id, actor, {
+      presente_validado_en_club: true,
+    });
+
+    await appendBotMessage(
+      state,
+      actor,
+      `¡Bienvenido/a a *${targetCircuito.nombre_club}*, ${primerNombre}! Ya quedo registrado tu *Presente* mediante el codigo QR de la puerta para el encuentro de hoy (${targetJornada.actividad_cierre}).`
+    );
+
+    addLog(
+      state,
+      actor.nombre,
+      "Presente Registrado por QR de Puerta",
+      `${actor.nombre} escaneo el QR del evento en ${targetCircuito.nombre_club}.`,
+      "success"
+    );
   }
 
   writeState(state);

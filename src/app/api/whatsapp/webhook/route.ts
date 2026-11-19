@@ -121,6 +121,8 @@ export async function POST(req: NextRequest) {
           mappedButton = "btn_nivel_2";
         } else if (lower === "3" || lower.includes("club") || lower.includes("directo")) {
           mappedButton = "btn_nivel_3";
+        } else if (lower.includes("presente") || lower.includes("llegue") || lower.includes("llegué")) {
+          mappedButton = "btn_checkin_qr";
         } else if (lower.includes("cancel") || lower.includes("no voy")) {
           mappedButton = "btn_adulto_cancela";
         }

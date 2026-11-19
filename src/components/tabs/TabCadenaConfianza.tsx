@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
+import { getParticipanteAvatarUrl } from "@/lib/domain-helpers";
 import { ShieldCheck, UserCheck, UserPlus } from "lucide-react";
 
 interface TabConfianzaProps {
@@ -10,7 +11,6 @@ interface TabConfianzaProps {
   onOpenPhone: (participanteId: string) => void;
   onOpenFamiliarModal: () => void;
   onOpenPadrinoModal: () => void;
-  onOpenCoordinadorModal: () => void;
 }
 
 export default function TabCadenaConfianza({
@@ -19,7 +19,6 @@ export default function TabCadenaConfianza({
   onOpenPhone,
   onOpenFamiliarModal,
   onOpenPadrinoModal,
-  onOpenCoordinadorModal,
 }: TabConfianzaProps) {
   const [selectedPadrinoForApproval, setSelectedPadrinoForApproval] = useState<
     Record<string, string>
@@ -75,14 +74,6 @@ export default function TabCadenaConfianza({
             <ShieldCheck className="w-3.5 h-3.5" />
             <span>Acreditar nuevo padrino</span>
           </button>
-
-          <button
-            onClick={onOpenCoordinadorModal}
-            className="border border-[#363f48] text-[#363f48] hover:bg-[#363f48] hover:text-white font-semibold text-xs px-4 py-2 rounded-full flex items-center gap-1.5 transition"
-          >
-            <ShieldCheck className="w-3.5 h-3.5" />
-            <span>Acreditar coordinador</span>
-          </button>
         </div>
       </div>
 
@@ -104,39 +95,49 @@ export default function TabCadenaConfianza({
           </div>
         ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-          {adultosDelLugar.map((adulto) => {
+          {adultosDelLugar.map((adulto, idx) => {
             const padrinoPref = participantes.find(
               (p) => p.id === adulto.padrino_preferido_id
             );
+            const avatarUrl = getParticipanteAvatarUrl(adulto, idx);
             return (
               <div
                 key={adulto.id}
-                className="border border-[#eaeced] rounded-xl p-3.5 flex flex-col justify-between gap-2 hover:border-[#a70355]/40 transition"
+                className="border border-[#eaeced] rounded-xl p-3.5 flex flex-col justify-between gap-2.5 hover:border-[#a70355]/40 transition"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-bold text-sm text-[#363f48]">
-                      {adulto.nombre} ({adulto.edad} anos)
-                    </span>
-                    <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] px-2.5 py-0.5 rounded-full">
-                      {adulto.nivel_autonomia_habitual === 1
-                        ? "Puerta a puerta"
-                        : adulto.nivel_autonomia_habitual === 2
-                        ? "Parada segura"
-                        : "Directo al club"}
-                    </span>
-                  </div>
-                  <div className="text-xs text-[#52606d]">
-                    DNI {adulto.dni} • {adulto.direccion}
-                  </div>
-                  <div className="text-xs text-[#52606d]">
-                    WhatsApp: <strong className="text-[#363f48]">{adulto.telefono}</strong> • Familiar: {adulto.contacto_familiar_nombre}
-                  </div>
-                  {padrinoPref && (
-                    <div className="text-[11px] text-[#363f48] font-semibold">
-                      Padrino habitual: {padrinoPref.nombre} ({padrinoPref.credencial_nro})
+                <div className="flex items-start gap-3">
+                  <img
+                    src={avatarUrl}
+                    alt={`Foto de ${adulto.nombre}`}
+                    width={48}
+                    height={48}
+                    className="w-12 h-12 rounded-xl object-cover border border-[#eaeced] shrink-0 bg-[#f6f6f7]"
+                  />
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-bold text-sm text-[#363f48] truncate">
+                        {adulto.nombre} ({adulto.edad} anos)
+                      </span>
+                      <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] px-2.5 py-0.5 rounded-full shrink-0">
+                        {adulto.nivel_autonomia_habitual === 1
+                          ? "Puerta a puerta"
+                          : adulto.nivel_autonomia_habitual === 2
+                          ? "Parada segura"
+                          : "Directo al club"}
+                      </span>
                     </div>
-                  )}
+                    <div className="text-xs text-[#52606d] truncate">
+                      DNI {adulto.dni} • {adulto.direccion}
+                    </div>
+                    <div className="text-xs text-[#52606d] truncate">
+                      WhatsApp: <strong className="text-[#363f48]">{adulto.telefono}</strong> • Familiar: {adulto.contacto_familiar_nombre}
+                    </div>
+                    {padrinoPref && (
+                      <div className="text-[11px] text-[#363f48] font-semibold truncate">
+                        Padrino habitual: {padrinoPref.nombre} ({padrinoPref.credencial_nro})
+                      </div>
+                    )}
+                  </div>
                 </div>
 
                 <div className="pt-2 border-t border-[#eaeced] flex items-center justify-between text-xs">
@@ -246,7 +247,7 @@ export default function TabCadenaConfianza({
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3 p-4">
-          {padrinosAcreditados.map((pad) => {
+          {padrinosAcreditados.map((pad, idx) => {
             const asignadosHoy = asistencias.filter(
               (a) =>
                 a.modalidad_elegida === "nivel_1_puerta" &&
@@ -258,21 +259,30 @@ export default function TabCadenaConfianza({
                 key={pad.id}
                 className="border border-slate-200 rounded-lg p-3.5 flex flex-col justify-between gap-2.5"
               >
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between">
-                    <span className="font-bold text-sm text-slate-900">
-                      {pad.nombre} ({pad.edad} anos)
-                    </span>
-                    <span className="text-xs font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
-                      Credencial {pad.credencial_nro}
-                    </span>
+                <div className="flex items-start gap-3">
+                  <img
+                    src={getParticipanteAvatarUrl(pad, idx)}
+                    alt={pad.nombre}
+                    width={44}
+                    height={44}
+                    className="w-11 h-11 rounded-xl object-cover border border-slate-200 shrink-0 bg-slate-100"
+                  />
+                  <div className="space-y-1 flex-1 min-w-0">
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <span className="font-bold text-sm text-slate-900">
+                        {pad.nombre} ({pad.edad} anos)
+                      </span>
+                      <span className="text-xs font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded border border-slate-200">
+                        Credencial {pad.credencial_nro}
+                      </span>
+                    </div>
+                    <div className="text-xs text-slate-600">
+                      DNI {pad.dni} • {pad.direccion}
+                    </div>
+                    {pad.notas_vulnerabilidad && (
+                      <p className="text-xs text-slate-500">{pad.notas_vulnerabilidad}</p>
+                    )}
                   </div>
-                  <div className="text-xs text-slate-600">
-                    DNI {pad.dni} • {pad.direccion}
-                  </div>
-                  {pad.notas_vulnerabilidad && (
-                    <p className="text-xs text-slate-500">{pad.notas_vulnerabilidad}</p>
-                  )}
                 </div>
 
                 <div className="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">

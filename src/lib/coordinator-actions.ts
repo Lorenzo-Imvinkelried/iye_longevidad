@@ -18,8 +18,11 @@ import {
   PARQUE_FEDERAL_STREET_ROUTE,
 } from "@/lib/street-routing";
 import {
+  encodeNotasWithFoto,
   findExistingSeniorByDniOrPhone,
   findScheduleConflict,
+  formatPolizaWithTutores,
+  getCircuitoTutoresIds,
   normalizeDni,
   phonesMatch,
 } from "@/lib/domain-helpers";
@@ -481,14 +484,19 @@ export async function crearNuevoEventoOLugar(input: {
   montoReintegro: number;
   plusPadrino: number;
   incluirAbuelosDelTutor: boolean;
+  coCoordinadoresIds?: string[];
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
   let targetCircuito: CircuitoBarrial | undefined;
+  const activeTutor = input.tutorId || state.tutorActivoId;
+  const allTutoresForCenter = Array.from(
+    new Set([activeTutor, ...(input.coCoordinadoresIds || [])].filter(Boolean))
+  );
 
   if (input.modoLugar === "nuevo" && input.nombreNuevoLugar) {
     targetCircuito = await buildCircuitoFromLocation({
       id: generateUuid(),
-      tutorId: input.tutorId || state.tutorActivoId,
+      tutorId: activeTutor,
       nombreLugar: input.nombreNuevoLugar,
       direccionLugar: input.direccionNuevoLugar || "Santa Fe Capital",
       zonaKey: input.zonaKey,
@@ -497,11 +505,24 @@ export async function crearNuevoEventoOLugar(input: {
       horaCaminata: input.horaCaminata || "16:00",
       horaEncuentro: input.horaEncuentro || "16:20",
     });
+    targetCircuito.poliza_nro = formatPolizaWithTutores(
+      targetCircuito.poliza_nro,
+      allTutoresForCenter
+    );
     state.circuitos.unshift(targetCircuito);
   } else {
     targetCircuito =
       state.circuitos.find((c) => c.id === input.circuitoExistenteId) ||
       state.circuito;
+    if (input.coCoordinadoresIds && input.coCoordinadoresIds.length > 0) {
+      const merged = Array.from(
+        new Set([...getCircuitoTutoresIds(targetCircuito), ...allTutoresForCenter])
+      );
+      targetCircuito.poliza_nro = formatPolizaWithTutores(
+        targetCircuito.poliza_nro,
+        merged
+      );
+    }
   }
 
   const nuevaJornada: Jornada = {
@@ -1095,6 +1116,7 @@ export async function crearSolicitudNietoFamiliar(input: {
   vinculo: string;
   telefonoFamiliar: string;
   notas: string;
+  avatarUrl?: string;
   aprobarDirecto?: boolean;
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
@@ -1126,6 +1148,14 @@ export async function crearSolicitudNietoFamiliar(input: {
 
     if (input.aprobarDirecto) {
       existente.estado_alta = "activo";
+    }
+    if (input.avatarUrl) {
+      existente.avatar_url = input.avatarUrl;
+      existente.notas_vulnerabilidad = encodeNotasWithFoto(
+        existente.notas_vulnerabilidad || "",
+        existente.notas_vulnerabilidad,
+        input.avatarUrl
+      );
     }
 
     const yaInscripto = state.asistencias.find(
@@ -1185,9 +1215,13 @@ export async function crearSolicitudNietoFamiliar(input: {
       input.vinculo || "Familiar"
     })`,
     contacto_familiar_tel: input.telefonoFamiliar || "+5493425998877",
-    notas_vulnerabilidad:
+    notas_vulnerabilidad: encodeNotasWithFoto(
       input.notas ||
-      "Inscripto al padron del lugar. Requiere acompanamiento puerta a puerta (Nivel 1).",
+        "Inscripto al padron del lugar. Requiere acompanamiento puerta a puerta (Nivel 1).",
+      undefined,
+      input.avatarUrl
+    ),
+    avatar_url: input.avatarUrl || null,
     estado_alta: input.aprobarDirecto ? "activo" : "pendiente_aprobacion",
   };
 
@@ -1287,6 +1321,7 @@ export async function actualizarParticipanteAdulto(input: {
   contactoFamiliarNombre?: string;
   contactoFamiliarTel?: string;
   notasVulnerabilidad?: string;
+  avatarUrl?: string | null;
   modalidadElegida?: ModalidadElegida;
   paradaEsquinaId?: string | null;
 }): Promise<{
@@ -1359,8 +1394,17 @@ export async function actualizarParticipanteAdulto(input: {
     adulto.contacto_familiar_tel =
       input.contactoFamiliarTel.trim() || adulto.contacto_familiar_tel;
   }
-  if (input.notasVulnerabilidad !== undefined) {
-    adulto.notas_vulnerabilidad = input.notasVulnerabilidad.trim();
+  if (input.notasVulnerabilidad !== undefined || input.avatarUrl !== undefined) {
+    adulto.notas_vulnerabilidad = encodeNotasWithFoto(
+      input.notasVulnerabilidad !== undefined
+        ? input.notasVulnerabilidad.trim()
+        : adulto.notas_vulnerabilidad || "",
+      adulto.notas_vulnerabilidad,
+      input.avatarUrl
+    );
+    if (input.avatarUrl !== undefined) {
+      adulto.avatar_url = input.avatarUrl || null;
+    }
   }
 
   if (input.modalidadElegida === "nivel_1_puerta") {
@@ -1417,4 +1461,129 @@ export async function actualizarParticipanteAdulto(input: {
   writeState(state);
   await syncToSupabaseIfConfigured(state);
   return { ok: true, snapshot: state };
+}
+
+export async function editarEventoOLugar(input: {
+  jornadaId: string;
+  nombreClub: string;
+  direccionClub: string;
+  actividad: string;
+  fecha: string;
+  horaCaminata: string;
+  horaEncuentro: string;
+  coordinadoresIds?: string[];
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const targetJornada = state.jornadas.find((j) => j.id === input.jornadaId);
+  if (!targetJornada) {
+    throw new Error("No se encontro el evento para editar.");
+  }
+  const targetCircuito = state.circuitos.find(
+    (c) => c.id === targetJornada.circuito_id
+  );
+  if (!targetCircuito) {
+    throw new Error("No se encontro la sede asociada al evento.");
+  }
+
+  if (input.nombreClub && input.nombreClub.trim()) {
+    targetCircuito.nombre_club = input.nombreClub.trim();
+  }
+  if (input.direccionClub && input.direccionClub.trim()) {
+    targetCircuito.direccion_club = input.direccionClub.trim();
+  }
+  if (input.coordinadoresIds && input.coordinadoresIds.length > 0) {
+    targetCircuito.poliza_nro = formatPolizaWithTutores(
+      targetCircuito.poliza_nro,
+      input.coordinadoresIds
+    );
+  }
+
+  if (input.actividad && input.actividad.trim()) {
+    targetJornada.actividad_cierre = input.actividad.trim();
+  }
+  if (input.fecha && input.fecha.trim()) {
+    targetJornada.fecha = input.fecha.trim();
+  }
+  if (input.horaCaminata && input.horaCaminata.trim()) {
+    targetJornada.hora_inicio_caminata = input.horaCaminata.trim();
+  }
+  if (input.horaEncuentro && input.horaEncuentro.trim()) {
+    targetJornada.hora_encuentro_club = input.horaEncuentro.trim();
+  }
+  targetJornada.updated_at = new Date().toISOString();
+
+  if (state.jornada.id === targetJornada.id) {
+    state.jornada = targetJornada;
+  }
+  if (state.circuito.id === targetCircuito.id) {
+    state.circuito = targetCircuito;
+  }
+
+  addLog(
+    state,
+    targetCircuito.nombre_club,
+    "Evento / Sede Editado",
+    `Se actualizo "${targetJornada.actividad_cierre}" (${targetJornada.fecha} ${targetJornada.hora_inicio_caminata} hs) en ${targetCircuito.nombre_club}.`,
+    "info"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function pasarAbueloEntreEventos(input: {
+  adultoId: string;
+  fromJornadaId: string;
+  toJornadaId: string;
+  quitarDeOrigen?: boolean;
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const adulto = state.participantes.find((p) => p.id === input.adultoId);
+  const toJornada = state.jornadas.find((j) => j.id === input.toJornadaId);
+  if (!adulto || !toJornada) {
+    throw new Error("No se encontro el participante o el evento destino.");
+  }
+
+  const toCircuito =
+    state.circuitos.find((c) => c.id === toJornada.circuito_id) || state.circuito;
+
+  if (input.quitarDeOrigen && input.fromJornadaId && input.fromJornadaId !== input.toJornadaId) {
+    state.asistencias = state.asistencias.filter(
+      (a) => !(a.jornada_id === input.fromJornadaId && a.participante_id === adulto.id)
+    );
+  }
+
+  const yaEnDestino = state.asistencias.find(
+    (a) => a.jornada_id === toJornada.id && a.participante_id === adulto.id
+  );
+  if (!yaEnDestino) {
+    state.asistencias.push({
+      id: generateUuid(),
+      jornada_id: toJornada.id,
+      participante_id: adulto.id,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: adulto.padrino_preferido_id || SEED_IDS.padrinoCarlos,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    });
+  }
+
+  addLog(
+    state,
+    adulto.nombre,
+    input.quitarDeOrigen ? "Abuelo Pasado de Evento" : "Abuelo Sumado a Evento",
+    `${adulto.nombre} fue ${
+      input.quitarDeOrigen ? "trasladado" : "vinculado"
+    } al evento de ${toCircuito.nombre_club} (${toJornada.actividad_cierre}).`,
+    "success"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
 }

@@ -13,6 +13,7 @@ import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
 import {
   CANDIOTI_STREET_ROUTE,
   GUADALUPE_STREET_ROUTE,
+  PARQUE_FEDERAL_STREET_ROUTE,
 } from "@/lib/street-routing";
 
 export function buildInitialState(): SystemSnapshot {
@@ -23,7 +24,7 @@ export function buildInitialState(): SystemSnapshot {
     direccion_club: "Ituzaingo 1945 (esq. Alberdi), Santa Fe Capital",
     coords_club: { lat: -31.63882, lng: -60.691411 },
     poliza_sancor_activa: true,
-    poliza_nro: `SANCOR-SALUD-RC-88412|tutor:${SEED_IDS.coordinadoraMarta}`,
+    poliza_nro: `SANCOR-SALUD-RC-88412|tutor:${SEED_IDS.coordinadoraMarta}|tutor:${SEED_IDS.coordinadoraLaura}`,
     paradas_seguras: [
       {
         id: "parada_1",
@@ -82,6 +83,39 @@ export function buildInitialState(): SystemSnapshot {
     ruta_polilinea: GUADALUPE_STREET_ROUTE,
   };
 
+  const circuitoParqueFederal: CircuitoBarrial = {
+    id: SEED_IDS.circuitoParqueFederal,
+    nombre_barrio: "Parque Federal / Sargento Cabral (Santa Fe Capital)",
+    nombre_club: "Centro Vecinal y Club Parque Federal",
+    direccion_club: "Salvador del Carril 2150, Santa Fe Capital",
+    coords_club: { lat: -31.622503, lng: -60.691187 },
+    poliza_sancor_activa: true,
+    poliza_nro: `SANCOR-SALUD-RC-91405|tutor:${SEED_IDS.coordinadoraMarta}|tutor:${SEED_IDS.tutorRoberto}`,
+    paradas_seguras: [
+      {
+        id: "parada_pf1",
+        nombre_esquina: "Parada 1: Salvador del Carril y Alvear",
+        lat: -31.620064,
+        lng: -60.688566,
+        horario_paso: "09:30 hs",
+        estado_veredas: "Esquina con rampa peatonal y buena visibilidad",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+      {
+        id: "parada_pf2",
+        nombre_esquina: "Parada 2: Mirador Parque Federal (Pedro Vittori)",
+        lat: -31.62418,
+        lng: -60.693893,
+        horario_paso: "09:42 hs",
+        estado_veredas: "Ciclovia y sendero peatonal arbolado",
+        tiene_rampa: true,
+        iluminacion_ok: true,
+      },
+    ],
+    ruta_polilinea: PARQUE_FEDERAL_STREET_ROUTE,
+  };
+
   const participantes: Participante[] = [
     {
       id: SEED_IDS.coordinadoraMarta,
@@ -97,9 +131,9 @@ export function buildInitialState(): SystemSnapshot {
       acreditado_por_club: true,
       credencial_nro: "Encargada de Club Barrial",
       saldo_reintegro_sancor: 0,
-      contacto_familiar_nombre: "Comision Directiva Club Candioti",
+      contacto_familiar_nombre: "Comision Directiva Club Candioti y Parque Federal",
       contacto_familiar_tel: "+5493424551234",
-      notas_vulnerabilidad: "Coordinadora barrial habilitada por Sancor Salud y el Club.",
+      notas_vulnerabilidad: "Coordinadora general habilitada por Sancor Salud en Club Candioti y Parque Federal.",
       estado_alta: "activo",
     },
     {
@@ -116,9 +150,28 @@ export function buildInitialState(): SystemSnapshot {
       acreditado_por_club: true,
       credencial_nro: "Kinesiologo",
       saldo_reintegro_sancor: 0,
-      contacto_familiar_nombre: "Sala Vecinal Guadalupe",
+      contacto_familiar_nombre: "Sala Vecinal Guadalupe y Parque Federal",
       contacto_familiar_tel: "+5493424601122",
       notas_vulnerabilidad: "Profesional de rehabilitacion motora y longevidad activa.",
+      estado_alta: "activo",
+    },
+    {
+      id: SEED_IDS.coordinadoraLaura,
+      nombre: "Lic. Laura Beatriz Sosa",
+      edad: 38,
+      dni: "33.715.209",
+      telefono: "+5493424000003",
+      rol: "coordinador",
+      direccion: "Bv. Galvez 1920, Barrio Candioti",
+      coords_domicilio: { lat: -31.6371, lng: -60.6902 },
+      nivel_autonomia_habitual: 3,
+      padrino_preferido_id: null,
+      acreditado_por_club: true,
+      credencial_nro: "Terapista Ocupacional",
+      saldo_reintegro_sancor: 0,
+      contacto_familiar_nombre: 'Co-Coordinacion Club Candioti "La Union"',
+      contacto_familiar_tel: "+5493424558899",
+      notas_vulnerabilidad: "Especialista en estimulacion cognitiva y talleres recreativos para adultos mayores.",
       estado_alta: "activo",
     },
     {
@@ -303,6 +356,20 @@ export function buildInitialState(): SystemSnapshot {
     updated_at: new Date(Date.now() - 60000).toISOString(),
   };
 
+  const jornadaParqueFederal: Jornada = {
+    id: SEED_IDS.jornadaParqueFederal,
+    circuito_id: SEED_IDS.circuitoParqueFederal,
+    fecha: new Date().toISOString().split("T")[0],
+    hora_inicio_caminata: "09:20",
+    hora_encuentro_club: "09:45",
+    actividad_cierre: "Taller de Memoria, Estiramiento y Desayuno Comunitario",
+    monto_reintegro_asistencia: 0,
+    plus_reintegro_padrino: 0,
+    estado: "programada",
+    motivo_suspension: null,
+    updated_at: new Date(Date.now() - 120000).toISOString(),
+  };
+
   const asistencias: Asistencia[] = [
     {
       id: "66666666-6666-4666-8666-666666666001",
@@ -396,6 +463,33 @@ export function buildInitialState(): SystemSnapshot {
       codigo_canje_farmacia: null,
       updated_at: new Date().toISOString(),
     },
+    // Asistencias vinculadas al tercer lugar (Centro Vecinal Parque Federal)
+    {
+      id: "66666666-6666-4666-8666-666666666008",
+      jornada_id: SEED_IDS.jornadaParqueFederal,
+      participante_id: SEED_IDS.hilda,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    },
+    {
+      id: "66666666-6666-4666-8666-666666666009",
+      jornada_id: SEED_IDS.jornadaParqueFederal,
+      participante_id: SEED_IDS.oscar,
+      modalidad_elegida: "sin_respuesta",
+      parada_esquina_id: null,
+      padrino_asignado_id: null,
+      estado_padrino: "no_aplica",
+      acuse_suspension_leido: false,
+      presente_validado_en_club: false,
+      codigo_canje_farmacia: null,
+      updated_at: new Date().toISOString(),
+    },
   ];
 
   const mensajes: WhatsAppMessage[] = [];
@@ -414,8 +508,8 @@ export function buildInitialState(): SystemSnapshot {
   return {
     circuito: circuitoCandioti,
     jornada: jornadaCandioti,
-    circuitos: [circuitoCandioti, circuitoGuadalupe],
-    jornadas: [jornadaCandioti, jornadaGuadalupe],
+    circuitos: [circuitoCandioti, circuitoParqueFederal, circuitoGuadalupe],
+    jornadas: [jornadaCandioti, jornadaParqueFederal, jornadaGuadalupe],
     tutorActivoId: SEED_IDS.coordinadoraMarta,
     participantes,
     asistencias,

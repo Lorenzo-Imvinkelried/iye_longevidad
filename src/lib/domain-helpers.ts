@@ -22,9 +22,141 @@ export function phonesMatch(phoneA: string, phoneB: string): boolean {
   );
 }
 
+export function extractAvatarFromNotas(notas?: string | null): string | undefined {
+  if (!notas) return undefined;
+  const match = notas.match(/\|foto:([^\s|]+)/i);
+  return match?.[1] ? match[1].trim() : undefined;
+}
+
 export function cleanNotas(notas?: string | null): string {
   if (!notas) return "";
-  return notas.replace(/\s*\|pin:[a-f0-9]+/gi, "").trim();
+  return notas
+    .replace(/\s*\|pin:[a-f0-9]+/gi, "")
+    .replace(/\s*\|foto:[^\s|]+/gi, "")
+    .trim();
+}
+
+export function encodeNotasWithFoto(
+  visibleNotas: string,
+  existingRawNotas?: string | null,
+  newAvatarUrl?: string | null
+): string {
+  const base = cleanNotas(visibleNotas);
+  const pinMatch = (existingRawNotas || "").match(/\|pin:([a-f0-9]+)/i);
+  const existingFoto = extractAvatarFromNotas(existingRawNotas);
+  const finalFoto =
+    newAvatarUrl !== undefined
+      ? (newAvatarUrl || "").trim() || undefined
+      : existingFoto;
+
+  let out = base;
+  if (pinMatch?.[1]) {
+    out = `${out} |pin:${pinMatch[1]}`.trim();
+  }
+  if (finalFoto) {
+    out = `${out} |foto:${finalFoto}`.trim();
+  }
+  return out;
+}
+
+export function getParticipanteAvatarUrl(
+  p?: Partial<Pick<Participante, "id" | "nombre" | "rol" | "avatar_url" | "notas_vulnerabilidad">> | null,
+  idx: number = 0
+): string {
+  if (!p) return "/participantes/rosa.jpg";
+  if (p.avatar_url && p.avatar_url.trim()) return p.avatar_url.trim();
+  const fromNotas = extractAvatarFromNotas(p.notas_vulnerabilidad);
+  if (fromNotas) return fromNotas;
+
+  const id = p.id || "";
+  const n = (p.nombre || "").toLowerCase();
+
+  if (id === SEED_IDS.coordinadoraMarta || n.includes("marta")) {
+    return "/coordinadores/marta.jpg";
+  }
+  if (id === SEED_IDS.tutorRoberto || n.includes("roberto")) {
+    return "/coordinadores/roberto.jpg";
+  }
+  if (id === SEED_IDS.coordinadoraLaura || n.includes("laura")) {
+    return "/coordinadores/coord-f-2.jpg";
+  }
+  if (id === SEED_IDS.rosa || n.includes("rosa")) {
+    return "/participantes/rosa.jpg";
+  }
+  if (id === SEED_IDS.nelida || n.includes("nelida") || n.includes("nélida")) {
+    return "/participantes/nelida.jpg";
+  }
+  if (id === SEED_IDS.jorge || n.includes("jorge")) {
+    return "/participantes/jorge.jpg";
+  }
+  if (id === SEED_IDS.hilda || n.includes("hilda")) {
+    return "/participantes/hilda.jpg";
+  }
+  if (id === SEED_IDS.oscar || n.includes("oscar") || n.includes("cacho")) {
+    return "/participantes/oscar.jpg";
+  }
+  if (id === SEED_IDS.ernestoPendiente || n.includes("ernesto") || n.includes("tito")) {
+    return "/participantes/ernesto.jpg";
+  }
+  if (id === SEED_IDS.padrinoCarlos || n.includes("carlos")) {
+    return "/participantes/carlos.jpg";
+  }
+  if (id === SEED_IDS.padrinoHector || n.includes("hector") || n.includes("héctor")) {
+    return "/participantes/hector.jpg";
+  }
+
+  const isFemale =
+    /\b(dra\.|lic\.|maria|ana|laura|carla|sofia|lucia|elena|rosa|nelida|hilda|elsa|claudia|valeria|paula|florencia|camila|agustina|julieta|norma|gladys|mirta|susana|graciela|beatriz|ester)\b/i.test(
+      n
+    ) || n.split(" ")[0]?.endsWith("a");
+
+  if (p.rol === "coordinador") {
+    const fPool = [
+      "/coordinadores/coord-f-2.jpg",
+      "/coordinadores/coord-f-3.jpg",
+      "/coordinadores/marta.jpg",
+    ];
+    const mPool = ["/coordinadores/coord-m-2.jpg", "/coordinadores/roberto.jpg"];
+    const pool = isFemale ? fPool : mPool;
+    return pool[idx % pool.length];
+  }
+
+  const seniorFemalePool = [
+    "/participantes/rosa.jpg",
+    "/participantes/nelida.jpg",
+    "/participantes/hilda.jpg",
+  ];
+  const seniorMalePool = [
+    "/participantes/oscar.jpg",
+    "/participantes/jorge.jpg",
+    "/participantes/ernesto.jpg",
+    "/participantes/carlos.jpg",
+  ];
+  const pool = isFemale ? seniorFemalePool : seniorMalePool;
+  return pool[idx % pool.length];
+}
+
+export function getCircuitoTutoresIds(circuito: CircuitoBarrial): string[] {
+  const pol = circuito.poliza_nro || "";
+  const matches = Array.from(pol.matchAll(/tutor:([^\s|]+)/gi)).map((m) => m[1]);
+  if (matches.length === 0) {
+    return [SEED_IDS.coordinadoraMarta];
+  }
+  return Array.from(new Set(matches));
+}
+
+export function formatPolizaWithTutores(
+  existingPoliza: string | undefined,
+  tutorIds: string[]
+): string {
+  const cleanBase =
+    (existingPoliza || "")
+      .replace(/\|?tutor:[^\s|]+/gi, "")
+      .replace(/\|+/g, "")
+      .trim() || `SANCOR-RC-${Math.floor(10000 + Math.random() * 89999)}`;
+  const uniqueIds = Array.from(new Set(tutorIds.filter(Boolean)));
+  if (uniqueIds.length === 0) return cleanBase;
+  return `${cleanBase}|${uniqueIds.map((id) => `tutor:${id}`).join("|")}`;
 }
 
 export function parseTimeToMinutes(hora: string): number | null {
@@ -92,13 +224,8 @@ export function getTutorCircuitos(
 ): CircuitoBarrial[] {
   if (!tutorId) return circuitos;
   return circuitos.filter((c) => {
-    const pol = c.poliza_nro || "";
-    if (pol.includes(`tutor:${tutorId}`)) return true;
-    // Fallback solo para registros legados sin marca de tutor asignados a Marta
-    if (tutorId === SEED_IDS.coordinadoraMarta && !pol.includes("tutor:")) {
-      return true;
-    }
-    return false;
+    const tutoresIds = getCircuitoTutoresIds(c);
+    return tutoresIds.includes(tutorId);
   });
 }
 
@@ -171,8 +298,9 @@ export function sanitizeSnapshotForClient(
 ): SystemSnapshot {
   return {
     ...snapshot,
-    participantes: snapshot.participantes.map((p) => ({
+    participantes: snapshot.participantes.map((p, idx) => ({
       ...p,
+      avatar_url: getParticipanteAvatarUrl(p, idx),
       notas_vulnerabilidad: cleanNotas(p.notas_vulnerabilidad),
     })),
   };

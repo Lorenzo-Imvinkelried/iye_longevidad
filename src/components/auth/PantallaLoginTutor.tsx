@@ -2,16 +2,23 @@
 
 import React, { useState } from "react";
 import { CircuitoBarrial, Participante } from "@/types/domain";
+import {
+  getCircuitoTutoresIds,
+  getParticipanteAvatarUrl,
+} from "@/lib/domain-helpers";
 import FooterInstitucional from "@/components/layout/FooterInstitucional";
 import {
   Building2,
+  ChevronRight,
   Eye,
   EyeOff,
   KeyRound,
   LogIn,
   MapPin,
+  Phone,
   ShieldCheck,
   Users,
+  X,
 } from "lucide-react";
 
 interface LoginProps {
@@ -23,25 +30,7 @@ interface LoginProps {
 }
 
 export function getCoordinatorAvatarUrl(nombre: string, idx: number = 0): string {
-  const n = (nombre || "").toLowerCase();
-  if (n.includes("marta")) return "/coordinadores/marta.jpg";
-  if (n.includes("roberto")) return "/coordinadores/roberto.jpg";
-  const isFemale =
-    /\b(dra\.|lic\.|maria|ana|laura|carla|sofia|lucia|elena|rosa|claudia|valeria|paula|florencia|camila|agustina|julieta)\b/i.test(
-      n
-    ) ||
-    n.split(" ")[0]?.endsWith("a");
-  const femalePool = [
-    "/coordinadores/coord-f-2.jpg",
-    "/coordinadores/coord-f-3.jpg",
-    "/coordinadores/marta.jpg",
-  ];
-  const malePool = [
-    "/coordinadores/coord-m-2.jpg",
-    "/coordinadores/roberto.jpg",
-  ];
-  const pool = isFemale ? femalePool : malePool;
-  return pool[idx % pool.length];
+  return getParticipanteAvatarUrl({ nombre, rol: "coordinador" }, idx);
 }
 
 export default function PantallaLoginTutor({
@@ -55,12 +44,20 @@ export default function PantallaLoginTutor({
   const [clave, setClave] = useState("");
   const [mostrarClave, setMostrarClave] = useState(false);
   const [busquedaCoord, setBusquedaCoord] = useState("");
+  const [selectedTutorModal, setSelectedTutorModal] = useState<Participante | null>(
+    null
+  );
 
   const getCircuitosDeTutor = (tutorId: string): CircuitoBarrial[] => {
-    return circuitos.filter((c) => {
-      const pol = c.poliza_nro || "";
-      return pol.includes(`tutor:${tutorId}`);
-    });
+    return circuitos.filter((c) => getCircuitoTutoresIds(c).includes(tutorId));
+  };
+
+  const getCoCoordinadoresDeSede = (
+    sede: CircuitoBarrial,
+    excludeTutorId?: string
+  ): Participante[] => {
+    const ids = getCircuitoTutoresIds(sede).filter((id) => id !== excludeTutorId);
+    return tutores.filter((t) => ids.includes(t.id));
   };
 
   const tutoresFiltrados = tutores.filter((t) => {
@@ -240,12 +237,21 @@ export default function PantallaLoginTutor({
                   const perfilCoordinador = (tutor.credencial_nro || "")
                     .replace(/\s*\/\s*Tutor(\s+Sancor)?/gi, "")
                     .trim();
-                  const avatarUrl = getCoordinatorAvatarUrl(tutor.nombre, idx);
+                  const avatarUrl = getParticipanteAvatarUrl(tutor, idx);
 
                   return (
                     <div
                       key={tutor.id}
-                      className="border border-[#eaeced] rounded-xl p-3 bg-[#f6f6f7]/50 space-y-2.5 hover:border-[#d5d9dd] transition"
+                      onClick={() => setSelectedTutorModal(tutor)}
+                      role="button"
+                      tabIndex={0}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          setSelectedTutorModal(tutor);
+                        }
+                      }}
+                      className="border border-[#eaeced] rounded-xl p-3 bg-[#f6f6f7]/50 space-y-2.5 hover:border-[#a70355] hover:bg-[#fdf9fb] transition cursor-pointer group"
                     >
                       <div className="flex items-start justify-between gap-3">
                         <div className="flex items-start gap-3 min-w-0">
@@ -266,14 +272,20 @@ export default function PantallaLoginTutor({
                           </div>
 
                           <div className="min-w-0">
-                            <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full">
-                              Coordinador
-                            </span>
-                            <h3 className="text-sm font-bold text-[#363f48] mt-1 truncate">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full">
+                                Coordinador
+                              </span>
+                              <span className="text-[10px] font-semibold text-[#52606d] bg-white border border-[#eaeced] px-2 py-0.5 rounded-full">
+                                {sedes.length}{" "}
+                                {sedes.length === 1 ? "centro a cargo" : "centros a cargo"}
+                              </span>
+                            </div>
+                            <h3 className="text-sm font-bold text-[#363f48] group-hover:text-[#a70355] transition mt-1 truncate">
                               {tutor.nombre}
                             </h3>
                             {(perfilCoordinador || tutor.notas_vulnerabilidad) && (
-                              <p className="text-[11px] text-[#52606d] mt-0.5 leading-snug">
+                              <p className="text-[11px] text-[#52606d] mt-0.5 leading-snug line-clamp-2">
                                 {perfilCoordinador && (
                                   <span className="font-semibold text-[#363f48]">
                                     {perfilCoordinador}
@@ -285,29 +297,40 @@ export default function PantallaLoginTutor({
                             )}
                           </div>
                         </div>
-                        <span className="text-[10px] font-semibold text-[#52606d] bg-white border border-[#c4c9cd] px-2 py-0.5 rounded-full shrink-0">
-                          Acreditado
+                        <span className="text-[10px] font-semibold text-[#a70355] bg-white border border-[#e1a9c5] px-2 py-0.5 rounded-full shrink-0 inline-flex items-center gap-0.5 group-hover:bg-[#a70355] group-hover:text-white transition">
+                          <span>Ver ficha</span>
+                          <ChevronRight className="w-3 h-3" />
                         </span>
                       </div>
 
-                      <div className="space-y-1 pt-1.5 border-t border-[#eaeced] text-xs text-[#52606d]">
+                      <div className="space-y-1.5 pt-1.5 border-t border-[#eaeced] text-xs text-[#52606d]">
                         {sedes.length === 0 ? (
                           <div className="text-[11px] flex items-center gap-1.5">
                             <MapPin className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
                             <span className="truncate">{tutor.direccion}</span>
                           </div>
                         ) : (
-                          sedes.map((s) => (
-                            <div key={s.id} className="space-y-0.5">
-                              <div className="font-semibold text-[#363f48] text-xs flex items-center gap-1.5">
-                                <Building2 className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
-                                <span className="truncate">{s.nombre_club}</span>
+                          sedes.map((s) => {
+                            const coCoords = getCoCoordinadoresDeSede(s, tutor.id);
+                            return (
+                              <div key={s.id} className="space-y-0.5">
+                                <div className="font-semibold text-[#363f48] text-xs flex items-center justify-between gap-1.5">
+                                  <div className="flex items-center gap-1.5 min-w-0">
+                                    <Building2 className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
+                                    <span className="truncate">{s.nombre_club}</span>
+                                  </div>
+                                  {coCoords.length > 0 && (
+                                    <span className="text-[10px] font-medium text-[#52606d] bg-white border border-[#eaeced] px-1.5 py-0.5 rounded-full shrink-0">
+                                      +{coCoords.length} co-coord.
+                                    </span>
+                                  )}
+                                </div>
+                                <div className="pl-5 text-[11px] text-[#52606d] truncate">
+                                  {s.direccion_club}
+                                </div>
                               </div>
-                              <div className="pl-5 text-[11px] text-[#52606d] truncate">
-                                {s.direccion_club} • {s.nombre_barrio}
-                              </div>
-                            </div>
-                          ))
+                            );
+                          })
                         )}
                       </div>
                     </div>
@@ -320,6 +343,177 @@ export default function PantallaLoginTutor({
       </main>
 
       <FooterInstitucional maxWidthClass="max-w-[1200px]" />
+
+      {/* Modal con ficha completa del coordinador acreditado */}
+      {selectedTutorModal && (
+        <div
+          className="fixed inset-0 z-50 bg-slate-900/60 flex items-center justify-center p-4"
+          onClick={() => setSelectedTutorModal(null)}
+        >
+          <div
+            className="bg-white rounded-2xl max-w-lg w-full p-5 shadow-2xl border border-[#eaeced] space-y-4 max-h-[90vh] overflow-y-auto"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-start justify-between gap-3 border-b border-[#eaeced] pb-3.5">
+              <div className="flex items-center gap-3.5 min-w-0">
+                <div className="relative shrink-0">
+                  <img
+                    src={getParticipanteAvatarUrl(selectedTutorModal)}
+                    alt={`Foto de ${selectedTutorModal.nombre}`}
+                    width={96}
+                    height={96}
+                    className="w-20 h-20 sm:w-24 sm:h-24 rounded-2xl object-cover border-2 border-[#a70355]/20 shadow-sm bg-[#eaeced]"
+                  />
+                  <span className="absolute -bottom-1.5 -right-1.5 w-6 h-6 rounded-full bg-[#a70355] text-white flex items-center justify-center ring-2 ring-white">
+                    <ShieldCheck className="w-3.5 h-3.5" />
+                  </span>
+                </div>
+
+                <div className="min-w-0 space-y-1">
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] border border-[#f4e1eb] px-2.5 py-0.5 rounded-full">
+                      Credencial Verificada Sancor
+                    </span>
+                    <span className="text-[10px] font-semibold text-emerald-800 bg-emerald-50 border border-emerald-200 px-2 py-0.5 rounded-full">
+                      Activo
+                    </span>
+                  </div>
+                  <h3 className="text-base sm:text-lg font-bold text-[#363f48]">
+                    {selectedTutorModal.nombre}
+                  </h3>
+                  <p className="text-xs font-semibold text-[#a70355]">
+                    {selectedTutorModal.credencial_nro || "Coordinador Barrial"} •{" "}
+                    {selectedTutorModal.edad} anos
+                  </p>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => setSelectedTutorModal(null)}
+                className="text-[#52606d] hover:text-[#363f48] p-1"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {selectedTutorModal.notas_vulnerabilidad && (
+              <div className="p-3 rounded-xl bg-[#fdf9fb] border border-[#f4e1eb] text-xs text-[#363f48] leading-relaxed">
+                <div className="text-[10px] font-bold uppercase text-[#a70355] mb-0.5">
+                  Perfil Profesional y Rol en el Programa
+                </div>
+                {selectedTutorModal.notas_vulnerabilidad}
+              </div>
+            )}
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 text-xs">
+              <div className="p-2.5 rounded-xl bg-[#f6f6f7] border border-[#eaeced]">
+                <span className="text-[10px] font-semibold uppercase text-[#52606d] block">
+                  Referencia Institucional
+                </span>
+                <span className="font-semibold text-[#363f48]">
+                  {selectedTutorModal.contacto_familiar_nombre || "Red de Clubes Sancor"}
+                </span>
+              </div>
+              <div className="p-2.5 rounded-xl bg-[#f6f6f7] border border-[#eaeced]">
+                <span className="text-[10px] font-semibold uppercase text-[#52606d] block">
+                  Contacto de Sede
+                </span>
+                <span className="font-semibold text-[#363f48] inline-flex items-center gap-1">
+                  <Phone className="w-3 h-3 text-[#a70355]" />
+                  {selectedTutorModal.contacto_familiar_tel || selectedTutorModal.telefono}
+                </span>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="text-xs font-bold text-[#363f48] flex items-center justify-between">
+                <span>
+                  Centros y Clubes que coordina (
+                  {getCircuitosDeTutor(selectedTutorModal.id).length})
+                </span>
+                <span className="text-[10px] font-normal text-[#52606d]">
+                  Poliza RC Sancor Activa
+                </span>
+              </div>
+
+              <div className="space-y-2">
+                {getCircuitosDeTutor(selectedTutorModal.id).map((sede) => {
+                  const otrosCoords = getCoCoordinadoresDeSede(
+                    sede,
+                    selectedTutorModal.id
+                  );
+                  return (
+                    <div
+                      key={sede.id}
+                      className="p-3 rounded-xl border border-[#eaeced] bg-[#f6f6f7]/60 space-y-2"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div>
+                          <div className="font-bold text-xs text-[#363f48] flex items-center gap-1.5">
+                            <Building2 className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
+                            <span>{sede.nombre_club}</span>
+                          </div>
+                          <div className="text-[11px] text-[#52606d] pl-5">
+                            {sede.direccion_club} • {sede.nombre_barrio}
+                          </div>
+                        </div>
+                      </div>
+
+                      {otrosCoords.length > 0 && (
+                        <div className="pl-5 pt-1.5 border-t border-[#eaeced] flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] font-semibold text-[#52606d]">
+                            Comparte coordinacion en este centro con:
+                          </span>
+                          {otrosCoords.map((co) => (
+                            <button
+                              key={co.id}
+                              type="button"
+                              onClick={() => setSelectedTutorModal(co)}
+                              className="inline-flex items-center gap-1.5 bg-white border border-[#c4c9cd] hover:border-[#a70355] px-2 py-0.5 rounded-full text-[11px] font-semibold text-[#363f48] transition"
+                            >
+                              <img
+                                src={getParticipanteAvatarUrl(co)}
+                                alt={co.nombre}
+                                className="w-4 h-4 rounded-full object-cover"
+                              />
+                              <span>{co.nombre}</span>
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-[#eaeced] flex items-center justify-between gap-2">
+              <button
+                type="button"
+                onClick={() => {
+                  setIdentificador(selectedTutorModal.nombre);
+                  setSelectedTutorModal(null);
+                  const pinInput = document.getElementById("login-clave-pin");
+                  pinInput?.focus();
+                }}
+                className="text-xs font-semibold text-[#a70355] hover:underline flex items-center gap-1"
+              >
+                <KeyRound className="w-3.5 h-3.5" />
+                <span>Autocompletar nombre para ingresar</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setSelectedTutorModal(null)}
+                className="bg-[#363f48] hover:bg-slate-800 text-white font-semibold text-xs px-4 py-2 rounded-full transition"
+              >
+                Cerrar ficha
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

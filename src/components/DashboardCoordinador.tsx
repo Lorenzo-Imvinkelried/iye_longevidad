@@ -5,6 +5,7 @@ import dynamic from "next/dynamic";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
 import {
   getTutorCircuitos,
+  getTutorJornadas,
   projectSnapshotForTutor,
 } from "@/lib/domain-helpers";
 import HeaderInstitucional, { TabId } from "@/components/layout/HeaderInstitucional";
@@ -35,10 +36,6 @@ const ModalDerivacionFamiliar = dynamic(
 );
 const ModalAcreditarPadrino = dynamic(
   () => import("@/components/modals/ModalAcreditarPadrino"),
-  { ssr: false }
-);
-const ModalAcreditarCoordinador = dynamic(
-  () => import("@/components/modals/ModalAcreditarCoordinador"),
   { ssr: false }
 );
 const ModalCrearEventoLugar = dynamic(
@@ -181,7 +178,6 @@ function DashboardCoordinadorInner({
   const [qrModalOpen, setQrModalOpen] = useState<boolean>(false);
   const [familiarModalOpen, setFamiliarModalOpen] = useState<boolean>(false);
   const [padrinoModalOpen, setPadrinoModalOpen] = useState<boolean>(false);
-  const [coordinadorModalOpen, setCoordinadorModalOpen] = useState<boolean>(false);
   const [crearEventoModalOpen, setCrearEventoModalOpen] = useState<boolean>(false);
   const [suspenderModalOpen, setSuspenderModalOpen] = useState<boolean>(false);
 
@@ -380,6 +376,11 @@ function DashboardCoordinadorInner({
     circuitos || [circuito],
     loggedInTutorId
   );
+  const jornadasDelTutor = getTutorJornadas(
+    jornadas || [jornada],
+    circuitos || [circuito],
+    loggedInTutorId
+  );
   const tutorActivo =
     participantes.find((p) => p.id === loggedInTutorId) ||
     participantes.find((p) => p.rol === "coordinador");
@@ -496,7 +497,6 @@ function DashboardCoordinadorInner({
               onOpenPhone={handleOpenPhoneInSimulator}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
               onOpenPadrinoModal={() => setPadrinoModalOpen(true)}
-              onOpenCoordinadorModal={() => setCoordinadorModalOpen(true)}
             />
           )}
         </div>
@@ -580,20 +580,6 @@ function DashboardCoordinadorInner({
         />
       )}
 
-      {coordinadorModalOpen && (
-        <ModalAcreditarCoordinador
-          open={coordinadorModalOpen}
-          onClose={() => setCoordinadorModalOpen(false)}
-          circuitosExistentes={circuitos || [circuito]}
-          onSubmit={async (payload) => {
-            const res = await executeCoordinatorAction("registrar_tutor_lugar", {
-              payload,
-            });
-            return { ok: res.ok, error: res.error };
-          }}
-        />
-      )}
-
       {crearEventoModalOpen && (
         <ModalCrearEventoLugar
           open={crearEventoModalOpen}
@@ -602,7 +588,27 @@ function DashboardCoordinadorInner({
           circuitosDelTutor={
             circuitosDelTutor.length > 0 ? circuitosDelTutor : [circuito]
           }
+          allCircuitos={circuitos || [circuito]}
+          jornadasDelTutor={
+            jornadasDelTutor.length > 0 ? jornadasDelTutor : [jornada]
+          }
+          jornadaActualId={jornada.id}
           circuitoActualId={circuito.id}
+          participantes={participantes}
+          asistencias={asistencias}
+          onSelectEvento={handleSelectEventoDelTutor}
+          onEditEvento={async (payload) => {
+            const res = await executeCoordinatorAction("editar_evento_lugar", {
+              payload,
+            });
+            return { ok: res.ok, error: res.error };
+          }}
+          onPasarAbuelo={async (payload) => {
+            const res = await executeCoordinatorAction("pasar_abuelo_evento", {
+              payload,
+            });
+            return { ok: res.ok, error: res.error };
+          }}
           onSubmit={async (payload) => {
             const res = await executeCoordinatorAction("crear_evento_lugar", {
               payload,

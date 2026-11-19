@@ -1,10 +1,13 @@
 export const SEED_IDS = {
   circuito: "11111111-1111-4111-8111-111111111111",
   circuitoGuadalupe: "11111111-1111-4111-8111-111111111112",
+  circuitoParqueFederal: "11111111-1111-4111-8111-111111111113",
   jornada: "55555555-5555-4555-8555-555555555001",
   jornadaGuadalupe: "55555555-5555-4555-8555-555555555002",
+  jornadaParqueFederal: "55555555-5555-4555-8555-555555555003",
   coordinadoraMarta: "22222222-2222-4222-8222-222222222200",
   tutorRoberto: "22222222-2222-4222-8222-222222222201",
+  coordinadoraLaura: "22222222-2222-4222-8222-222222222202",
   padrinoCarlos: "33333333-3333-4333-8333-333333333104",
   padrinoHector: "33333333-3333-4333-8333-333333333108",
   rosa: "44444444-4444-4444-8444-444444444001",
@@ -64,6 +67,7 @@ export interface Participante {
   contacto_familiar_nombre: string;
   contacto_familiar_tel: string;
   notas_vulnerabilidad?: string;
+  avatar_url?: string | null;
   estado_alta: EstadoAlta;
 }
 

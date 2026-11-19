@@ -88,10 +88,18 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
 
     if (circRes.data && circRes.data.length > 0) {
       const dbCircuitos = circRes.data as CircuitoBarrial[];
-      // Asegurar que la segunda sede semilla tambien exista
       const mergedMap = new Map<string, CircuitoBarrial>();
       for (const c of state.circuitos) mergedMap.set(c.id, c);
-      for (const c of dbCircuitos) mergedMap.set(c.id, c);
+      for (const c of dbCircuitos) {
+        if (
+          c.id === SEED_IDS.circuito &&
+          c.poliza_nro &&
+          !c.poliza_nro.includes(SEED_IDS.coordinadoraLaura)
+        ) {
+          c.poliza_nro = `${c.poliza_nro}|tutor:${SEED_IDS.coordinadoraLaura}`;
+        }
+        mergedMap.set(c.id, c);
+      }
       state.circuitos = Array.from(mergedMap.values());
     }
 

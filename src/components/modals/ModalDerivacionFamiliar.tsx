@@ -10,8 +10,47 @@ import {
 import {
   findExistingSeniorByDniOrPhone,
   findScheduleConflict,
+  getParticipanteAvatarUrl,
 } from "@/lib/domain-helpers";
-import { AlertTriangle, CheckCircle2, UserCheck, UserPlus, X } from "lucide-react";
+import { AlertTriangle, Camera, CheckCircle2, UserCheck, UserPlus, X } from "lucide-react";
+
+const CARNET_PRESETS = [
+  { label: "Mujer 1", url: "/participantes/nelida.jpg" },
+  { label: "Mujer 2", url: "/participantes/hilda.jpg" },
+  { label: "Mujer 3", url: "/participantes/rosa.jpg" },
+  { label: "Hombre 1", url: "/participantes/oscar.jpg" },
+  { label: "Hombre 2", url: "/participantes/jorge.jpg" },
+  { label: "Hombre 3", url: "/participantes/ernesto.jpg" },
+];
+
+export function compressImageFileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onerror = () => reject(new Error("No se pudo leer la imagen"));
+    reader.onload = () => {
+      const img = new Image();
+      img.onerror = () => reject(new Error("Formato de imagen invalido"));
+      img.onload = () => {
+        const size = 140;
+        const canvas = document.createElement("canvas");
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext("2d");
+        if (!ctx) {
+          resolve(String(reader.result));
+          return;
+        }
+        const minSide = Math.min(img.width, img.height);
+        const sx = (img.width - minSide) / 2;
+        const sy = (img.height - minSide) / 2;
+        ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, size, size);
+        resolve(canvas.toDataURL("image/jpeg", 0.76));
+      };
+      img.src = String(reader.result);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
 interface ModalFamiliarProps {
   open: boolean;
@@ -33,6 +72,7 @@ interface ModalFamiliarProps {
     vinculo: string;
     telefonoFamiliar: string;
     notas: string;
+    avatarUrl?: string;
     aprobarDirecto: boolean;
   }) => Promise<{ ok: boolean; error?: string }>;
 }
@@ -63,6 +103,7 @@ export default function ModalDerivacionFamiliar({
     vinculo: "Coordinacion / Familiar",
     telefonoFamiliar: "+5493425443322",
     notas: "Requiere acompanamiento puerta a puerta para salir con tranquilidad.",
+    avatarUrl: "/participantes/nelida.jpg",
     aprobarDirecto: true,
   });
 
@@ -208,7 +249,7 @@ export default function ModalDerivacionFamiliar({
               </div>
             ) : (
               <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                {abuelosDisponibles.map((ad) => {
+                {abuelosDisponibles.map((ad, idx) => {
                   const conflicto = findScheduleConflict(
                     ad.id,
                     jornada,
@@ -226,24 +267,33 @@ export default function ModalDerivacionFamiliar({
                           : "bg-white border-[#eaeced]"
                       }`}
                     >
-                      <div className="space-y-0.5 min-w-0">
-                        <div className="font-bold text-[#363f48] truncate">
-                          {ad.nombre} ({ad.edad} anos • DNI {ad.dni})
-                        </div>
-                        <div className="text-[11px] text-[#52606d] truncate">
-                          {ad.direccion} • Tel: {ad.telefono}
-                        </div>
-                        {conflicto ? (
-                          <div className="text-[11px] font-semibold text-red-700 flex items-center gap-1 pt-0.5">
-                            <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
-                            <span>{conflicto.mensaje}</span>
+                      <div className="flex items-center gap-2.5 min-w-0">
+                        <img
+                          src={getParticipanteAvatarUrl(ad, idx)}
+                          alt={ad.nombre}
+                          width={40}
+                          height={40}
+                          className="w-10 h-10 rounded-xl object-cover border border-[#eaeced] shrink-0"
+                        />
+                        <div className="space-y-0.5 min-w-0">
+                          <div className="font-bold text-[#363f48] truncate">
+                            {ad.nombre} ({ad.edad} anos • DNI {ad.dni})
                           </div>
-                        ) : (
-                          <div className="text-[11px] font-semibold text-[#52606d] flex items-center gap-1 pt-0.5">
-                            <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[#a70355]" />
-                            <span>Disponible para sumar sin superposicion</span>
+                          <div className="text-[11px] text-[#52606d] truncate">
+                            {ad.direccion} • Tel: {ad.telefono}
                           </div>
-                        )}
+                          {conflicto ? (
+                            <div className="text-[11px] font-semibold text-red-700 flex items-center gap-1 pt-0.5">
+                              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+                              <span>{conflicto.mensaje}</span>
+                            </div>
+                          ) : (
+                            <div className="text-[11px] font-semibold text-[#52606d] flex items-center gap-1 pt-0.5">
+                              <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[#a70355]" />
+                              <span>Disponible para sumar sin superposicion</span>
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <button
@@ -266,6 +316,68 @@ export default function ModalDerivacionFamiliar({
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-3 text-xs">
+            {/* Selector de Foto de Perfil del Abuelo */}
+            <div className="p-3 rounded-xl bg-[#f6f6f7] border border-[#eaeced] flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+              <div className="flex items-center gap-3">
+                <img
+                  src={form.avatarUrl || "/participantes/nelida.jpg"}
+                  alt="Vista previa de foto carnet"
+                  width={52}
+                  height={52}
+                  className="w-13 h-13 rounded-xl object-cover border-2 border-white shadow-xs shrink-0 bg-white"
+                />
+                <div>
+                  <div className="font-bold text-[#363f48]">
+                    Foto de Perfil / Carnet
+                  </div>
+                  <div className="text-[11px] text-[#52606d]">
+                    Subi una foto desde tu dispositivo o elegi una de muestra:
+                  </div>
+                  <div className="flex items-center gap-1.5 mt-1.5 flex-wrap">
+                    {CARNET_PRESETS.map((preset) => (
+                      <button
+                        key={preset.url}
+                        type="button"
+                        onClick={() => setForm({ ...form, avatarUrl: preset.url })}
+                        className={`rounded-lg p-0.5 border-2 transition ${
+                          form.avatarUrl === preset.url
+                            ? "border-[#a70355]"
+                            : "border-transparent opacity-70 hover:opacity-100"
+                        }`}
+                        title={preset.label}
+                      >
+                        <img
+                          src={preset.url}
+                          alt={preset.label}
+                          className="w-6 h-6 rounded-md object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+              <label className="cursor-pointer shrink-0 inline-flex items-center gap-1.5 border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-[11px] px-3 py-1.5 rounded-full transition">
+                <Camera className="w-3.5 h-3.5" />
+                <span>Subir foto</span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file) return;
+                    try {
+                      const dataUrl = await compressImageFileToDataUrl(file);
+                      setForm((prev) => ({ ...prev, avatarUrl: dataUrl }));
+                    } catch {
+                      // Ignore invalid image
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <div className="sm:col-span-2">
                 <label className="font-semibold text-slate-700 block mb-1">

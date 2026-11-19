@@ -7,9 +7,11 @@ import {
   crearNuevoEventoOLugar,
   crearSolicitudNietoFamiliar,
   dispararConvocatoriaJornada,
+  editarEventoOLugar,
   enviarMensajeManualWhatsApp,
   frenarSalidaAdultoPorSeguridad,
   loginTutorConClave,
+  pasarAbueloEntreEventos,
   readStateAsync,
   reasignarTutorManualCoordinador,
   registrarNuevoTutorYLugar,
@@ -133,6 +135,20 @@ export async function POST(req: NextRequest) {
         return NextResponse.json({
           ok: true,
           snapshot: sanitizeSnapshotForClient(snapshot),
+        });
+      }
+      case "editar_evento_lugar": {
+        const snapshot = await editarEventoOLugar(body.payload);
+        return NextResponse.json({
+          ok: true,
+          snapshot: finalize(snapshot),
+        });
+      }
+      case "pasar_abuelo_evento": {
+        const snapshot = await pasarAbueloEntreEventos(body.payload);
+        return NextResponse.json({
+          ok: true,
+          snapshot: finalize(snapshot),
         });
       }
       case "actualizar_ruta_circuito": {

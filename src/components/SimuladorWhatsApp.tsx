@@ -207,7 +207,7 @@ export default function SimuladorWhatsApp({
           <div className="flex items-center gap-2">
             <Smartphone className="w-4 h-4 text-emerald-400" />
             <span className="text-xs font-bold uppercase tracking-wide">
-              Simulador de WhatsApp
+              WhatsApp en Tiempo Real
             </span>
           </div>
 
@@ -270,15 +270,15 @@ export default function SimuladorWhatsApp({
       <div className="bg-[#008069] text-white px-3.5 py-2.5 flex items-center justify-between">
         <div>
           <div className="font-semibold text-sm leading-tight">
-            Club Candioti - Sancor Salud
+            {participanteActual.nombre}
           </div>
           <div className="text-[11px] text-emerald-100">
-            Chat individual 1 a 1 • Cuenta oficial
+            Bot Oficial • WhatsApp en Tiempo Real ({participanteActual.telefono})
           </div>
         </div>
         <a
-          href="tel:+5493424551234"
-          title="Llamar al club"
+          href={`tel:${participanteActual.telefono}`}
+          title="Llamar al participante"
           className="p-1.5 rounded-full hover:bg-white/10 transition"
         >
           <Phone className="w-4 h-4" />

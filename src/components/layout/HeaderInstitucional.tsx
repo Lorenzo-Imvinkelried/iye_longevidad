@@ -117,7 +117,7 @@ export default function HeaderInstitucional({
             className="rounded-full bg-[#a70355] hover:bg-[#8c0347] text-white text-[11px] sm:text-xs font-semibold px-3.5 py-1.5 transition flex items-center gap-1.5 shadow-xs"
           >
             <CalendarPlus className="w-3.5 h-3.5" />
-            <span>+ Nuevo Evento / Lugar</span>
+            <span>Mis Eventos y Lugares</span>
           </button>
 
           <button
@@ -133,7 +133,7 @@ export default function HeaderInstitucional({
 
           <button
             onClick={onToggleSim}
-            title="Abrir o cerrar Simulador de WhatsApp"
+            title="Abrir o cerrar WhatsApp en Tiempo Real"
             className={`rounded-full text-[11px] sm:text-xs font-semibold px-3 py-1.5 transition flex items-center gap-1.5 border ${
               simulatorOpen
                 ? "bg-[#363f48] border-[#363f48] text-white"
@@ -141,7 +141,7 @@ export default function HeaderInstitucional({
             }`}
           >
             <Smartphone className="w-3.5 h-3.5" />
-            <span>{simulatorOpen ? "Ocultar" : "Simulador"}</span>
+            <span>{simulatorOpen ? "Ocultar WhatsApp" : "WhatsApp en Vivo"}</span>
           </button>
         </div>
       </div>

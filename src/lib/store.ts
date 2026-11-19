@@ -16,6 +16,8 @@ export {
   seleccionarEventoActivo,
   registrarNuevoTutorYLugar,
   crearNuevoEventoOLugar,
+  editarEventoOLugar,
+  pasarAbueloEntreEventos,
   actualizarRutaCircuito,
   vincularAbueloExistenteAEvento,
   suspenderJornadaPorEmergencia,
