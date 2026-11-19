@@ -2,6 +2,7 @@
 
 import React from "react";
 import { CalendarPlus, LogOut, RefreshCw, Smartphone } from "lucide-react";
+import { getCoordinatorAvatarUrl } from "@/components/auth/PantallaLoginTutor";
 
 export type TabId = "tab1_monitor" | "tab2_club" | "tab3_confianza";
 
@@ -91,13 +92,22 @@ export default function HeaderInstitucional({
             className="h-6 sm:h-7 w-auto shrink-0"
           />
           <span className="hidden sm:inline-block h-5 w-px bg-[#eaeced]" />
-          <div className="min-w-0">
-            <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
-              {nombreClub}
-            </h1>
-            <p className="text-[10px] text-[#52606d] truncate hidden sm:block leading-tight">
-              Coordinador: {nombreTutorActivo}
-            </p>
+          <div className="flex items-center gap-2 min-w-0">
+            <img
+              src={getCoordinatorAvatarUrl(nombreTutorActivo)}
+              alt={nombreTutorActivo}
+              width={28}
+              height={28}
+              className="w-7 h-7 rounded-full object-cover border border-[#eaeced] shrink-0 hidden sm:block"
+            />
+            <div className="min-w-0">
+              <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
+                {nombreClub}
+              </h1>
+              <p className="text-[10px] text-[#52606d] truncate hidden sm:block leading-tight">
+                Coordinador: {nombreTutorActivo}
+              </p>
+            </div>
           </div>
         </div>
 

@@ -22,6 +22,28 @@ interface LoginProps {
   onLoginConClave: (identificador: string, clave: string) => Promise<void>;
 }
 
+export function getCoordinatorAvatarUrl(nombre: string, idx: number = 0): string {
+  const n = (nombre || "").toLowerCase();
+  if (n.includes("marta")) return "/coordinadores/marta.jpg";
+  if (n.includes("roberto")) return "/coordinadores/roberto.jpg";
+  const isFemale =
+    /\b(dra\.|lic\.|maria|ana|laura|carla|sofia|lucia|elena|rosa|claudia|valeria|paula|florencia|camila|agustina|julieta)\b/i.test(
+      n
+    ) ||
+    n.split(" ")[0]?.endsWith("a");
+  const femalePool = [
+    "/coordinadores/coord-f-2.jpg",
+    "/coordinadores/coord-f-3.jpg",
+    "/coordinadores/marta.jpg",
+  ];
+  const malePool = [
+    "/coordinadores/coord-m-2.jpg",
+    "/coordinadores/roberto.jpg",
+  ];
+  const pool = isFemale ? femalePool : malePool;
+  return pool[idx % pool.length];
+}
+
 export default function PantallaLoginTutor({
   tutores,
   circuitos,
@@ -213,36 +235,55 @@ export default function PantallaLoginTutor({
               </p>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                {tutoresFiltrados.map((tutor) => {
+                {tutoresFiltrados.map((tutor, idx) => {
                   const sedes = getCircuitosDeTutor(tutor.id);
                   const perfilCoordinador = (tutor.credencial_nro || "")
                     .replace(/\s*\/\s*Tutor(\s+Sancor)?/gi, "")
                     .trim();
+                  const avatarUrl = getCoordinatorAvatarUrl(tutor.nombre, idx);
 
                   return (
                     <div
                       key={tutor.id}
-                      className="border border-[#eaeced] rounded-xl p-3 bg-[#f6f6f7]/50 space-y-2"
+                      className="border border-[#eaeced] rounded-xl p-3 bg-[#f6f6f7]/50 space-y-2.5 hover:border-[#d5d9dd] transition"
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <div className="min-w-0">
-                          <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full">
-                            Coordinador
-                          </span>
-                          <h3 className="text-sm font-bold text-[#363f48] mt-1 truncate">
-                            {tutor.nombre}
-                          </h3>
-                          {(perfilCoordinador || tutor.notas_vulnerabilidad) && (
-                            <p className="text-[11px] text-[#52606d] mt-0.5 leading-snug">
-                              {perfilCoordinador && (
-                                <span className="font-semibold text-[#363f48]">
-                                  {perfilCoordinador}
-                                </span>
-                              )}
-                              {perfilCoordinador && tutor.notas_vulnerabilidad && " • "}
-                              {tutor.notas_vulnerabilidad}
-                            </p>
-                          )}
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="flex items-start gap-3 min-w-0">
+                          <div className="relative shrink-0">
+                            <img
+                              src={avatarUrl}
+                              alt={`Foto carnet de ${tutor.nombre}`}
+                              width={56}
+                              height={56}
+                              className="w-14 h-14 rounded-xl object-cover border-2 border-white shadow-xs bg-[#eaeced]"
+                            />
+                            <span
+                              title="Identidad verificada por Sancor"
+                              className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-[#a70355] text-white flex items-center justify-center ring-2 ring-white"
+                            >
+                              <ShieldCheck className="w-3 h-3" />
+                            </span>
+                          </div>
+
+                          <div className="min-w-0">
+                            <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-[#a70355] bg-[#faf0f5] px-2 py-0.5 rounded-full">
+                              Coordinador
+                            </span>
+                            <h3 className="text-sm font-bold text-[#363f48] mt-1 truncate">
+                              {tutor.nombre}
+                            </h3>
+                            {(perfilCoordinador || tutor.notas_vulnerabilidad) && (
+                              <p className="text-[11px] text-[#52606d] mt-0.5 leading-snug">
+                                {perfilCoordinador && (
+                                  <span className="font-semibold text-[#363f48]">
+                                    {perfilCoordinador}
+                                  </span>
+                                )}
+                                {perfilCoordinador && tutor.notas_vulnerabilidad && " • "}
+                                {tutor.notas_vulnerabilidad}
+                              </p>
+                            )}
+                          </div>
                         </div>
                         <span className="text-[10px] font-semibold text-[#52606d] bg-white border border-[#c4c9cd] px-2 py-0.5 rounded-full shrink-0">
                           Acreditado
