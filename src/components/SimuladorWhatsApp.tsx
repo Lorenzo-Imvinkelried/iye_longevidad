@@ -10,7 +10,7 @@ import {
 } from "@/types/domain";
 import BurbujaMensaje from "@/components/whatsapp/BurbujaMensaje";
 import { useGlobalLoading } from "@/components/modals/ModalCargando";
-import { Code2, Phone, Smartphone } from "lucide-react";
+import { Code2, Phone, Send, Smartphone } from "lucide-react";
 
 interface SimuladorProps {
   snapshot: SystemSnapshot;
@@ -33,6 +33,8 @@ export default function SimuladorWhatsApp({
     null
   );
   const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
+  const [manualText, setManualText] = useState<string>("");
+  const [sendingManual, setSendingManual] = useState<boolean>(false);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
 
   const participanteActual: Participante =
@@ -143,6 +145,33 @@ export default function SimuladorWhatsApp({
     utterance.onend = () => setPlayingAudioId(null);
     setPlayingAudioId(msgId);
     window.speechSynthesis.speak(utterance);
+  };
+
+  const handleSendManualMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const trimmed = manualText.trim();
+    if (!trimmed || !participanteActual || sendingManual || sendingRef.current) return;
+    setSendingManual(true);
+    try {
+      const res = await fetch("/api/state", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "enviar_mensaje_manual",
+          participanteId: participanteActual.id,
+          texto: trimmed,
+        }),
+      });
+      const data = await res.json();
+      if (data?.snapshot) {
+        onSnapshotUpdate(data.snapshot);
+        setManualText("");
+      }
+    } catch (error) {
+      console.error("Error enviando mensaje manual:", error);
+    } finally {
+      setSendingManual(false);
+    }
   };
 
   const quickPhones = [
@@ -282,6 +311,31 @@ export default function SimuladorWhatsApp({
         ))}
         <div ref={chatBottomRef} />
       </div>
+
+      {/* Barra para enviar mensaje directo por WhatsApp */}
+      <form
+        onSubmit={handleSendManualMessage}
+        className="bg-[#f0f2f5] border-t border-slate-200 px-3 py-2 flex items-center gap-2"
+      >
+        <input
+          type="text"
+          value={manualText}
+          onChange={(e) => setManualText(e.target.value)}
+          disabled={sendingManual}
+          placeholder={`Escribir mensaje por WhatsApp a ${
+            participanteActual?.nombre?.split(" ")[0] || "participante"
+          }...`}
+          className="flex-1 bg-white text-slate-800 placeholder:text-slate-400 text-xs rounded-full px-3.5 py-2 border border-slate-200 focus:outline-none focus:border-[#008069]"
+        />
+        <button
+          type="submit"
+          disabled={!manualText.trim() || sendingManual}
+          title="Enviar mensaje al WhatsApp real"
+          className="w-8 h-8 rounded-full bg-[#008069] hover:bg-[#006d59] disabled:opacity-40 text-white flex items-center justify-center transition shrink-0"
+        >
+          <Send className="w-3.5 h-3.5" />
+        </button>
+      </form>
 
       {showWebhookInspector && (
         <div className="bg-slate-900 text-emerald-300 p-3 border-t border-slate-700 max-h-40 overflow-y-auto text-[10px] font-mono">

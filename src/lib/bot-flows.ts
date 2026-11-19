@@ -727,3 +727,37 @@ export async function procesarEventoWebhookWhatsApp(params: {
   await syncToSupabaseIfConfigured(state);
   return state;
 }
+
+export async function enviarMensajeManualWhatsApp(
+  participanteId: string,
+  texto: string
+): Promise<{ snapshot: SystemSnapshot; dispatched: boolean; error?: string }> {
+  const state = await readStateAsync();
+  const participante = state.participantes.find((p) => p.id === participanteId);
+  if (!participante) {
+    throw new Error("Participante no encontrado.");
+  }
+  const cleanText = (texto || "").trim();
+  if (!cleanText) {
+    throw new Error("El mensaje no puede estar vacio.");
+  }
+
+  const cloudRes = await appendBotMessage(state, participante, cleanText);
+
+  addLog(
+    state,
+    participante.nombre,
+    "Mensaje Directo por WhatsApp",
+    `Coordinacion envio mensaje manual a ${participante.nombre} (${participante.telefono}).`,
+    cloudRes.dispatched ? "success" : "info"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+
+  return {
+    snapshot: state,
+    dispatched: cloudRes.dispatched,
+    error: cloudRes.error,
+  };
+}

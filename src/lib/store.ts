@@ -8,6 +8,7 @@ export {
 } from "@/lib/state-persistence";
 export {
   dispararConvocatoriaJornada,
+  enviarMensajeManualWhatsApp,
   procesarEventoWebhookWhatsApp,
 } from "@/lib/bot-flows";
 export {

@@ -7,6 +7,7 @@ import {
   crearNuevoEventoOLugar,
   crearSolicitudNietoFamiliar,
   dispararConvocatoriaJornada,
+  enviarMensajeManualWhatsApp,
   frenarSalidaAdultoPorSeguridad,
   loginTutorConClave,
   readStateAsync,
@@ -158,6 +159,18 @@ export async function POST(req: NextRequest) {
           ok: true,
           snapshot: finalize(result.snapshot),
           warning: result.warning,
+        });
+      }
+      case "enviar_mensaje_manual": {
+        const result = await enviarMensajeManualWhatsApp(
+          body.participanteId,
+          body.texto
+        );
+        return NextResponse.json({
+          ok: true,
+          snapshot: finalize(result.snapshot),
+          dispatched: result.dispatched,
+          error: result.error,
         });
       }
       case "suspender_emergencia": {
