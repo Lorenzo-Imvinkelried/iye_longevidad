@@ -179,7 +179,25 @@ export async function dispararConvocatoriaJornada(
         state,
         adulto,
         `Buen dia, ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}) para caminar juntos y cerrar con ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
-        { buttons: buildConvocatoriaButtons(targetJornada.id) }
+        {
+          buttons: buildConvocatoriaButtons(targetJornada.id),
+          template: {
+            name: "convocatoria_jornada_barrial",
+            languageCode: "es_AR",
+            bodyParams: [
+              primerNombre,
+              targetJornada.hora_inicio_caminata,
+              targetCircuito.nombre_club,
+              targetCircuito.direccion_club,
+              targetJornada.actividad_cierre,
+            ],
+            buttonPayloads: [
+              `btn_nivel_1:${targetJornada.id}`,
+              `btn_nivel_2:${targetJornada.id}`,
+              `btn_nivel_3:${targetJornada.id}`,
+            ],
+          },
+        }
       );
       if (cloudRes.dispatched) {
         cloudSentCount += 1;

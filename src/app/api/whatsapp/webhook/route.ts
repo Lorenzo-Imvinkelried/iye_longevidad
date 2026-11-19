@@ -79,7 +79,22 @@ export async function POST(req: NextRequest) {
 
       // Soporte de respuestas de botones tipo template/legacy
       if (message?.button?.payload || message?.button?.text) {
-        const payloadId = message.button.payload || "btn_menu_convocatoria";
+        const rawPayload = (message.button.payload || "").trim();
+        const rawText = (message.button.text || "").trim().toLowerCase();
+        let payloadId = rawPayload;
+        if (!payloadId || !payloadId.startsWith("btn_")) {
+          if (rawText.includes("buscar")) {
+            payloadId = "btn_nivel_1";
+          } else if (rawText.includes("esquina") || rawText.includes("parada")) {
+            payloadId = "btn_nivel_2";
+          } else if (rawText.includes("club") || rawText.includes("directo")) {
+            payloadId = "btn_nivel_3";
+          } else if (rawText.includes("cancel") || rawText.includes("no voy")) {
+            payloadId = "btn_adulto_cancela";
+          } else {
+            payloadId = "btn_menu_convocatoria";
+          }
+        }
         const snapshot = await procesarEventoWebhookWhatsApp({
           fromPhone,
           senderName,
@@ -89,7 +104,8 @@ export async function POST(req: NextRequest) {
         });
         return NextResponse.json({
           ok: true,
-          processed_via: "meta_graph_legacy_button",
+          processed_via: "meta_graph_template_button",
+          button_id: payloadId,
           snapshot,
         });
       }

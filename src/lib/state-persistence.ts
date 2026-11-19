@@ -18,6 +18,7 @@ import {
   CloudApiResult,
   isWhatsAppCloudConfigured,
   sendWhatsAppCloudMessage,
+  WhatsAppTemplateSpec,
 } from "@/lib/whatsapp-cloud";
 
 const STATE_FILE_PATH = process.env.VERCEL
@@ -318,6 +319,7 @@ export async function appendBotMessage(
   text: string,
   options?: {
     buttons?: WhatsAppReplyButton[];
+    template?: WhatsAppTemplateSpec;
     fichaSeguridad?: WhatsAppMessage["fichaSeguridad"];
     recompensaSancor?: WhatsAppMessage["recompensaSancor"];
     esAlertaPrioritaria?: boolean;
@@ -332,7 +334,8 @@ export async function appendBotMessage(
   const cloudResult = await sendWhatsAppCloudMessage(
     participante.telefono,
     text,
-    options?.buttons
+    options?.buttons,
+    options?.template
   );
 
   const msg: WhatsAppMessage = {

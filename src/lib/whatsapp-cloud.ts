@@ -31,6 +31,57 @@ export interface CloudApiResult {
   error?: string;
 }
 
+export interface WhatsAppTemplateSpec {
+  name: string;
+  languageCode: string;
+  bodyParams: string[];
+  buttonPayloads?: string[];
+}
+
+function buildMetaTemplatePayload(
+  cleanPhone: string,
+  template: WhatsAppTemplateSpec
+): Record<string, unknown> {
+  const components: Record<string, unknown>[] = [];
+  if (template.bodyParams.length > 0) {
+    components.push({
+      type: "body",
+      parameters: template.bodyParams.map((text) => ({
+        type: "text",
+        text: (text || "-").replace(/[\r\n\t]+/g, " ").trim().slice(0, 200) || "-",
+      })),
+    });
+  }
+  if (template.buttonPayloads && template.buttonPayloads.length > 0) {
+    template.buttonPayloads.forEach((payload, index) => {
+      components.push({
+        type: "button",
+        sub_type: "quick_reply",
+        index: String(index),
+        parameters: [
+          {
+            type: "payload",
+            payload,
+          },
+        ],
+      });
+    });
+  }
+  return {
+    messaging_product: "whatsapp",
+    recipient_type: "individual",
+    to: cleanPhone,
+    type: "template",
+    template: {
+      name: template.name,
+      language: {
+        code: template.languageCode,
+      },
+      ...(components.length > 0 ? { components } : {}),
+    },
+  };
+}
+
 function buildMetaPayload(
   cleanPhone: string,
   bodyText: string,
@@ -108,16 +159,19 @@ function buildArgentinaPhoneCandidates(cleanPhone: string): string[] {
 export async function sendWhatsAppCloudMessage(
   toPhone: string,
   bodyText: string,
-  buttons?: WhatsAppReplyButton[]
+  buttons?: WhatsAppReplyButton[],
+  template?: WhatsAppTemplateSpec
 ): Promise<CloudApiResult> {
   const cleanPhone = toPhone.replace(/[^0-9]/g, "");
   const activeButtons = (buttons || []).slice(0, 3);
-  const payload = buildMetaPayload(cleanPhone, bodyText, activeButtons);
+  const defaultPayload = template
+    ? buildMetaTemplatePayload(cleanPhone, template)
+    : buildMetaPayload(cleanPhone, bodyText, activeButtons);
 
   if (!isWhatsAppCloudConfigured()) {
     return {
       dispatched: false,
-      payload,
+      payload: defaultPayload,
     };
   }
 
@@ -126,13 +180,13 @@ export async function sendWhatsAppCloudMessage(
   const endpoint = `https://graph.facebook.com/v21.0/${phoneId}/messages`;
   const phoneCandidates = buildArgentinaPhoneCandidates(cleanPhone);
 
-  try {
+  const attemptDispatch = async (
+    buildPayloadForPhone: (phone: string) => Record<string, unknown>
+  ): Promise<{ res: Response; payloadUsed: Record<string, unknown> }> => {
     let lastRes: Response | null = null;
+    let lastPayload = buildPayloadForPhone(cleanPhone);
     for (const candidatePhone of phoneCandidates) {
-      const candidatePayload =
-        candidatePhone === cleanPhone
-          ? payload
-          : buildMetaPayload(candidatePhone, bodyText, activeButtons);
+      const candidatePayload = buildPayloadForPhone(candidatePhone);
       const res = await fetch(endpoint, {
         method: "POST",
         headers: {
@@ -142,12 +196,30 @@ export async function sendWhatsAppCloudMessage(
         body: JSON.stringify(candidatePayload),
       });
       lastRes = res;
+      lastPayload = candidatePayload;
       if (res.ok || res.status === 401) {
         break;
       }
     }
+    return { res: lastRes!, payloadUsed: lastPayload };
+  };
 
-    const res = lastRes!;
+  try {
+    let attempt = template
+      ? await attemptDispatch((p) => buildMetaTemplatePayload(p, template))
+      : await attemptDispatch((p) => buildMetaPayload(p, bodyText, activeButtons));
+
+    // Si la plantilla aun esta en revision o falla (no 401), reintenta con interactive/text
+    if (template && !attempt.res.ok && attempt.res.status !== 401) {
+      const fallbackAttempt = await attemptDispatch((p) =>
+        buildMetaPayload(p, bodyText, activeButtons)
+      );
+      if (fallbackAttempt.res.ok) {
+        attempt = fallbackAttempt;
+      }
+    }
+
+    const { res, payloadUsed } = attempt;
 
     if (!res.ok) {
       const errBody = await res.text().catch(() => "");
@@ -166,7 +238,7 @@ export async function sendWhatsAppCloudMessage(
       console.error("[WhatsApp Cloud API Error]", res.status, parsedMessage);
       return {
         dispatched: false,
-        payload,
+        payload: payloadUsed,
         responseStatus: res.status,
         error: `HTTP ${res.status}: ${parsedMessage}`,
       };
@@ -174,13 +246,13 @@ export async function sendWhatsAppCloudMessage(
 
     return {
       dispatched: true,
-      payload,
+      payload: payloadUsed,
       responseStatus: res.status,
     };
   } catch (err: unknown) {
     return {
       dispatched: false,
-      payload,
+      payload: defaultPayload,
       error: err instanceof Error ? err.message : "Error de red con Meta Graph API",
     };
   }
