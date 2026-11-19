@@ -178,18 +178,17 @@ export async function dispararConvocatoriaJornada(
       const cloudRes = await appendBotMessage(
         state,
         adulto,
-        `Buen dia, ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}) para caminar juntos y cerrar con ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
+        `Hola ${primerNombre}, te escribimos para coordinar tu asistencia al encuentro de hoy a las ${targetJornada.hora_inicio_caminata} hs en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}). ¿Como te sumas hoy?`,
         {
           buttons: buildConvocatoriaButtons(targetJornada.id),
           template: {
-            name: "convocatoria_jornada_barrial",
+            name: "convocatoria_encuentro_barrial",
             languageCode: "es_AR",
             bodyParams: [
               primerNombre,
               targetJornada.hora_inicio_caminata,
               targetCircuito.nombre_club,
               targetCircuito.direccion_club,
-              targetJornada.actividad_cierre,
             ],
             buttonPayloads: [
               `btn_nivel_1:${targetJornada.id}`,
@@ -330,7 +329,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     await appendBotMessage(
       state,
       actor,
-      `Hola ${first}, ya quedaste vinculado a *${targetCircuito.nombre_club}*. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos para ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
+      `Hola ${first}, ya quedaste vinculado a *${targetCircuito.nombre_club}*. Te escribimos para coordinar tu asistencia al encuentro de hoy a las ${targetJornada.hora_inicio_caminata} hs (${targetCircuito.direccion_club}). ¿Como te sumas hoy?`,
       { buttons: buildConvocatoriaButtons(targetJornada.id) }
     );
 
@@ -373,7 +372,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
     await appendBotMessage(
       state,
       actor,
-      `Hola ${primerNombre}. Hoy ${targetJornada.hora_inicio_caminata} hs nos encontramos en ${targetCircuito.nombre_club} para caminar y cerrar con ${targetJornada.actividad_cierre}. ¿Como te sumas hoy?`,
+      `Hola ${primerNombre}, te escribimos para coordinar tu asistencia al encuentro de hoy a las ${targetJornada.hora_inicio_caminata} hs en *${targetCircuito.nombre_club}* (${targetCircuito.direccion_club}). ¿Como te sumas hoy?`,
       { buttons: buildConvocatoriaButtons(targetJornada.id) }
     );
   } else if (parsed.baseAction === "btn_nivel_1") {
