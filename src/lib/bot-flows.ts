@@ -223,15 +223,13 @@ export async function dispararConvocatoriaJornada(
       : "Flujo 1: Convocatoria Disparada",
     warning
       ? `${sentCount} abuelo(s) cargados en simulador; Meta API respondio: ${cloudErrors[0]}`
-      : `Mensajes 1 a 1 enviados a ${sentCount} de ${adultosActivos.length} abuelo(s) de ${targetCircuito.nombre_club}.${
-          cloudConfigured
-            ? ` Despachados por WhatsApp Cloud API: ${cloudSentCount}.${
-                cloudErrors.length > 0
-                  ? ` Rechazos Meta: ${cloudErrors.slice(0, 2).join(" | ")}`
-                  : ""
-              }`
-            : ""
-        }`,
+      : `Mensajes 1 a 1 enviados a ${sentCount} de ${adultosActivos.length} abuelo(s) de ${targetCircuito.nombre_club}.${cloudConfigured
+        ? ` Despachados por WhatsApp Cloud API: ${cloudSentCount}.${cloudErrors.length > 0
+          ? ` Rechazos Meta: ${cloudErrors.slice(0, 2).join(" | ")}`
+          : ""
+        }`
+        : ""
+      }`,
     warning ? "warning" : "info"
   );
 
@@ -254,6 +252,18 @@ export async function procesarEventoWebhookWhatsApp(params: {
     if (params.fromPhone && phonesMatch(p.telefono, params.fromPhone)) return true;
     return false;
   });
+
+  if (actor && params.senderName && params.senderName.trim()) {
+    const currentName = (actor.nombre || "").trim();
+    const isGenericName =
+      !currentName ||
+      /^(participante|abuel[oa]|vecin[oa]|test|compa[ñn]er[oa]|sin nombre|\+?\d+)\b/i.test(
+        currentName
+      );
+    if (isGenericName) {
+      actor.nombre = params.senderName.trim();
+    }
+  }
 
   if (!actor) {
     const rawDigits = (params.fromPhone || "").replace(/[^0-9]/g, "");
