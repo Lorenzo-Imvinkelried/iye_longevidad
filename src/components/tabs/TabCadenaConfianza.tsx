@@ -10,7 +10,6 @@ import {
   isSeniorNearForWalking,
 } from "@/lib/domain-helpers";
 import {
-  Building2,
   ChevronDown,
   ChevronUp,
   MapPin,
@@ -145,7 +144,6 @@ export default function TabCadenaConfianza({
                     : "bg-white text-[#363f48] border-[#c4c9cd] hover:border-[#a70355]"
                 }`}
               >
-                <Building2 className="w-3 h-3 shrink-0" />
                 <span className="truncate">{s.nombre_club}</span>
                 {isCurrentActiveSede && (
                   <span
@@ -230,13 +228,6 @@ export default function TabCadenaConfianza({
                   }`}
                 >
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <Building2
-                      className={`shrink-0 ${
-                        isActiveSede
-                          ? "w-5 h-5 text-white"
-                          : "w-4 h-4 text-[#52606d]"
-                      }`}
-                    />
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
                         {isActiveSede && (

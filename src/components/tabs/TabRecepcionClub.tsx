@@ -227,11 +227,9 @@ export default function TabRecepcionClub({
                     <div className="text-xs text-slate-500">
                       {adulto.direccion} • DNI {adulto.dni}
                     </div>
-                    {validado && (
+                    {validado && actividadFinalizada && (
                       <div className="text-xs font-semibold text-[#a70355]">
-                        {actividadFinalizada
-                          ? "✓ Asistencia y Actividad validadas (+250 pts / +$2.500 enviados por WhatsApp)"
-                          : "✓ Presente en la sede (toca '2. Validar Actividad y Otorgar Puntos' arriba al finalizar)"}
+                        ✓ Asistencia y Actividad validadas (+250 pts / +$2.500 enviados por WhatsApp)
                       </div>
                     )}
                   </div>
