@@ -13,6 +13,7 @@ export type TabId =
 interface HeaderProps {
   nombreClub: string;
   nombreTutorActivo: string;
+  actividadIniciada: boolean;
   activeTab: TabId;
   onSelectTab: (tab: TabId) => void;
   alertasCount: number;
@@ -30,6 +31,7 @@ interface HeaderProps {
 export default function HeaderInstitucional({
   nombreClub,
   nombreTutorActivo,
+  actividadIniciada,
   activeTab,
   onSelectTab,
   alertasCount,
@@ -47,13 +49,16 @@ export default function HeaderInstitucional({
     {
       id: "tab1_monitor",
       label: "Mapa y Monitoreo",
-      badge: alertasCount > 0 ? `${alertasCount} alerta` : undefined,
-      isAlert: alertasCount > 0,
+      badge:
+        actividadIniciada && alertasCount > 0
+          ? `${alertasCount} alerta`
+          : undefined,
+      isAlert: actividadIniciada && alertasCount > 0,
     },
     {
       id: "tab2_club",
       label: "Recepcion en el Lugar",
-      badge: `${validadosCount}/${totalAdultos}`,
+      badge: actividadIniciada ? `${validadosCount}/${totalAdultos}` : undefined,
     },
     {
       id: "tab3_confianza",
@@ -73,7 +78,10 @@ export default function HeaderInstitucional({
       <div className="bg-[#a70355] text-white text-[11px] font-medium">
         <div className="max-w-[1600px] mx-auto px-3 sm:px-5 py-0.5 flex items-center justify-between gap-2">
           <span className="truncate">
-            Cuenta activa: <strong>{nombreTutorActivo}</strong> • Sede: {nombreClub}
+            Cuenta activa: <strong>{nombreTutorActivo}</strong> •{" "}
+            {actividadIniciada
+              ? `Sede: ${nombreClub}`
+              : "Sin actividad en curso"}
           </span>
           <div className="flex items-center gap-3 shrink-0">
             <span className="hidden md:inline text-pink-100">
@@ -111,7 +119,9 @@ export default function HeaderInstitucional({
             />
             <div className="min-w-0">
               <h1 className="text-xs sm:text-sm font-bold text-[#363f48] tracking-tight truncate">
-                {nombreClub}
+                {actividadIniciada
+                  ? nombreClub
+                  : "Panel de Coordinacion Barrial"}
               </h1>
               <p className="text-[10px] text-[#52606d] truncate hidden sm:block leading-tight">
                 Coordinador: {nombreTutorActivo}

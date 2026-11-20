@@ -22,12 +22,14 @@ export default async function HomePage() {
 
   let initialTutorId: string | null = null;
   let initialJornadaId: string | null = null;
+  let initialActividadIniciada = false;
 
   if (rawCookie) {
     try {
       const parsed = JSON.parse(decodeURIComponent(rawCookie)) as {
         tutorId?: string;
         jornadaId?: string;
+        actividadIniciada?: boolean;
       };
       if (
         parsed?.tutorId &&
@@ -37,6 +39,7 @@ export default async function HomePage() {
       ) {
         initialTutorId = parsed.tutorId;
         initialJornadaId = parsed.jornadaId || null;
+        initialActividadIniciada = Boolean(parsed.actividadIniciada);
       }
     } catch {
       // Ignore malformed session cookie
@@ -52,6 +55,7 @@ export default async function HomePage() {
       initialSnapshot={sanitizeSnapshotForClient(projected)}
       initialTutorId={initialTutorId}
       initialJornadaId={initialJornadaId}
+      initialActividadIniciada={initialActividadIniciada}
     />
   );
 }

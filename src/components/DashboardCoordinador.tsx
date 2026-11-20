@@ -16,7 +16,7 @@ import {
   GlobalLoadingProvider,
   useGlobalLoading,
 } from "@/components/modals/ModalCargando";
-import { AlertTriangle, X } from "lucide-react";
+import { AlertTriangle, CalendarCheck, Play, Plus, X } from "lucide-react";
 
 const TabRecepcionClub = dynamic(
   () => import("@/components/tabs/TabRecepcionClub"),
@@ -52,6 +52,10 @@ const ModalSuspenderEvento = dynamic(
 );
 const ModalPerfilParticipante = dynamic(
   () => import("@/components/modals/ModalPerfilParticipante"),
+  { ssr: false }
+);
+const ModalIniciarActividad = dynamic(
+  () => import("@/components/modals/ModalIniciarActividad"),
   { ssr: false }
 );
 const SimuladorWhatsApp = dynamic(
@@ -142,16 +146,19 @@ const ACTION_LOADING_MESSAGES: Record<
 interface SessionData {
   tutorId: string;
   jornadaId?: string;
+  actividadIniciada?: boolean;
 }
 
 export default function DashboardCoordinador({
   initialSnapshot,
   initialTutorId = null,
   initialJornadaId = null,
+  initialActividadIniciada = false,
 }: {
   initialSnapshot: SystemSnapshot;
   initialTutorId?: string | null;
   initialJornadaId?: string | null;
+  initialActividadIniciada?: boolean;
 }) {
   return (
     <GlobalLoadingProvider>
@@ -159,6 +166,7 @@ export default function DashboardCoordinador({
         initialSnapshot={initialSnapshot}
         initialTutorId={initialTutorId}
         initialJornadaId={initialJornadaId}
+        initialActividadIniciada={initialActividadIniciada}
       />
     </GlobalLoadingProvider>
   );
@@ -168,10 +176,12 @@ function DashboardCoordinadorInner({
   initialSnapshot,
   initialTutorId = null,
   initialJornadaId = null,
+  initialActividadIniciada = false,
 }: {
   initialSnapshot: SystemSnapshot;
   initialTutorId?: string | null;
   initialJornadaId?: string | null;
+  initialActividadIniciada?: boolean;
 }) {
   const { startTask } = useGlobalLoading();
   const actionInFlightRef = useRef<boolean>(false);
@@ -182,6 +192,9 @@ function DashboardCoordinadorInner({
   );
   const [selectedJornadaId, setSelectedJornadaId] = useState<string | null>(
     initialJornadaId
+  );
+  const [actividadIniciada, setActividadIniciada] = useState<boolean>(
+    initialActividadIniciada
   );
   const [loginError, setLoginError] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -194,16 +207,26 @@ function DashboardCoordinadorInner({
   const [qrModalOpen, setQrModalOpen] = useState<boolean>(false);
   const [familiarModalOpen, setFamiliarModalOpen] = useState<boolean>(false);
   const [padrinoModalOpen, setPadrinoModalOpen] = useState<boolean>(false);
+  const [iniciarModalOpen, setIniciarModalOpen] = useState<boolean>(false);
   const [crearEventoModalOpen, setCrearEventoModalOpen] = useState<boolean>(false);
+  const [crearEventoInitialView, setCrearEventoInitialView] = useState<
+    "lista" | "crear"
+  >("lista");
   const [suspenderModalOpen, setSuspenderModalOpen] = useState<boolean>(false);
   const [perfilModalParticipanteId, setPerfilModalParticipanteId] = useState<
     string | null
   >(null);
 
-  const saveSession = (tutorId: string, jornadaId?: string | null) => {
+  const saveSession = (
+    tutorId: string,
+    jornadaId?: string | null,
+    iniciada?: boolean
+  ) => {
     const payload: SessionData = {
       tutorId,
       jornadaId: jornadaId || undefined,
+      actividadIniciada:
+        iniciada !== undefined ? iniciada : actividadIniciada,
     };
     const encoded = JSON.stringify(payload);
     try {
@@ -231,17 +254,19 @@ function DashboardCoordinadorInner({
           );
           setLoggedInTutorId(parsed.tutorId);
           setSelectedJornadaId(parsed.jornadaId || null);
-          saveSession(parsed.tutorId, parsed.jornadaId || null);
+          const iniciada = Boolean(parsed.actividadIniciada);
+          setActividadIniciada(iniciada);
+          saveSession(parsed.tutorId, parsed.jornadaId || null, iniciada);
           return;
         }
       }
       if (initialTutorId) {
-        saveSession(initialTutorId, initialJornadaId);
+        saveSession(initialTutorId, initialJornadaId, initialActividadIniciada);
       }
     } catch {
       // Ignore malformed sessionStorage
     }
-  }, [initialTutorId, initialJornadaId]);
+  }, [initialTutorId, initialJornadaId, initialActividadIniciada]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     const interval = setInterval(async () => {
@@ -335,14 +360,18 @@ function DashboardCoordinadorInner({
       setSnapshot(projected);
       setLoggedInTutorId(tutorId);
       setSelectedJornadaId(projected.jornada.id);
-      saveSession(tutorId, projected.jornada.id);
+      setActividadIniciada(false);
+      setActiveTab("tab1_monitor");
+      saveSession(tutorId, projected.jornada.id, false);
     }
   };
 
   const handleSelectEventoDelTutor = async (jornadaId: string) => {
     setSelectedJornadaId(jornadaId);
+    setActividadIniciada(true);
+    setIniciarModalOpen(false);
     if (loggedInTutorId) {
-      saveSession(loggedInTutorId, jornadaId);
+      saveSession(loggedInTutorId, jornadaId, true);
     }
     const projected = projectSnapshotForTutor(snapshot, loggedInTutorId, jornadaId);
     setSnapshot(projected);
@@ -352,9 +381,15 @@ function DashboardCoordinadorInner({
     });
   };
 
+  const handleIniciarActividadEvento = async (jornadaId: string) => {
+    setActiveTab("tab1_monitor");
+    await handleSelectEventoDelTutor(jornadaId);
+  };
+
   const handleLogoutTutor = () => {
     setLoggedInTutorId(null);
     setSelectedJornadaId(null);
+    setActividadIniciada(false);
     setLoginError(null);
     setActionError(null);
     try {
@@ -433,6 +468,7 @@ function DashboardCoordinadorInner({
   };
 
   const lockViewportDesktop =
+    actividadIniciada &&
     activeTab === "tab1_monitor" &&
     jornada.estado !== "suspendida_emergencia" &&
     alertasPadrinoCaido.length === 0;
@@ -448,6 +484,7 @@ function DashboardCoordinadorInner({
       <HeaderInstitucional
         nombreClub={circuito.nombre_club}
         nombreTutorActivo={tutorActivo?.nombre || "Coordinacion Barrial"}
+        actividadIniciada={actividadIniciada}
         activeTab={activeTab}
         onSelectTab={setActiveTab}
         alertasCount={alertasPadrinoCaido.length}
@@ -461,11 +498,16 @@ function DashboardCoordinadorInner({
           if (res.ok && res.snapshot) {
             setLoggedInTutorId(SEED_IDS.coordinadoraMarta);
             setSelectedJornadaId(SEED_IDS.jornada);
-            saveSession(SEED_IDS.coordinadoraMarta, SEED_IDS.jornada);
+            setActividadIniciada(false);
+            setActiveTab("tab1_monitor");
+            saveSession(SEED_IDS.coordinadoraMarta, SEED_IDS.jornada, false);
           }
         }}
         onToggleSim={() => setSimulatorOpen(!simulatorOpen)}
-        onOpenCrearEvento={() => setCrearEventoModalOpen(true)}
+        onOpenCrearEvento={() => {
+          setCrearEventoInitialView("lista");
+          setCrearEventoModalOpen(true);
+        }}
         onLogoutTutor={handleLogoutTutor}
       />
 
@@ -486,29 +528,108 @@ function DashboardCoordinadorInner({
         )}
 
         <div className="flex-1 min-h-0 flex flex-col">
-          {activeTab === "tab1_monitor" && (
-            <TabMonitorCircuito
-              snapshot={vistaActual}
-              loggedInTutorId={loggedInTutorId}
-              loadingAction={loadingAction}
-              onExecuteAction={executeCoordinatorAction}
-              onSelectEvento={handleSelectEventoDelTutor}
-              onOpenPhone={handleOpenPhoneInSimulator}
-              onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
-              onOpenSuspenderModal={() => setSuspenderModalOpen(true)}
-            />
-          )}
+          {activeTab === "tab1_monitor" &&
+            (actividadIniciada ? (
+              <TabMonitorCircuito
+                snapshot={vistaActual}
+                loggedInTutorId={loggedInTutorId}
+                loadingAction={loadingAction}
+                onExecuteAction={executeCoordinatorAction}
+                onSelectEvento={handleSelectEventoDelTutor}
+                onOpenPhone={handleOpenPhoneInSimulator}
+                onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
+                onOpenSuspenderModal={() => setSuspenderModalOpen(true)}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center py-10 px-4">
+                <div className="bg-white rounded-2xl border border-[#eaeced] shadow-xs max-w-lg w-full p-7 sm:p-8 text-center space-y-5">
+                  <div className="w-14 h-14 mx-auto rounded-2xl bg-[#faf0f5] border border-[#f4e1eb] text-[#a70355] flex items-center justify-center">
+                    <Play className="w-6 h-6 fill-current ml-0.5" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <h2 className="text-lg sm:text-xl font-bold text-[#363f48]">
+                      Sin actividad en curso
+                    </h2>
+                    <p className="text-xs sm:text-sm text-[#52606d] leading-relaxed">
+                      Hola, <strong>{tutorActivo?.nombre || "Coordinador"}</strong>.
+                      Toca <strong>Iniciar Actividad</strong> para elegir un evento y
+                      lugar guardado o crear uno nuevo y abrir el mapa de monitoreo.
+                    </p>
+                  </div>
 
-          {activeTab === "tab2_club" && (
-            <TabRecepcionClub
-              snapshot={vistaActual}
-              loadingAction={loadingAction}
-              onExecuteAction={executeCoordinatorAction}
-              onOpenPhone={handleOpenPhoneInSimulator}
-              onOpenPerfilParticipante={(id) => setPerfilModalParticipanteId(id)}
-              onOpenQrModal={() => setQrModalOpen(true)}
-            />
-          )}
+                  <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+                    <button
+                      type="button"
+                      onClick={() => setIniciarModalOpen(true)}
+                      className="w-full sm:w-auto bg-[#a70355] hover:bg-[#8c0347] text-white font-bold text-sm px-6 py-2.5 rounded-full transition inline-flex items-center justify-center gap-2 shadow-xs"
+                    >
+                      <Play className="w-4 h-4 fill-current" />
+                      <span>Iniciar Actividad</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCrearEventoInitialView("crear");
+                        setCrearEventoModalOpen(true);
+                      }}
+                      className="w-full sm:w-auto border border-[#c4c9cd] hover:border-[#a70355] text-[#363f48] hover:text-[#a70355] font-semibold text-xs sm:text-sm px-5 py-2.5 rounded-full transition inline-flex items-center justify-center gap-1.5 bg-white"
+                    >
+                      <Plus className="w-4 h-4" />
+                      <span>Crear evento / lugar</span>
+                    </button>
+                  </div>
+
+                  <div className="pt-3 border-t border-[#eaeced] text-[11px] text-[#52606d]">
+                    Tenes{" "}
+                    <strong className="text-[#363f48]">
+                      {jornadasDelTutor.length}{" "}
+                      {jornadasDelTutor.length === 1
+                        ? "evento guardado"
+                        : "eventos guardados"}
+                    </strong>{" "}
+                    listos para iniciar.
+                  </div>
+                </div>
+              </div>
+            ))}
+
+          {activeTab === "tab2_club" &&
+            (actividadIniciada ? (
+              <TabRecepcionClub
+                snapshot={vistaActual}
+                loadingAction={loadingAction}
+                onExecuteAction={executeCoordinatorAction}
+                onOpenPhone={handleOpenPhoneInSimulator}
+                onOpenPerfilParticipante={(id) =>
+                  setPerfilModalParticipanteId(id)
+                }
+                onOpenQrModal={() => setQrModalOpen(true)}
+              />
+            ) : (
+              <div className="flex-1 flex items-center justify-center py-10 px-4">
+                <div className="bg-white rounded-2xl border border-[#eaeced] shadow-xs max-w-md w-full p-7 text-center space-y-4">
+                  <div className="w-12 h-12 mx-auto rounded-2xl bg-[#faf0f5] border border-[#f4e1eb] text-[#a70355] flex items-center justify-center">
+                    <CalendarCheck className="w-5 h-5" />
+                  </div>
+                  <div className="space-y-1">
+                    <h2 className="text-base font-bold text-[#363f48]">
+                      Todavia no iniciaste una actividad
+                    </h2>
+                    <p className="text-xs text-[#52606d]">
+                      Inicia un evento para habilitar la recepcion, el QR de puerta y la validacion de puntos.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setIniciarModalOpen(true)}
+                    className="bg-[#a70355] hover:bg-[#8c0347] text-white font-bold text-xs px-5 py-2.5 rounded-full transition inline-flex items-center gap-1.5 shadow-xs"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Iniciar Actividad</span>
+                  </button>
+                </div>
+              </div>
+            ))}
 
           {activeTab === "tab3_confianza" && (
             <TabCadenaConfianza
@@ -612,9 +733,29 @@ function DashboardCoordinadorInner({
         />
       )}
 
+      {iniciarModalOpen && (
+        <ModalIniciarActividad
+          open={iniciarModalOpen}
+          onClose={() => setIniciarModalOpen(false)}
+          jornadasDelTutor={
+            jornadasDelTutor.length > 0 ? jornadasDelTutor : [jornada]
+          }
+          circuitos={circuitos || [circuito]}
+          participantes={participantes}
+          asistencias={asistencias}
+          onIniciarEvento={handleIniciarActividadEvento}
+          onCrearNuevoEvento={() => {
+            setIniciarModalOpen(false);
+            setCrearEventoInitialView("crear");
+            setCrearEventoModalOpen(true);
+          }}
+        />
+      )}
+
       {crearEventoModalOpen && (
         <ModalCrearEventoLugar
           open={crearEventoModalOpen}
+          initialView={crearEventoInitialView}
           onClose={() => setCrearEventoModalOpen(false)}
           tutorId={tutorActivo?.id || loggedInTutorId}
           circuitosDelTutor={
@@ -628,7 +769,10 @@ function DashboardCoordinadorInner({
           circuitoActualId={circuito.id}
           participantes={participantes}
           asistencias={asistencias}
-          onSelectEvento={handleSelectEventoDelTutor}
+          onSelectEvento={(id) => {
+            setActiveTab("tab1_monitor");
+            handleSelectEventoDelTutor(id);
+          }}
           onEditEvento={async (payload) => {
             const res = await executeCoordinatorAction("editar_evento_lugar", {
               payload,
@@ -647,7 +791,9 @@ function DashboardCoordinadorInner({
             });
             if (res.ok && res.snapshot) {
               setSelectedJornadaId(res.snapshot.jornada.id);
-              saveSession(loggedInTutorId, res.snapshot.jornada.id);
+              setActividadIniciada(true);
+              setActiveTab("tab1_monitor");
+              saveSession(loggedInTutorId, res.snapshot.jornada.id, true);
             }
             return { ok: res.ok, error: res.error };
           }}

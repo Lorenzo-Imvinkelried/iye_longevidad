@@ -29,6 +29,7 @@ import {
 
 interface ModalEventoProps {
   open: boolean;
+  initialView?: "lista" | "crear";
   onClose: () => void;
   tutorId: string;
   circuitosDelTutor: CircuitoBarrial[];
@@ -79,6 +80,7 @@ interface ModalEventoProps {
 
 export default function ModalCrearEventoLugar({
   open,
+  initialView = "lista",
   onClose,
   tutorId,
   circuitosDelTutor,
@@ -94,7 +96,13 @@ export default function ModalCrearEventoLugar({
   onSubmit,
 }: ModalEventoProps) {
   const submitRef = useRef(false);
-  const [vista, setVista] = useState<"lista" | "crear">("lista");
+  const [vista, setVista] = useState<"lista" | "crear">(initialView);
+
+  useEffect(() => {
+    if (open) {
+      setVista(initialView);
+    }
+  }, [open, initialView]);
   const [expandedJornadaId, setExpandedJornadaId] = useState<string | null>(
     jornadaActualId
   );
