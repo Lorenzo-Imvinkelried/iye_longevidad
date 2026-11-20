@@ -1053,9 +1053,6 @@ export default function TabMonitorCircuito({
                     />
                     <div>
                       <div className="font-bold text-[#363f48]">Foto de Perfil</div>
-                      <div className="text-[11px] text-[#52606d]">
-                        Se guarda en la ficha del adulto mayor en Supabase
-                      </div>
                     </div>
                   </div>
                   <label className="cursor-pointer border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-[11px] px-3 py-1.5 rounded-full transition">

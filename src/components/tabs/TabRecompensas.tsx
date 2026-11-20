@@ -112,7 +112,7 @@ export default function TabRecompensas({
             </span>
           </div>
           <p className="text-xs text-[#52606d]">
-            Cada actividad validada suma <strong>+250 Puntos (+$2.500 ARS en creditos)</strong> al abuelo asistente (y <strong>+400 pts / +$4.000</strong> al vecino padrino) guardados en Supabase y enviados por WhatsApp.
+            Cada actividad validada suma <strong>+250 Puntos (+$2.500 ARS en creditos)</strong> al abuelo asistente (y <strong>+400 pts / +$4.000</strong> al vecino padrino), acreditados automaticamente y enviados por WhatsApp.
           </p>
         </div>
       </div>

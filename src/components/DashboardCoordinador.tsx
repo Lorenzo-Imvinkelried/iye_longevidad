@@ -111,11 +111,11 @@ const ACTION_LOADING_MESSAGES: Record<
   },
   validar_actividad_recompensas: {
     title: "Validando actividad y acreditando puntos...",
-    detail: "Sumando puntos/creditos en Supabase y enviando descuentos por WhatsApp...",
+    detail: "Sumando puntos/creditos en el sistema y enviando descuentos por WhatsApp...",
   },
   ajustar_recompensa: {
     title: "Actualizando puntos y beneficios...",
-    detail: "Guardando saldo en Supabase y enviando comprobante por WhatsApp...",
+    detail: "Guardando saldo en el sistema y enviando comprobante por WhatsApp...",
   },
   actualizar_participante_adulto: {
     title: "Guardando ficha del abuelo...",
