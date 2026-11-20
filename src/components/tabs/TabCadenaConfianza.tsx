@@ -92,10 +92,16 @@ export default function TabCadenaConfianza({
     });
   };
 
+  const sedesOrdenadas = [...todasLasSedes].sort((a, b) => {
+    if (a.id === circuito.id) return -1;
+    if (b.id === circuito.id) return 1;
+    return 0;
+  });
+
   const sedesMostradas =
     filtroSedeId === "todas"
-      ? todasLasSedes
-      : todasLasSedes.filter((s) => s.id === filtroSedeId);
+      ? sedesOrdenadas
+      : sedesOrdenadas.filter((s) => s.id === filtroSedeId);
 
   const toggleCollapseSede = (sedeId: string) => {
     setCollapsedSedes((prev) => ({ ...prev, [sedeId]: !prev[sedeId] }));
@@ -120,22 +126,36 @@ export default function TabCadenaConfianza({
           >
             Todas las sedes ({todasLasSedes.length})
           </button>
-          {todasLasSedes.map((s) => {
+          {sedesOrdenadas.map((s) => {
             const count = getAdultosDeSede(s.id).length;
             const active = filtroSedeId === s.id;
+            const isCurrentActiveSede = s.id === circuito.id;
             return (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setFiltroSedeId(s.id)}
-                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition border inline-flex items-center gap-1 max-w-[220px] ${
+                className={`px-2.5 py-1 rounded-full text-[11px] font-semibold transition border inline-flex items-center gap-1 max-w-[260px] ${
                   active
                     ? "bg-[#a70355] text-white border-[#a70355]"
+                    : isCurrentActiveSede
+                    ? "bg-[#faf0f5] text-[#a70355] border-[#a70355] font-bold"
                     : "bg-white text-[#363f48] border-[#c4c9cd] hover:border-[#a70355]"
                 }`}
               >
                 <Building2 className="w-3 h-3 shrink-0" />
                 <span className="truncate">{s.nombre_club}</span>
+                {isCurrentActiveSede && (
+                  <span
+                    className={`text-[9px] font-extrabold uppercase px-1.5 py-0.2 rounded-full shrink-0 ${
+                      active
+                        ? "bg-white text-[#a70355]"
+                        : "bg-[#a70355] text-white"
+                    }`}
+                  >
+                    Activa
+                  </span>
+                )}
                 <span
                   className={`text-[10px] font-bold px-1.5 rounded-full ${
                     active
@@ -192,35 +212,75 @@ export default function TabCadenaConfianza({
             return (
               <div
                 key={sede.id}
-                className={`bg-white rounded-xl border overflow-hidden shadow-2xs ${
-                  isActiveSede ? "border-[#a70355]/50" : "border-[#eaeced]"
+                className={`bg-white rounded-2xl overflow-hidden transition ${
+                  isActiveSede
+                    ? "border-2 border-[#a70355] ring-4 ring-[#a70355]/10 shadow-md"
+                    : "border border-[#eaeced] opacity-90 hover:opacity-100 shadow-2xs"
                 }`}
               >
                 {/* Cabecera del grupo de la sede */}
                 <div
                   onClick={() => toggleCollapseSede(sede.id)}
-                  className="px-3.5 py-2 bg-[#fdf9fb] border-b border-[#eaeced] flex items-center justify-between gap-2 cursor-pointer hover:bg-[#faf0f5] transition"
+                  className={`flex items-center justify-between gap-2 cursor-pointer transition ${
+                    isActiveSede
+                      ? "px-4 py-3 bg-[#a70355] text-white"
+                      : "px-3.5 py-2 bg-[#f6f6f7] border-b border-[#eaeced] hover:bg-[#faf0f5]"
+                  }`}
                 >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <Building2 className="w-4 h-4 text-[#a70355] shrink-0" />
-                    <div className="min-w-0 flex items-center gap-2 flex-wrap">
-                      <h3 className="text-xs sm:text-sm font-bold text-[#363f48] truncate">
-                        {sede.nombre_club}
-                      </h3>
-                      <span className="text-[10px] font-bold bg-[#a70355] text-white px-2 py-0.5 rounded-full">
-                        {adultosSede.length}{" "}
-                        {adultosSede.length === 1 ? "abuelo" : "abuelos"}
-                      </span>
-                      <span className="text-[11px] text-[#52606d] truncate hidden sm:inline">
-                        • {sede.direccion_club}
-                      </span>
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <Building2
+                      className={`shrink-0 ${
+                        isActiveSede
+                          ? "w-5 h-5 text-white"
+                          : "w-4 h-4 text-[#52606d]"
+                      }`}
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2 flex-wrap">
+                        {isActiveSede && (
+                          <span className="inline-flex items-center gap-1 text-[10px] font-extrabold uppercase tracking-wider bg-white text-[#a70355] px-2.5 py-0.5 rounded-full shadow-2xs">
+                            <span className="w-1.5 h-1.5 rounded-full bg-[#a70355] animate-pulse" />
+                            <span>Sede Activa Actualmente</span>
+                          </span>
+                        )}
+                        <h3
+                          className={`font-bold truncate ${
+                            isActiveSede
+                              ? "text-sm sm:text-base text-white"
+                              : "text-xs sm:text-sm text-[#363f48]"
+                          }`}
+                        >
+                          {sede.nombre_club}
+                        </h3>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
+                            isActiveSede
+                              ? "bg-white/20 text-white border border-white/30"
+                              : "bg-white text-[#52606d] border border-[#c4c9cd]"
+                          }`}
+                        >
+                          {adultosSede.length}{" "}
+                          {adultosSede.length === 1 ? "abuelo" : "abuelos"}
+                        </span>
+                      </div>
+                      <div
+                        className={`text-[11px] truncate mt-0.5 ${
+                          isActiveSede ? "text-pink-100" : "text-[#52606d]"
+                        }`}
+                      >
+                        {sede.direccion_club} • {sede.nombre_barrio}
+                      </div>
                     </div>
                   </div>
 
                   <button
                     type="button"
                     aria-label="Colapsar o expandir sede"
-                    className="text-[#52606d] hover:text-[#363f48] p-0.5"
+                    className={`p-1 rounded-full ${
+                      isActiveSede
+                        ? "text-white hover:bg-white/15"
+                        : "text-[#52606d] hover:text-[#363f48]"
+                    }`}
                   >
                     {isCollapsed ? (
                       <ChevronDown className="w-4 h-4" />
@@ -231,13 +291,17 @@ export default function TabCadenaConfianza({
                 </div>
 
                 {!isCollapsed && (
-                  <div className="p-2.5">
+                  <div className={isActiveSede ? "p-3.5 bg-[#fdf9fb]/50" : "p-2.5"}>
                     {adultosSede.length === 0 ? (
                       <div className="py-3 text-center text-xs text-[#52606d]">
                         Sin abuelos vinculados en esta sede con ese filtro.
                       </div>
                     ) : (
-                      <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-2">
+                      <div
+                        className={`grid grid-cols-1 sm:grid-cols-2 ${
+                          isActiveSede ? "xl:grid-cols-2 gap-2.5" : "xl:grid-cols-3 gap-2"
+                        }`}
+                      >
                         {adultosSede.map((adulto, idx) => {
                           const padrinoPref = participantes.find(
                             (p) => p.id === adulto.padrino_preferido_id
@@ -269,26 +333,36 @@ export default function TabCadenaConfianza({
                           return (
                             <div
                               key={`${sede.id}-${adulto.id}`}
-                              className="border border-[#eaeced] rounded-xl p-2.5 bg-[#f6f6f7]/40 hover:bg-white hover:border-[#a70355]/50 transition flex flex-col justify-between gap-1.5"
+                              className={`rounded-xl transition flex flex-col justify-between ${
+                                isActiveSede
+                                  ? "border-2 border-[#e1a9c5] p-3 bg-white shadow-xs hover:border-[#a70355] gap-2"
+                                  : "border border-[#eaeced] p-2.5 bg-[#f6f6f7]/40 hover:bg-white hover:border-[#a70355]/50 gap-1.5"
+                              }`}
                             >
                               <div className="flex items-start gap-2.5">
                                 <img
                                   src={avatarUrl}
                                   alt={adulto.nombre}
-                                  width={40}
-                                  height={40}
-                                  className="w-10 h-10 rounded-xl object-cover border border-[#eaeced] shrink-0 bg-white"
+                                  width={isActiveSede ? 48 : 40}
+                                  height={isActiveSede ? 48 : 40}
+                                  className={`${
+                                    isActiveSede ? "w-12 h-12" : "w-10 h-10"
+                                  } rounded-xl object-cover border border-[#eaeced] shrink-0 bg-white`}
                                 />
                                 <div className="min-w-0 flex-1">
                                   <div className="flex items-center justify-between gap-1">
-                                    <span className="font-bold text-xs text-[#363f48] truncate">
+                                    <span
+                                      className={`font-bold text-[#363f48] truncate ${
+                                        isActiveSede ? "text-sm" : "text-xs"
+                                      }`}
+                                    >
                                       {adulto.nombre}
                                     </span>
-                                    <span className="text-[10px] text-[#52606d] shrink-0">
-                                      {adulto.edad}a
+                                    <span className="text-[11px] font-medium text-[#52606d] shrink-0">
+                                      {adulto.edad} anos
                                     </span>
                                   </div>
-                                  <div className="text-[10px] text-[#52606d] truncate">
+                                  <div className="text-[11px] text-[#52606d] truncate">
                                     {adulto.direccion}
                                   </div>
                                   <div className="mt-1 flex items-center gap-1 flex-wrap">
