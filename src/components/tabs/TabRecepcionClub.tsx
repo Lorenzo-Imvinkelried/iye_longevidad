@@ -21,6 +21,7 @@ interface TabRecepcionProps {
   loadingAction: string | null;
   onExecuteAction: (action: string, payload?: Record<string, unknown>) => void;
   onOpenPhone: (participanteId: string) => void;
+  onOpenPerfilParticipante: (participanteId: string) => void;
   onOpenQrModal: () => void;
 }
 
@@ -29,6 +30,7 @@ export default function TabRecepcionClub({
   loadingAction,
   onExecuteAction,
   onOpenPhone,
+  onOpenPerfilParticipante,
   onOpenQrModal,
 }: TabRecepcionProps) {
   const { circuito, jornada, participantes, asistencias } = snapshot;
@@ -203,7 +205,16 @@ export default function TabRecepcionClub({
             return (
               <div
                 key={adulto.id}
-                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3"
+                onClick={() => onOpenPerfilParticipante(adulto.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenPerfilParticipante(adulto.id);
+                  }
+                }}
+                className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 cursor-pointer hover:bg-[#fdf9fb] transition group"
               >
                 <div className="flex items-center gap-3 min-w-0">
                   <img
@@ -215,11 +226,14 @@ export default function TabRecepcionClub({
                   />
                   <div className="space-y-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <span className="font-bold text-sm text-slate-900">
+                      <span className="font-bold text-sm text-slate-900 group-hover:text-[#a70355] transition">
                         {adulto.nombre} ({adulto.edad} anos)
                       </span>
                       <span className="text-xs px-2 py-0.5 rounded bg-slate-100 text-slate-700">
                         {modalidadTexto}
+                      </span>
+                      <span className="text-[10px] font-semibold text-[#a70355] opacity-0 group-hover:opacity-100 transition">
+                        Ver ficha / editar →
                       </span>
                     </div>
                     <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
@@ -247,7 +261,10 @@ export default function TabRecepcionClub({
                   </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div
+                  className="flex items-center gap-2 shrink-0"
+                  onClick={(e) => e.stopPropagation()}
+                >
                   <button
                     onClick={() => onOpenPhone(adulto.id)}
                     className="border border-[#c4c9cd] text-[#52606d] hover:border-[#a70355] hover:text-[#a70355] text-xs font-medium px-3 py-1.5 rounded-full transition"

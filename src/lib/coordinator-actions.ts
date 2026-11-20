@@ -1446,6 +1446,7 @@ export async function actualizarParticipanteAdulto(input: {
   direccion: string;
   coordsDomicilio?: Coords;
   padrinoPreferidoId?: string | null;
+  credencialNro?: string | null;
   contactoFamiliarNombre?: string;
   contactoFamiliarTel?: string;
   notasVulnerabilidad?: string;
@@ -1460,14 +1461,16 @@ export async function actualizarParticipanteAdulto(input: {
 }> {
   const state = await readStateAsync();
   const adulto = state.participantes.find(
-    (p) => p.id === input.participanteId && p.rol === "adulto_mayor"
+    (p) =>
+      p.id === input.participanteId &&
+      (p.rol === "adulto_mayor" || p.rol === "padrino")
   );
 
   if (!adulto) {
     return {
       ok: false,
       status: 404,
-      error: "No se encontro el adulto mayor seleccionado.",
+      error: "No se encontro el participante seleccionado.",
     };
   }
 
@@ -1513,6 +1516,9 @@ export async function actualizarParticipanteAdulto(input: {
   }
   if (input.padrinoPreferidoId !== undefined) {
     adulto.padrino_preferido_id = input.padrinoPreferidoId || null;
+  }
+  if (input.credencialNro !== undefined && adulto.rol === "padrino") {
+    adulto.credencial_nro = (input.credencialNro || "").trim() || adulto.credencial_nro;
   }
   if (input.contactoFamiliarNombre !== undefined) {
     adulto.contacto_familiar_nombre =

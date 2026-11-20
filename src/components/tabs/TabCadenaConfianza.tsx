@@ -25,6 +25,7 @@ interface TabConfianzaProps {
   snapshot: SystemSnapshot;
   onExecuteAction: (action: string, payload?: Record<string, unknown>) => void;
   onOpenPhone: (participanteId: string) => void;
+  onOpenPerfilParticipante: (participanteId: string) => void;
   onOpenFamiliarModal: () => void;
   onOpenPadrinoModal: () => void;
 }
@@ -33,6 +34,7 @@ export default function TabCadenaConfianza({
   snapshot,
   onExecuteAction,
   onOpenPhone,
+  onOpenPerfilParticipante,
   onOpenFamiliarModal,
   onOpenPadrinoModal,
 }: TabConfianzaProps) {
@@ -333,7 +335,16 @@ export default function TabCadenaConfianza({
                           return (
                             <div
                               key={`${sede.id}-${adulto.id}`}
-                              className={`rounded-xl transition flex flex-col justify-between ${
+                              onClick={() => onOpenPerfilParticipante(adulto.id)}
+                              role="button"
+                              tabIndex={0}
+                              onKeyDown={(e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  onOpenPerfilParticipante(adulto.id);
+                                }
+                              }}
+                              className={`rounded-xl transition flex flex-col justify-between cursor-pointer group ${
                                 isActiveSede
                                   ? "border-2 border-[#e1a9c5] p-3 bg-white shadow-xs hover:border-[#a70355] gap-2"
                                   : "border border-[#eaeced] p-2.5 bg-[#f6f6f7]/40 hover:bg-white hover:border-[#a70355]/50 gap-1.5"
@@ -397,16 +408,17 @@ export default function TabCadenaConfianza({
                               </div>
 
                               <div className="pt-1.5 border-t border-[#eaeced] flex items-center justify-between gap-1 text-[10px] text-[#52606d]">
-                                <span className="truncate">
-                                  {padrinoPref
-                                    ? `Padrino: ${padrinoPref.nombre.split(" ")[0]}`
-                                    : otrasSedesDelAbuelo.length > 0
-                                    ? `+${otrasSedesDelAbuelo.length} otra sede`
-                                    : `Tel: ${adulto.telefono.slice(-6)}`}
+                                <span className="truncate font-semibold text-[#52606d] group-hover:text-[#a70355] transition">
+                                  {otrasSedesDelAbuelo.length > 0
+                                    ? `+${otrasSedesDelAbuelo.length} otra sede • Ver ficha`
+                                    : "Ver ficha y editar"}
                                 </span>
                                 <button
                                   type="button"
-                                  onClick={() => onOpenPhone(adulto.id)}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    onOpenPhone(adulto.id);
+                                  }}
                                   className="text-[#a70355] hover:underline font-bold inline-flex items-center gap-0.5 shrink-0"
                                 >
                                   <MessageSquare className="w-3 h-3" />
@@ -434,7 +446,7 @@ export default function TabCadenaConfianza({
                 Vecinos Padrinos ({padrinosAcreditados.length})
               </h3>
               <span className="text-[10px] text-[#52606d]">
-                DNI validado por Sancor
+                Click para ver ficha / editar
               </span>
             </div>
 
@@ -452,7 +464,16 @@ export default function TabCadenaConfianza({
                 return (
                   <div
                     key={pad.id}
-                    className="p-2.5 flex items-center justify-between gap-2.5 hover:bg-[#fdf9fb] transition"
+                    onClick={() => onOpenPerfilParticipante(pad.id)}
+                    role="button"
+                    tabIndex={0}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter" || e.key === " ") {
+                        e.preventDefault();
+                        onOpenPerfilParticipante(pad.id);
+                      }
+                    }}
+                    className="p-2.5 flex items-center justify-between gap-2.5 hover:bg-[#fdf9fb] transition cursor-pointer group"
                   >
                     <div className="flex items-center gap-2.5 min-w-0">
                       <img
@@ -464,7 +485,7 @@ export default function TabCadenaConfianza({
                       />
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <span className="font-bold text-xs text-[#363f48] truncate">
+                          <span className="font-bold text-xs text-[#363f48] group-hover:text-[#a70355] transition truncate">
                             {pad.nombre}
                           </span>
                           <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] px-1.5 py-0.5 rounded">
@@ -485,7 +506,10 @@ export default function TabCadenaConfianza({
 
                     <button
                       type="button"
-                      onClick={() => onOpenPhone(pad.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        onOpenPhone(pad.id);
+                      }}
                       className="border border-[#c4c9cd] hover:border-[#a70355] text-[#363f48] hover:text-[#a70355] text-[10px] font-semibold px-2.5 py-1 rounded-full shrink-0 transition"
                     >
                       Chat

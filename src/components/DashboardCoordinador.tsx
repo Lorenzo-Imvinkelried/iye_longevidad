@@ -50,6 +50,10 @@ const ModalSuspenderEvento = dynamic(
   () => import("@/components/modals/ModalSuspenderEvento"),
   { ssr: false }
 );
+const ModalPerfilParticipante = dynamic(
+  () => import("@/components/modals/ModalPerfilParticipante"),
+  { ssr: false }
+);
 const SimuladorWhatsApp = dynamic(
   () => import("@/components/SimuladorWhatsApp"),
   { ssr: false }
@@ -192,6 +196,9 @@ function DashboardCoordinadorInner({
   const [padrinoModalOpen, setPadrinoModalOpen] = useState<boolean>(false);
   const [crearEventoModalOpen, setCrearEventoModalOpen] = useState<boolean>(false);
   const [suspenderModalOpen, setSuspenderModalOpen] = useState<boolean>(false);
+  const [perfilModalParticipanteId, setPerfilModalParticipanteId] = useState<
+    string | null
+  >(null);
 
   const saveSession = (tutorId: string, jornadaId?: string | null) => {
     const payload: SessionData = {
@@ -498,6 +505,7 @@ function DashboardCoordinadorInner({
               loadingAction={loadingAction}
               onExecuteAction={executeCoordinatorAction}
               onOpenPhone={handleOpenPhoneInSimulator}
+              onOpenPerfilParticipante={(id) => setPerfilModalParticipanteId(id)}
               onOpenQrModal={() => setQrModalOpen(true)}
             />
           )}
@@ -507,6 +515,7 @@ function DashboardCoordinadorInner({
               snapshot={vistaActual}
               onExecuteAction={executeCoordinatorAction}
               onOpenPhone={handleOpenPhoneInSimulator}
+              onOpenPerfilParticipante={(id) => setPerfilModalParticipanteId(id)}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
               onOpenPadrinoModal={() => setPadrinoModalOpen(true)}
             />
@@ -518,6 +527,7 @@ function DashboardCoordinadorInner({
               loadingAction={loadingAction}
               onExecuteAction={executeCoordinatorAction}
               onOpenPhone={handleOpenPhoneInSimulator}
+              onOpenPerfilParticipante={(id) => setPerfilModalParticipanteId(id)}
             />
           )}
         </div>
@@ -657,6 +667,17 @@ function DashboardCoordinadorInner({
               jornadaId: jornada.id,
             });
           }}
+        />
+      )}
+
+      {perfilModalParticipanteId && (
+        <ModalPerfilParticipante
+          participanteId={perfilModalParticipanteId}
+          snapshot={vistaActual}
+          loadingAction={loadingAction}
+          onClose={() => setPerfilModalParticipanteId(null)}
+          onOpenPhone={handleOpenPhoneInSimulator}
+          onExecuteAction={executeCoordinatorAction}
         />
       )}
     </div>

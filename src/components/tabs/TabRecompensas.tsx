@@ -25,6 +25,7 @@ interface TabRecompensasProps {
   loadingAction: string | null;
   onExecuteAction: (action: string, payload?: Record<string, unknown>) => void;
   onOpenPhone: (participanteId: string) => void;
+  onOpenPerfilParticipante: (participanteId: string) => void;
 }
 
 const ESCALA_NIVELES = [
@@ -59,6 +60,7 @@ export default function TabRecompensas({
   loadingAction,
   onExecuteAction,
   onOpenPhone,
+  onOpenPerfilParticipante,
 }: TabRecompensasProps) {
   const [filtroRol, setFiltroRol] = useState<"todos" | "adulto_mayor" | "padrino">(
     "todos"
@@ -232,7 +234,16 @@ export default function TabRecompensas({
           return (
             <div
               key={part.id}
-              className="bg-white rounded-2xl border border-[#eaeced] hover:border-[#a70355]/50 transition p-3.5 flex flex-col justify-between gap-2.5 shadow-2xs"
+              onClick={() => onOpenPerfilParticipante(part.id)}
+              role="button"
+              tabIndex={0}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  onOpenPerfilParticipante(part.id);
+                }
+              }}
+              className="bg-white rounded-2xl border border-[#eaeced] hover:border-[#a70355] transition p-3.5 flex flex-col justify-between gap-2.5 shadow-2xs cursor-pointer group"
             >
               {/* Encabezado de perfil + Puntos / Credito */}
               <div className="space-y-2.5">
@@ -347,7 +358,10 @@ export default function TabRecompensas({
               </div>
 
               {/* Acciones rapidas (Canjear en comercio / Sumar actividad / Enviar por WhatsApp) */}
-              <div className="pt-2 border-t border-[#eaeced] flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+              <div
+                onClick={(e) => e.stopPropagation()}
+                className="pt-2 border-t border-[#eaeced] flex flex-wrap items-center justify-between gap-1.5 text-[11px]"
+              >
                 <div className="flex items-center gap-1">
                   <button
                     type="button"
