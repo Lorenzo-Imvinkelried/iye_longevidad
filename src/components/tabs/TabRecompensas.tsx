@@ -67,6 +67,7 @@ export default function TabRecompensas({
     "todos"
   );
   const [busqueda, setBusqueda] = useState("");
+  const [showReglas, setShowReglas] = useState(false);
   const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
 
   const toggleExpand = (id: string) => {
@@ -104,51 +105,68 @@ export default function TabRecompensas({
   const totalPuntos = Math.round(totalCreditosPesos / 10);
 
   return (
-    <div className="space-y-3">
-      {/* Cabecera: Resumen del programa de puntos, creditos y descuentos */}
-      <div className="bg-white rounded-xl p-3.5 border border-[#eaeced] shadow-xs">
-        <div className="space-y-0.5">
-          <div className="flex items-center gap-2 flex-wrap">
-            <Gift className="w-4 h-4 text-[#a70355]" />
-            <h2 className="text-sm sm:text-base font-bold text-[#363f48]">
+    <div className="space-y-2">
+      {/* Cabecera compacta desplegable: Resumen + Escala de beneficios */}
+      <div className="bg-white rounded-xl border border-[#eaeced] shadow-xs overflow-hidden">
+        <button
+          type="button"
+          onClick={() => setShowReglas((prev) => !prev)}
+          className="w-full px-3.5 py-2 flex flex-wrap items-center justify-between gap-2 text-left hover:bg-[#fdf9fb] transition"
+        >
+          <div className="flex items-center gap-2 flex-wrap min-w-0">
+            <Gift className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
+            <h2 className="text-xs sm:text-sm font-bold text-[#363f48]">
               Billetera de Puntos, Creditos y Descuentos Sancor
             </h2>
-            <span className="text-[11px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2.5 py-0.5 rounded-full">
+            <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2 py-0.5 rounded-full">
               Acumulado Red: {totalPuntos.toLocaleString("es-AR")} pts ($
               {totalCreditosPesos.toLocaleString("es-AR")})
             </span>
           </div>
-          <p className="text-xs text-[#52606d]">
-            Cada actividad validada suma <strong>+250 Puntos (+$2.500 ARS en creditos)</strong> al abuelo asistente (y <strong>+400 pts / +$4.000</strong> al vecino padrino), acreditados automaticamente y enviados por WhatsApp.
-          </p>
-        </div>
-      </div>
 
-      {/* Escala compacta de Descuentos Actuales y Futuros en Comercios */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
-        {ESCALA_NIVELES.map((esc, i) => (
-          <div
-            key={esc.nivel}
-            className={`rounded-xl p-2.5 border text-xs flex flex-col justify-between ${
-              i === 3
-                ? "bg-[#fdf9fb] border-[#e1a9c5]"
-                : "bg-white border-[#eaeced]"
-            }`}
-          >
-            <div className="flex items-center justify-between gap-1">
-              <span className="font-bold text-[#363f48]">{esc.nivel}</span>
-              <span className="text-[10px] font-extrabold bg-[#a70355] text-white px-2 py-0.5 rounded-full">
-                {esc.descuento}
-              </span>
-            </div>
-            <div className="text-[10px] font-semibold text-[#a70355] mt-0.5">
-              {esc.rango}
-            </div>
-            <div className="text-[11px] text-[#52606d] mt-1 leading-snug">
-              {esc.lugares}
+          <span className="text-[11px] font-semibold text-[#52606d] hover:text-[#a70355] inline-flex items-center gap-1 shrink-0">
+            <span>{showReglas ? "Ocultar reglas y escala" : "Ver reglas y escala"}</span>
+            {showReglas ? (
+              <ChevronUp className="w-3.5 h-3.5" />
+            ) : (
+              <ChevronDown className="w-3.5 h-3.5" />
+            )}
+          </span>
+        </button>
+
+        {showReglas && (
+          <div className="px-3.5 pb-3 pt-2 border-t border-[#eaeced] space-y-2.5 bg-[#fdf9fb]/40">
+            <p className="text-[11px] text-[#52606d]">
+              Cada actividad validada suma <strong>+250 Puntos (+$2.500 ARS en creditos)</strong> al abuelo asistente (y <strong>+400 pts / +$4.000</strong> al vecino padrino), acreditados automaticamente y enviados por WhatsApp.
+            </p>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-2">
+              {ESCALA_NIVELES.map((esc, i) => (
+                <div
+                  key={esc.nivel}
+                  className={`rounded-lg p-2 border text-[11px] flex flex-col justify-between ${
+                    i === 3
+                      ? "bg-[#fdf9fb] border-[#e1a9c5]"
+                      : "bg-white border-[#eaeced]"
+                  }`}
+                >
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="font-bold text-[#363f48]">{esc.nivel}</span>
+                    <span className="text-[9px] font-extrabold bg-[#a70355] text-white px-1.5 py-0.5 rounded-full">
+                      {esc.descuento}
+                    </span>
+                  </div>
+                  <div className="text-[10px] font-semibold text-[#a70355] mt-0.5">
+                    {esc.rango}
+                  </div>
+                  <div className="text-[10px] text-[#52606d] mt-0.5 leading-snug">
+                    {esc.lugares}
+                  </div>
+                </div>
+              ))}
             </div>
           </div>
-        ))}
+        )}
       </div>
 
       {/* Barra de filtro por rol y buscador */}
