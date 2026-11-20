@@ -4,7 +4,11 @@ import React from "react";
 import { CalendarPlus, LogOut, RefreshCw, Smartphone } from "lucide-react";
 import { getCoordinatorAvatarUrl } from "@/components/auth/PantallaLoginTutor";
 
-export type TabId = "tab1_monitor" | "tab2_club" | "tab3_confianza";
+export type TabId =
+  | "tab1_monitor"
+  | "tab2_club"
+  | "tab3_confianza"
+  | "tab4_recompensas";
 
 interface HeaderProps {
   nombreClub: string;
@@ -55,6 +59,11 @@ export default function HeaderInstitucional({
       id: "tab3_confianza",
       label: "Lista de Abuelos y Padrinos",
       badge: solicitudesCount > 0 ? `${solicitudesCount}` : undefined,
+    },
+    {
+      id: "tab4_recompensas",
+      label: "Recompensas y Beneficios",
+      badge: "Puntos Sancor",
     },
   ];
 

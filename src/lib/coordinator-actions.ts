@@ -23,6 +23,7 @@ import {
   findScheduleConflict,
   formatPolizaWithTutores,
   getCircuitoTutoresIds,
+  getParticipantRewardInfo,
   normalizeDni,
   phonesMatch,
 } from "@/lib/domain-helpers";
@@ -918,7 +919,6 @@ export async function validarPresenciaEnClub(
     state,
     jornadaId
   );
-  const padrinosBonificadosEnLote = new Set<string>();
 
   for (const partId of participanteIds) {
     const asis = state.asistencias.find(
@@ -948,43 +948,19 @@ export async function validarPresenciaEnClub(
     asis.presente_validado_en_club = true;
     asis.updated_at = new Date().toISOString();
 
-    const primerNombre = adulto.nombre.split(" ")[0];
-    await appendBotMessage(
-      state,
-      adulto,
-      `Que linda jornada compartimos en ${targetCircuito.nombre_club}, ${primerNombre}. Ya quedo registrada tu asistencia en el encuentro de hoy (${targetJornada.actividad_cierre}). Gracias por participar.`
-    );
-
-    if (
-      asis.modalidad_elegida === "nivel_1_puerta" &&
-      asis.padrino_asignado_id &&
-      !padrinosBonificadosEnLote.has(`${asis.padrino_asignado_id}-${adulto.id}`)
-    ) {
-      const padrino = state.participantes.find(
-        (p) => p.id === asis.padrino_asignado_id
-      );
-      if (padrino) {
-        padrinosBonificadosEnLote.add(`${padrino.id}-${adulto.id}`);
-        const nombrePadrino = padrino.nombre.split(" ")[0];
-        await appendBotMessage(
-          state,
-          padrino,
-          `*Gracias por tu compromiso barrial, ${nombrePadrino}.* Validamos en ${targetCircuito.nombre_club} tu llegada acompanando a *${adulto.nombre}*.`
-        );
-      }
-    }
-
     addLog(
       state,
       adulto.nombre,
-      "Flujo 5: Llegada Validada",
-      `Se registro la asistencia de ${adulto.nombre} en ${targetCircuito.nombre_club}.`,
-      "success"
+      "Presente Registrado en Recepcion",
+      `Se marco presente a ${adulto.nombre} en ${targetCircuito.nombre_club}. Listo para validar actividad y acreditar puntos.`,
+      "info"
     );
   }
 
   if (presente) {
-    targetJornada.estado = "en_club";
+    if (targetJornada.estado !== "finalizada") {
+      targetJornada.estado = "en_club";
+    }
   } else {
     const quedaAlguienValidado = state.asistencias.some(
       (a) => a.jornada_id === targetJornada.id && a.presente_validado_en_club
@@ -995,6 +971,177 @@ export async function validarPresenciaEnClub(
   }
   targetJornada.updated_at = new Date().toISOString();
   syncActiveJornadaIntoArray(state);
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function validarActividadYOtorgarRecompensas(
+  jornadaId?: string
+): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const { targetJornada, targetCircuito } = resolveEventForCoordinator(
+    state,
+    jornadaId
+  );
+
+  const asistenciasPresentes = state.asistencias.filter(
+    (a) => a.jornada_id === targetJornada.id && a.presente_validado_en_club
+  );
+
+  const montoPorAsistencia =
+    Number(targetJornada.monto_reintegro_asistencia) > 0
+      ? Number(targetJornada.monto_reintegro_asistencia)
+      : 2500;
+  const plusPadrino =
+    Number(targetJornada.plus_reintegro_padrino) > 0
+      ? Number(targetJornada.plus_reintegro_padrino)
+      : 1500;
+
+  const padrinosBonificadosEnLote = new Set<string>();
+  let acreditadosCount = 0;
+
+  for (const asis of asistenciasPresentes) {
+    const adulto = state.participantes.find((p) => p.id === asis.participante_id);
+    if (!adulto) continue;
+
+    adulto.saldo_reintegro_sancor =
+      Math.max(0, Number(adulto.saldo_reintegro_sancor || 0)) + montoPorAsistencia;
+    acreditadosCount += 1;
+
+    const rewardInfo = getParticipantRewardInfo(adulto);
+    const puntosSumados = Math.round(montoPorAsistencia / 10);
+    const primerNombre = adulto.nombre.split(" ")[0];
+    const resumenDescuentosActuales = rewardInfo.comerciosActuales
+      .map((c) => `• *${c.lugar}:* ${c.beneficio} (${c.detalle})`)
+      .join("\n");
+
+    const mensajeWhatsApp =
+      `¡Que linda jornada compartimos en *${targetCircuito.nombre_club}*, ${primerNombre}! Validamos tu participacion en *${targetJornada.actividad_cierre}*.\n\n` +
+      `🎁 *Sumaste +${puntosSumados} Puntos (+$${montoPorAsistencia.toLocaleString("es-AR")} en creditos)*\n` +
+      `💰 *Tu acumulado total:* *${rewardInfo.puntos} Puntos ($${rewardInfo.creditoPesos.toLocaleString("es-AR")} disponibles)* — ${rewardInfo.nivelActual}\n\n` +
+      `🏷️ *Tus descuentos actuales presentando DNI (Cupon ${rewardInfo.codigoCupon}):*\n${resumenDescuentosActuales}\n\n` +
+      `🚀 *Proximo beneficio futuro:* ${rewardInfo.proximoBeneficioResumen}`;
+
+    await appendBotMessage(state, adulto, mensajeWhatsApp, {
+      recompensaSancor: {
+        montoAcreditado: montoPorAsistencia,
+        saldoTotal: rewardInfo.creditoPesos,
+        codigoCanje: rewardInfo.codigoCupon,
+      },
+    });
+
+    if (
+      asis.modalidad_elegida === "nivel_1_puerta" &&
+      asis.padrino_asignado_id &&
+      !padrinosBonificadosEnLote.has(asis.padrino_asignado_id)
+    ) {
+      const padrino = state.participantes.find(
+        (p) => p.id === asis.padrino_asignado_id
+      );
+      if (padrino) {
+        padrinosBonificadosEnLote.add(padrino.id);
+        const totalPadrinoHoy = montoPorAsistencia + plusPadrino;
+        padrino.saldo_reintegro_sancor =
+          Math.max(0, Number(padrino.saldo_reintegro_sancor || 0)) +
+          totalPadrinoHoy;
+        const padReward = getParticipantRewardInfo(padrino);
+        const ptsPad = Math.round(totalPadrinoHoy / 10);
+        const nombrePadrino = padrino.nombre.split(" ")[0];
+
+        await appendBotMessage(
+          state,
+          padrino,
+          `*¡Gracias por tu compromiso barrial, ${nombrePadrino}!* Validamos la actividad en *${targetCircuito.nombre_club}* acompanando a *${adulto.nombre}*.\n\n` +
+            `🎁 *Sumaste +${ptsPad} Puntos (+$${totalPadrinoHoy.toLocaleString("es-AR")} con Plus Padrino)*.\n` +
+            `💰 *Tu saldo total:* *${padReward.puntos} Puntos ($${padReward.creditoPesos.toLocaleString("es-AR")})* (${padReward.descuentoActualPct}% OFF en Farmacias y Comercios Sancor).\n` +
+            `🚀 *Proximo nivel:* ${padReward.proximoBeneficioResumen}`,
+          {
+            recompensaSancor: {
+              montoAcreditado: montoPorAsistencia,
+              plusPadrinazgo: plusPadrino,
+              saldoTotal: padReward.creditoPesos,
+              codigoCanje: padReward.codigoCupon,
+            },
+          }
+        );
+      }
+    }
+  }
+
+  targetJornada.estado = "finalizada";
+  targetJornada.updated_at = new Date().toISOString();
+  syncActiveJornadaIntoArray(state);
+
+  addLog(
+    state,
+    targetCircuito.nombre_club,
+    "Actividad Validada y Recompensas Enviadas",
+    `Se acreditaron +250 pts ($${montoPorAsistencia.toLocaleString("es-AR")}) a ${acreditadosCount} abuelo(s) presentes y se enviaron sus descuentos por WhatsApp.`,
+    "success"
+  );
+
+  writeState(state);
+  await syncToSupabaseIfConfigured(state);
+  return state;
+}
+
+export async function ajustarRecompensaParticipante(input: {
+  participanteId: string;
+  deltaPesos: number;
+  motivo?: string;
+  enviarWhatsApp?: boolean;
+}): Promise<SystemSnapshot> {
+  const state = await readStateAsync();
+  const part = state.participantes.find((p) => p.id === input.participanteId);
+  if (!part) {
+    throw new Error("Participante no encontrado.");
+  }
+
+  const prevSaldo = Math.max(0, Number(part.saldo_reintegro_sancor || 0));
+  const nextSaldo = Math.max(0, prevSaldo + Number(input.deltaPesos || 0));
+  part.saldo_reintegro_sancor = nextSaldo;
+
+  const rewardInfo = getParticipantRewardInfo(part);
+  const primerNombre = part.nombre.split(" ")[0];
+  const resumenDescuentos = rewardInfo.comerciosActuales
+    .map((c) => `• *${c.lugar}:* ${c.beneficio}`)
+    .join("\n");
+
+  if (input.enviarWhatsApp) {
+    const accionTxt =
+      input.deltaPesos > 0
+        ? `🎁 *Se acreditaron +${Math.round(input.deltaPesos / 10)} Puntos (+$${input.deltaPesos.toLocaleString("es-AR")})* (${input.motivo || "Beneficio Sancor"}).\n`
+        : input.deltaPesos < 0
+        ? `✅ *Canje registrado por $${Math.abs(input.deltaPesos).toLocaleString("es-AR")}* en *${input.motivo || "Comercio adherido"}*.\n`
+        : "";
+
+    await appendBotMessage(
+      state,
+      part,
+      `Hola ${primerNombre}, te enviamos el resumen actualizado de tus *Beneficios y Recompensas Sancor*:\n\n` +
+        accionTxt +
+        `💰 *Acumulado disponible:* *${rewardInfo.puntos} Puntos ($${rewardInfo.creditoPesos.toLocaleString("es-AR")} en creditos)* — ${rewardInfo.nivelActual}\n\n` +
+        `🏷️ *Descuentos activos hoy con tu DNI (Cupon ${rewardInfo.codigoCupon}):*\n${resumenDescuentos}\n\n` +
+        `🚀 *Proximo beneficio futuro:* ${rewardInfo.proximoBeneficioResumen}`,
+      {
+        recompensaSancor: {
+          montoAcreditado: Math.max(0, input.deltaPesos),
+          saldoTotal: rewardInfo.creditoPesos,
+          codigoCanje: rewardInfo.codigoCupon,
+        },
+      }
+    );
+  }
+
+  addLog(
+    state,
+    part.nombre,
+    input.deltaPesos >= 0 ? "Puntos / Beneficios Actualizados" : "Canje de Descuento Registrado",
+    `${part.nombre}: saldo actualizado a ${rewardInfo.puntos} pts ($${rewardInfo.creditoPesos.toLocaleString("es-AR")})${input.motivo ? ` — ${input.motivo}` : ""}.`,
+    "success"
+  );
 
   writeState(state);
   await syncToSupabaseIfConfigured(state);

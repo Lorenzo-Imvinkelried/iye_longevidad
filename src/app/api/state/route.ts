@@ -3,6 +3,7 @@ import {
   acreditarNuevoVecinoPadrino,
   actualizarParticipanteAdulto,
   actualizarRutaCircuito,
+  ajustarRecompensaParticipante,
   aprobarAltaDerivacionFamiliar,
   crearNuevoEventoOLugar,
   crearSolicitudNietoFamiliar,
@@ -18,6 +19,7 @@ import {
   resetStateAsync,
   seleccionarEventoActivo,
   suspenderJornadaPorEmergencia,
+  validarActividadYOtorgarRecompensas,
   validarPresenciaEnClub,
   vincularAbueloExistenteAEvento,
 } from "@/lib/store";
@@ -220,6 +222,21 @@ export async function POST(req: NextRequest) {
           body.jornadaId || activeJornadaId,
           body.presente !== false
         );
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
+      }
+      case "validar_actividad_recompensas": {
+        const snapshot = await validarActividadYOtorgarRecompensas(
+          body.jornadaId || activeJornadaId
+        );
+        return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
+      }
+      case "ajustar_recompensa": {
+        const snapshot = await ajustarRecompensaParticipante({
+          participanteId: body.participanteId,
+          deltaPesos: Number(body.deltaPesos || 0),
+          motivo: body.motivo,
+          enviarWhatsApp: Boolean(body.enviarWhatsApp),
+        });
         return NextResponse.json({ ok: true, snapshot: finalize(snapshot) });
       }
       case "aprobar_solicitud_familiar": {

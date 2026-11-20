@@ -24,6 +24,8 @@ export {
   reasignarTutorManualCoordinador,
   frenarSalidaAdultoPorSeguridad,
   validarPresenciaEnClub,
+  validarActividadYOtorgarRecompensas,
+  ajustarRecompensaParticipante,
   aprobarAltaDerivacionFamiliar,
   crearSolicitudNietoFamiliar,
   acreditarNuevoVecinoPadrino,

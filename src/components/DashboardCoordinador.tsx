@@ -26,6 +26,10 @@ const TabCadenaConfianza = dynamic(
   () => import("@/components/tabs/TabCadenaConfianza"),
   { ssr: false }
 );
+const TabRecompensas = dynamic(
+  () => import("@/components/tabs/TabRecompensas"),
+  { ssr: false }
+);
 const ModalLectorQr = dynamic(
   () => import("@/components/modals/ModalLectorQr"),
   { ssr: false }
@@ -100,6 +104,14 @@ const ACTION_LOADING_MESSAGES: Record<
   validar_club: {
     title: "Actualizando presencias...",
     detail: "Registrando asistencia del encuentro en la base...",
+  },
+  validar_actividad_recompensas: {
+    title: "Validando actividad y acreditando puntos...",
+    detail: "Sumando puntos/creditos en Supabase y enviando descuentos por WhatsApp...",
+  },
+  ajustar_recompensa: {
+    title: "Actualizando puntos y beneficios...",
+    detail: "Guardando saldo en Supabase y enviando comprobante por WhatsApp...",
   },
   actualizar_participante_adulto: {
     title: "Guardando ficha del abuelo...",
@@ -497,6 +509,15 @@ function DashboardCoordinadorInner({
               onOpenPhone={handleOpenPhoneInSimulator}
               onOpenFamiliarModal={() => setFamiliarModalOpen(true)}
               onOpenPadrinoModal={() => setPadrinoModalOpen(true)}
+            />
+          )}
+
+          {activeTab === "tab4_recompensas" && (
+            <TabRecompensas
+              snapshot={vistaActual}
+              loadingAction={loadingAction}
+              onExecuteAction={executeCoordinatorAction}
+              onOpenPhone={handleOpenPhoneInSimulator}
             />
           )}
         </div>

@@ -2,8 +2,19 @@
 
 import React from "react";
 import { SystemSnapshot } from "@/types/domain";
-import { getParticipanteAvatarUrl } from "@/lib/domain-helpers";
-import { CheckCircle2, QrCode, UserCheck, UserX } from "lucide-react";
+import {
+  getParticipanteAvatarUrl,
+  getParticipantRewardInfo,
+} from "@/lib/domain-helpers";
+import {
+  Award,
+  CheckCircle2,
+  Gift,
+  QrCode,
+  Sparkles,
+  UserCheck,
+  UserX,
+} from "lucide-react";
 
 interface TabRecepcionProps {
   snapshot: SystemSnapshot;
@@ -41,73 +52,119 @@ export default function TabRecepcionClub({
   ).length;
   const hayPendientes = validadosCount < adultosActivos.length;
   const hayValidados = validadosCount > 0;
+  const actividadFinalizada = jornada.estado === "finalizada";
 
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-xl p-4 border border-slate-200 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
-        <div>
-          <div className="flex items-center gap-2.5 flex-wrap">
-            <h2 className="text-base font-bold text-slate-900">
-              Recepcion en {circuito.nombre_club}
-            </h2>
-            <span className="text-[11px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2.5 py-0.5 rounded-full">
-              Presentes: {validadosCount} / {adultosActivos.length}
-            </span>
+    <div className="space-y-3">
+      {/* Cabecera en 2 Pasos: Paso 1 Validar Asistencia -> Paso 2 Validar Actividad y Otorgar Puntos */}
+      <div className="bg-white rounded-xl p-4 border border-slate-200 space-y-3">
+        <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div>
+            <div className="flex items-center gap-2.5 flex-wrap">
+              <h2 className="text-base font-bold text-slate-900">
+                Recepcion y Validacion de Actividad — {circuito.nombre_club}
+              </h2>
+              <span className="text-[11px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-2.5 py-0.5 rounded-full">
+                Presentes: {validadosCount} / {adultosActivos.length}
+              </span>
+              {actividadFinalizada && (
+                <span className="text-[11px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2.5 py-0.5 rounded-full inline-flex items-center gap-1">
+                  <Sparkles className="w-3 h-3" />
+                  <span>Actividad Validada • Puntos Enviados por WhatsApp</span>
+                </span>
+              )}
+            </div>
+            <p className="text-xs text-slate-500 mt-0.5">
+              <strong>Paso 1:</strong> Marca quienes asistieron hoy.{" "}
+              <strong>Paso 2:</strong> Toca{" "}
+              <strong className="text-[#a70355]">
+                &ldquo;Validar Actividad y Otorgar Recompensas&rdquo;
+              </strong>{" "}
+              para acreditar <strong>+250 pts (+$2.500)</strong> a los presentes y enviarles sus descuentos por WhatsApp.
+            </p>
           </div>
-          <p className="text-xs text-slate-500 mt-0.5">
-            Marca a todos presentes de una sola vez y quita unicamente a quien no vino ({jornada.actividad_cierre}).
-          </p>
-        </div>
 
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            onClick={onOpenQrModal}
-            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-2 rounded-full transition flex items-center gap-1.5"
-          >
-            <QrCode className="w-3.5 h-3.5" />
-            <span>QR del Evento (Imprimir Puerta)</span>
-          </button>
+          <div className="flex flex-wrap items-center gap-2 shrink-0">
+            <button
+              type="button"
+              onClick={onOpenQrModal}
+              className="border border-[#c4c9cd] text-[#363f48] hover:border-[#a70355] hover:text-[#a70355] font-semibold text-xs px-3 py-2 rounded-full transition flex items-center gap-1.5"
+            >
+              <QrCode className="w-3.5 h-3.5" />
+              <span>QR de Puerta</span>
+            </button>
 
-          {hayValidados && (
+            {hayValidados && (
+              <button
+                type="button"
+                onClick={() =>
+                  onExecuteAction("validar_club", {
+                    participanteIds: adultosActivos.map((a) => a.id),
+                    presente: false,
+                  })
+                }
+                disabled={
+                  loadingAction === "validar_club" ||
+                  loadingAction === "validar_actividad_recompensas"
+                }
+                className="border border-[#c4c9cd] text-[#52606d] hover:border-[#bf2020] hover:text-[#bf2020] bg-white font-semibold text-xs px-3 py-2 rounded-full transition flex items-center gap-1.5 disabled:opacity-50"
+              >
+                <UserX className="w-3.5 h-3.5" />
+                <span>Desmarcar todos</span>
+              </button>
+            )}
+
             <button
               type="button"
               onClick={() =>
                 onExecuteAction("validar_club", {
                   participanteIds: adultosActivos.map((a) => a.id),
-                  presente: false,
+                  presente: true,
                 })
               }
-              disabled={loadingAction === "validar_club"}
-              className="border border-[#c4c9cd] text-[#52606d] hover:border-[#bf2020] hover:text-[#bf2020] bg-white font-semibold text-xs px-3.5 py-2 rounded-full transition flex items-center gap-1.5 disabled:opacity-50"
+              disabled={
+                loadingAction === "validar_club" ||
+                adultosActivos.length === 0 ||
+                !hayPendientes
+              }
+              className="border border-[#a70355] text-[#a70355] hover:bg-[#faf0f5] disabled:opacity-45 font-semibold text-xs px-3.5 py-2 rounded-full transition flex items-center gap-1.5"
             >
-              <UserX className="w-3.5 h-3.5" />
-              <span>Desmarcar todos</span>
+              <CheckCircle2 className="w-3.5 h-3.5" />
+              <span>
+                {hayPendientes
+                  ? "1. Marcar todos presentes"
+                  : "1. Todos presentes"}
+              </span>
             </button>
-          )}
 
-          <button
-            type="button"
-            onClick={() =>
-              onExecuteAction("validar_club", {
-                participanteIds: adultosActivos.map((a) => a.id),
-                presente: true,
-              })
-            }
-            disabled={
-              loadingAction === "validar_club" ||
-              adultosActivos.length === 0 ||
-              !hayPendientes
-            }
-            className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-300 text-white font-semibold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5"
-          >
-            <CheckCircle2 className="w-3.5 h-3.5" />
-            <span>
-              {hayPendientes
-                ? "Validar todos presentes"
-                : "Todos marcados presentes"}
-            </span>
-          </button>
+            <button
+              type="button"
+              onClick={() =>
+                onExecuteAction("validar_actividad_recompensas", {
+                  jornadaId: jornada.id,
+                })
+              }
+              disabled={
+                !hayValidados ||
+                loadingAction === "validar_actividad_recompensas"
+              }
+              title={
+                !hayValidados
+                  ? "Primero marca al menos 1 abuelo como Presente"
+                  : "Acreditar +250 pts ($2.500) a todos los presentes y enviarles sus descuentos por WhatsApp"
+              }
+              className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-300 text-white font-bold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5 shadow-xs"
+            >
+              <Gift className="w-3.5 h-3.5" />
+              <span>
+                {loadingAction === "validar_actividad_recompensas"
+                  ? "Acreditando puntos..."
+                  : actividadFinalizada
+                  ? `2. Re-acreditar Actividad (${validadosCount})`
+                  : `2. Validar Actividad y Otorgar Puntos (${validadosCount})`}
+              </span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -165,12 +222,26 @@ export default function TabRecepcionClub({
                         {modalidadTexto}
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500">
-                      {adulto.direccion} • DNI {adulto.dni}
+                    <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
+                      <span>
+                        {adulto.direccion} • DNI {adulto.dni}
+                      </span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#a70355] bg-[#faf0f5] px-2 py-0.2 rounded-full">
+                        <Award className="w-3 h-3" />
+                        <span>
+                          Saldo actual: {getParticipantRewardInfo(adulto).puntos} pts ($
+                          {getParticipantRewardInfo(adulto).creditoPesos.toLocaleString(
+                            "es-AR"
+                          )}
+                          )
+                        </span>
+                      </span>
                     </div>
                     {validado && (
                       <div className="text-xs font-semibold text-[#a70355]">
-                        Presencia registrada en el encuentro de hoy
+                        {actividadFinalizada
+                          ? "✓ Asistencia y Actividad validadas (+250 pts / +$2.500 enviados por WhatsApp)"
+                          : "✓ Presente en la sede (toca '2. Validar Actividad y Otorgar Puntos' arriba al finalizar)"}
                       </div>
                     )}
                   </div>

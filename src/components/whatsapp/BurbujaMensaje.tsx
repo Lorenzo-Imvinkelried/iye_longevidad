@@ -2,7 +2,7 @@
 
 import React from "react";
 import { WhatsAppMessage, WhatsAppReplyButton } from "@/types/domain";
-import { CheckCheck, ShieldCheck } from "lucide-react";
+import { CheckCheck, Gift, ShieldCheck } from "lucide-react";
 
 function formatWhatsAppText(text: string) {
   const parts = text.split(/(\*[^*]+\*)/g);
@@ -80,6 +80,47 @@ export default function BurbujaMensaje({
               <div className="flex justify-between">
                 <span className="text-slate-500">Horario:</span>
                 <span className="font-semibold">{msg.fichaSeguridad.horarioPuerta}</span>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {msg.recompensaSancor && (
+          <div className="mt-2.5 bg-white/95 border border-[#e1a9c5] rounded-lg p-2.5 shadow-2xs">
+            <div className="flex items-center gap-1.5 text-[#a70355] font-bold text-[11px] uppercase border-b border-[#f4e1eb] pb-1 mb-1.5">
+              <Gift className="w-3.5 h-3.5 text-[#a70355] shrink-0" />
+              <span>Billetera de Beneficios Sancor</span>
+            </div>
+            <div className="space-y-1 text-xs text-slate-800">
+              {msg.recompensaSancor.montoAcreditado > 0 && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Acreditado hoy:</span>
+                  <span className="font-bold text-emerald-700">
+                    +{Math.round(msg.recompensaSancor.montoAcreditado / 10)} pts (+$
+                    {msg.recompensaSancor.montoAcreditado.toLocaleString("es-AR")})
+                  </span>
+                </div>
+              )}
+              {msg.recompensaSancor.plusPadrinazgo && (
+                <div className="flex justify-between">
+                  <span className="text-slate-500">Plus Padrinazgo:</span>
+                  <span className="font-bold text-emerald-700">
+                    +${msg.recompensaSancor.plusPadrinazgo.toLocaleString("es-AR")}
+                  </span>
+                </div>
+              )}
+              <div className="flex justify-between">
+                <span className="text-slate-500">Saldo acumulado:</span>
+                <span className="font-bold text-[#a70355]">
+                  {Math.round(msg.recompensaSancor.saldoTotal / 10)} pts ($
+                  {msg.recompensaSancor.saldoTotal.toLocaleString("es-AR")})
+                </span>
+              </div>
+              <div className="flex justify-between items-center pt-0.5">
+                <span className="text-slate-500">Cupon DNI:</span>
+                <span className="font-mono font-bold text-[11px] bg-[#faf0f5] text-[#a70355] border border-[#e1a9c5] px-1.5 py-0.5 rounded">
+                  {msg.recompensaSancor.codigoCanje}
+                </span>
               </div>
             </div>
           </div>

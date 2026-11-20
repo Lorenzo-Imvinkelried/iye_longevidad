@@ -453,3 +453,158 @@ export function parseGoogleMapsLocationInput(
 
   return null;
 }
+
+export interface RewardTierInfo {
+  puntos: number;
+  creditoPesos: number;
+  nivelActual: string;
+  descuentoActualPct: number;
+  comerciosActuales: Array<{
+    lugar: string;
+    beneficio: string;
+    detalle: string;
+  }>;
+  proximoNivel: string | null;
+  puntosProximoNivel: number | null;
+  puntosFaltantes: number;
+  proximoBeneficioResumen: string;
+  progresoPct: number;
+  codigoCupon: string;
+}
+
+/**
+ * Calcula puntos, creditos en pesos ($ ARS) y descuentos actuales y futuros
+ * a partir de `saldo_reintegro_sancor` (1 punto = $10 ARS; cada actividad suma +250 pts / +$2.500).
+ */
+export function getParticipantRewardInfo(
+  participante: Pick<Participante, "id" | "nombre" | "dni" | "saldo_reintegro_sancor" | "rol">
+): RewardTierInfo {
+  const creditoPesos = Math.max(0, Math.round(Number(participante.saldo_reintegro_sancor || 0)));
+  const puntos = Math.round(creditoPesos / 10);
+  const dniSuffix = (participante.dni || "000").replace(/[^0-9]/g, "").slice(-4) || "2026";
+  const codigoCupon = `SANCOR-${dniSuffix}-${puntos}P`;
+
+  if (puntos < 500) {
+    const faltan = Math.max(0, 500 - puntos);
+    return {
+      puntos,
+      creditoPesos,
+      nivelActual: "Nivel 1 • Bronce Barrial",
+      descuentoActualPct: 15,
+      comerciosActuales: [
+        {
+          lugar: "Farmacias Adheridas Sancor",
+          beneficio: "15% OFF",
+          detalle: "En medicamentos de venta libre y cuidado diario",
+        },
+        {
+          lugar: "Buffet y Cuota Social del Club",
+          beneficio: `$${creditoPesos.toLocaleString("es-AR")} a favor`,
+          detalle: "Aplicable en cantina del club o cuota mensual",
+        },
+      ],
+      proximoNivel: "Nivel 2 • Plata Activa (500 pts)",
+      puntosProximoNivel: 500,
+      puntosFaltantes: faltan,
+      proximoBeneficioResumen: `25% OFF en Farmacias y Almacenes Barriales (te faltan ${faltan} pts / 1 actividad)`,
+      progresoPct: Math.min(100, Math.round((puntos / 500) * 100)),
+      codigoCupon,
+    };
+  }
+
+  if (puntos < 1000) {
+    const faltan = Math.max(0, 1000 - puntos);
+    return {
+      puntos,
+      creditoPesos,
+      nivelActual: "Nivel 2 • Plata Activa",
+      descuentoActualPct: 25,
+      comerciosActuales: [
+        {
+          lugar: "Farmacias y Perfumerias Sancor",
+          beneficio: "25% OFF",
+          detalle: "Acumulable con cobertura Sancor Salud",
+        },
+        {
+          lugar: "Supermercados y Almacenes del Barrio",
+          beneficio: `$${creditoPesos.toLocaleString("es-AR")} en credito`,
+          detalle: "Canje directo en caja presentando tu DNI",
+        },
+        {
+          lugar: "Club y Centro Vecinal",
+          beneficio: "50% Bonificacion",
+          detalle: "En talleres recreativos y cuota social",
+        },
+      ],
+      proximoNivel: "Nivel 3 • Oro Vital (1.000 pts)",
+      puntosProximoNivel: 1000,
+      puntosFaltantes: faltan,
+      proximoBeneficioResumen: `35% OFF en Opticas, Ortopedia y Reintegro en Coseguros (te faltan ${faltan} pts)`,
+      progresoPct: Math.min(100, Math.round((puntos / 1000) * 100)),
+      codigoCupon,
+    };
+  }
+
+  if (puntos < 1500) {
+    const faltan = Math.max(0, 1500 - puntos);
+    return {
+      puntos,
+      creditoPesos,
+      nivelActual: "Nivel 3 • Oro Vital",
+      descuentoActualPct: 35,
+      comerciosActuales: [
+        {
+          lugar: "Farmacias, Opticas y Ortopedia",
+          beneficio: "35% OFF",
+          detalle: "Cristales, plantillas y medicamentos recetados",
+        },
+        {
+          lugar: "Supermercados y Comercios Adheridos",
+          beneficio: `$${creditoPesos.toLocaleString("es-AR")} en credito`,
+          detalle: "Saldo disponible en billetera Sancor con DNI",
+        },
+        {
+          lugar: "Sancor Salud / Seguros",
+          beneficio: "Reintegro en Coseguros",
+          detalle: "Consultas kinesiologicas y controles sin cargo",
+        },
+      ],
+      proximoNivel: "Nivel 4 • Embajador Sancor (1.500 pts)",
+      puntosProximoNivel: 1500,
+      puntosFaltantes: faltan,
+      proximoBeneficioResumen: `45% OFF en Farmacias + Bono Mensual en Cuota Sancor (te faltan ${faltan} pts)`,
+      progresoPct: Math.min(100, Math.round((puntos / 1500) * 100)),
+      codigoCupon,
+    };
+  }
+
+  return {
+    puntos,
+    creditoPesos,
+    nivelActual: "Nivel 4 • Embajador Sancor",
+    descuentoActualPct: 45,
+    comerciosActuales: [
+      {
+        lugar: "Red de Farmacias, Opticas y Ortopedia",
+        beneficio: "45% OFF Maximo",
+        detalle: "Maximo nivel de cobertura en red Sancor",
+      },
+      {
+        lugar: "Supermercados y Comercios Barriales",
+        beneficio: `$${creditoPesos.toLocaleString("es-AR")} en credito`,
+        detalle: "Disponible para usar con DNI en cualquier sucursal",
+      },
+      {
+        lugar: "Cuota Sancor Salud y Club Barrial",
+        beneficio: "100% Club + Bono Cuota",
+        detalle: "Actividades del club 100% bonificadas",
+      },
+    ],
+    proximoNivel: null,
+    puntosProximoNivel: null,
+    puntosFaltantes: 0,
+    proximoBeneficioResumen: "¡Alcanzaste el nivel maximo de beneficios Sancor Longevidad Activa!",
+    progresoPct: 100,
+    codigoCupon,
+  };
+}
