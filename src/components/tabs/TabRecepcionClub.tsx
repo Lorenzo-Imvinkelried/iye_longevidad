@@ -2,12 +2,8 @@
 
 import React from "react";
 import { SystemSnapshot } from "@/types/domain";
+import { getParticipanteAvatarUrl } from "@/lib/domain-helpers";
 import {
-  getParticipanteAvatarUrl,
-  getParticipantRewardInfo,
-} from "@/lib/domain-helpers";
-import {
-  Award,
   CheckCircle2,
   Gift,
   QrCode,
@@ -236,20 +232,8 @@ export default function TabRecepcionClub({
                         Ver ficha / editar →
                       </span>
                     </div>
-                    <div className="text-xs text-slate-500 flex items-center gap-2 flex-wrap">
-                      <span>
-                        {adulto.direccion} • DNI {adulto.dni}
-                      </span>
-                      <span className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#a70355] bg-[#faf0f5] px-2 py-0.2 rounded-full">
-                        <Award className="w-3 h-3" />
-                        <span>
-                          Saldo actual: {getParticipantRewardInfo(adulto).puntos} pts ($
-                          {getParticipantRewardInfo(adulto).creditoPesos.toLocaleString(
-                            "es-AR"
-                          )}
-                          )
-                        </span>
-                      </span>
+                    <div className="text-xs text-slate-500">
+                      {adulto.direccion} • DNI {adulto.dni}
                     </div>
                     {validado && (
                       <div className="text-xs font-semibold text-[#a70355]">
