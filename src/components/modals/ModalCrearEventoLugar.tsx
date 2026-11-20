@@ -97,15 +97,7 @@ export default function ModalCrearEventoLugar({
 }: ModalEventoProps) {
   const submitRef = useRef(false);
   const [vista, setVista] = useState<"lista" | "crear">(initialView);
-
-  useEffect(() => {
-    if (open) {
-      setVista(initialView);
-    }
-  }, [open, initialView]);
-  const [expandedJornadaId, setExpandedJornadaId] = useState<string | null>(
-    jornadaActualId
-  );
+  const [expandedJornadaId, setExpandedJornadaId] = useState<string | null>(null);
   const [editingJornadaId, setEditingJornadaId] = useState<string | null>(null);
   const [editForm, setEditForm] = useState<{
     nombreClub: string;
@@ -163,15 +155,15 @@ export default function ModalCrearEventoLugar({
     if (open) {
       submitRef.current = false;
       setSubmitting(false);
-      setVista("lista");
-      setExpandedJornadaId(jornadaActualId);
+      setVista(initialView);
+      setExpandedJornadaId(null);
       setEditingJornadaId(null);
       setCircuitoId(circuitoActualId);
       setCoordsCustom(null);
       setBarrioCustom(undefined);
       setCoCoordinadoresIds([tutorId]);
     }
-  }, [open, circuitoActualId, jornadaActualId, tutorId]);
+  }, [open, initialView, circuitoActualId, jornadaActualId, tutorId]);
 
   if (!open) return null;
 
