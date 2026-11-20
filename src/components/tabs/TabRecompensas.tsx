@@ -15,7 +15,6 @@ import {
   Search,
   Send,
   ShoppingBag,
-  Sparkles,
   Store,
   TrendingUp,
 } from "lucide-react";
@@ -72,9 +71,6 @@ export default function TabRecompensas({
   const asistenciasEvento = asistencias.filter(
     (a) => a.jornada_id === jornada.id
   );
-  const presentesCount = asistenciasEvento.filter(
-    (a) => a.presente_validado_en_club
-  ).length;
 
   const beneficiarios: Participante[] = participantes
     .filter((p) => {
@@ -102,8 +98,8 @@ export default function TabRecompensas({
 
   return (
     <div className="space-y-3">
-      {/* Cabecera: Resumen del programa de puntos, creditos y descuentos + Boton rapido de Validar Actividad */}
-      <div className="bg-white rounded-xl p-3.5 border border-[#eaeced] flex flex-col lg:flex-row lg:items-center justify-between gap-3 shadow-xs">
+      {/* Cabecera: Resumen del programa de puntos, creditos y descuentos */}
+      <div className="bg-white rounded-xl p-3.5 border border-[#eaeced] shadow-xs">
         <div className="space-y-0.5">
           <div className="flex items-center gap-2 flex-wrap">
             <Gift className="w-4 h-4 text-[#a70355]" />
@@ -118,29 +114,6 @@ export default function TabRecompensas({
           <p className="text-xs text-[#52606d]">
             Cada actividad validada suma <strong>+250 Puntos (+$2.500 ARS en creditos)</strong> al abuelo asistente (y <strong>+400 pts / +$4.000</strong> al vecino padrino) guardados en Supabase y enviados por WhatsApp.
           </p>
-        </div>
-
-        <div className="flex flex-wrap items-center gap-2 shrink-0">
-          <button
-            type="button"
-            disabled={
-              presentesCount === 0 ||
-              loadingAction === "validar_actividad_recompensas"
-            }
-            onClick={() =>
-              onExecuteAction("validar_actividad_recompensas", {
-                jornadaId: jornada.id,
-              })
-            }
-            className="bg-[#a70355] hover:bg-[#8c0347] disabled:bg-slate-300 text-white font-bold text-xs px-4 py-2 rounded-full transition flex items-center gap-1.5 shadow-xs"
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>
-              {loadingAction === "validar_actividad_recompensas"
-                ? "Acreditando..."
-                : `Validar Actividad de Hoy y Acreditar (${presentesCount} presentes)`}
-            </span>
-          </button>
         </div>
       </div>
 

@@ -72,14 +72,6 @@ export default function TabRecepcionClub({
                 </span>
               )}
             </div>
-            <p className="text-xs text-slate-500 mt-0.5">
-              <strong>Paso 1:</strong> Marca quienes asistieron hoy.{" "}
-              <strong>Paso 2:</strong> Toca{" "}
-              <strong className="text-[#a70355]">
-                &ldquo;Validar Actividad y Otorgar Recompensas&rdquo;
-              </strong>{" "}
-              para acreditar <strong>+250 pts (+$2.500)</strong> a los presentes y enviarles sus descuentos por WhatsApp.
-            </p>
           </div>
 
           <div className="flex flex-wrap items-center gap-2 shrink-0">
