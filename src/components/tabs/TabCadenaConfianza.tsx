@@ -496,12 +496,17 @@ export default function TabCadenaConfianza({
             </div>
           </div>
 
-          {/* Solicitudes Familiares compactas */}
+          {/* Solicitudes de familiares para inscribir abuelos al centro */}
           <div className="bg-white rounded-xl border border-[#eaeced] overflow-hidden shadow-2xs">
-            <div className="px-3.5 py-2 bg-[#f6f6f7] border-b border-[#eaeced] flex items-center justify-between">
-              <h3 className="text-xs font-bold uppercase tracking-wide text-[#363f48]">
-                Solicitudes Familiares ({solicitudesPendientes.length})
+            <div className="px-3.5 py-2.5 bg-[#f6f6f7] border-b border-[#eaeced] space-y-0.5">
+              <h3 className="text-xs font-bold uppercase tracking-wide text-[#363f48] leading-snug">
+                Solicitudes de Familiares para Inscribir Abuelos en{" "}
+                <span className="text-[#a70355]">{circuito.nombre_club}</span> (
+                {solicitudesPendientes.length})
               </h3>
+              <p className="text-[10px] text-[#52606d] leading-snug">
+                Pedidos enviados por hijos o nietos para sumar un adulto mayor a este centro y asignarle un padrino.
+              </p>
             </div>
 
             {solicitudesPendientes.length === 0 ? (
@@ -565,7 +570,7 @@ export default function TabCadenaConfianza({
                           className="bg-[#a70355] hover:bg-[#8c0347] text-white font-semibold text-[11px] px-3 py-1 rounded-full flex items-center gap-1 shrink-0 transition"
                         >
                           <UserCheck className="w-3 h-3" />
-                          <span>Aprobar</span>
+                          <span>Aprobar e inscribir</span>
                         </button>
                       </div>
                     </div>
