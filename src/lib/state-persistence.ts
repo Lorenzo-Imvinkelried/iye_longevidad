@@ -145,9 +145,21 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
       state.asistencias = Array.from(mergedAsis.values());
 
       // Restaurar mensajes de WhatsApp guardados en Supabase (CHAT_V1:...)
-      const msgMap = new Map<string, WhatsAppMessage>();
-      for (const m of state.mensajes) msgMap.set(m.id, m);
-      for (const a of dbAsis) {
+      // Ordenamos por updated_at ascendente para que el historial mas reciente de cada participante prevalezca
+      const sortedDbAsis = [...dbAsis].sort(
+        (a, b) =>
+          new Date(a.updated_at || 0).getTime() -
+          new Date(b.updated_at || 0).getTime()
+      );
+      const msgsByParticipant = new Map<string, WhatsAppMessage[]>();
+      for (const m of state.mensajes) {
+        if (m.id.startsWith("msg-sync-")) continue;
+        const arr = msgsByParticipant.get(m.participante_id) || [];
+        arr.push(m);
+        msgsByParticipant.set(m.participante_id, arr);
+      }
+
+      for (const a of sortedDbAsis) {
         if (
           typeof a.codigo_canje_farmacia === "string" &&
           a.codigo_canje_farmacia.startsWith("CHAT_V1:")
@@ -157,18 +169,18 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
               a.codigo_canje_farmacia.slice("CHAT_V1:".length)
             ) as WhatsAppMessage[];
             if (Array.isArray(parsedMsgs)) {
-              for (const pm of parsedMsgs) {
-                if (pm && pm.id) {
-                  msgMap.set(pm.id, pm);
-                }
-              }
+              const cleanMsgs = parsedMsgs.filter(
+                (pm) => pm && pm.id && !pm.id.startsWith("msg-sync-")
+              );
+              msgsByParticipant.set(a.participante_id, cleanMsgs);
             }
           } catch {
             // Ignore malformed chat history
           }
         }
       }
-      state.mensajes = Array.from(msgMap.values());
+
+      state.mensajes = Array.from(msgsByParticipant.values()).flat();
       reconcileSimulatorMessagesFromSupabase(state);
     }
 
@@ -189,6 +201,17 @@ function reconcileSimulatorMessagesFromSupabase(state: SystemSnapshot) {
   for (const asis of activeAsistencias) {
     const part = state.participantes.find((p) => p.id === asis.participante_id);
     if (!part) continue;
+
+    // Si ya tiene historial real persistido en CHAT_V1 o ya fue validado en el club, no inventar mensajes sincronizados falsos
+    if (
+      typeof asis.codigo_canje_farmacia === "string" &&
+      asis.codigo_canje_farmacia.startsWith("CHAT_V1:")
+    ) {
+      continue;
+    }
+    if (asis.presente_validado_en_club) {
+      continue;
+    }
 
     const msgs = state.mensajes.filter((m) => m.participante_id === part.id);
     const hasUserReply = msgs.some((m) => m.sender === "usuario");

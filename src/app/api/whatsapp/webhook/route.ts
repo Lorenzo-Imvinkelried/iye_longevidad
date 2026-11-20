@@ -125,12 +125,10 @@ export async function POST(req: NextRequest) {
           mappedButton = "btn_checkin_qr";
         } else if (lower.includes("cancel") || lower.includes("no voy")) {
           mappedButton = "btn_adulto_cancela";
-        } else if (
-          /^(hola|buenas|buen d[ií]a|buenos d[ií]as|men[uú]|opciones|inicio|sumarme)\b/i.test(
-            lower
-          )
-        ) {
-          mappedButton = "btn_menu_convocatoria";
+        } else if (/^(men[uú]|opciones|cambiar|sumarme)\b/i.test(lower)) {
+          mappedButton = "btn_menu_convocatoria_explicito";
+        } else if (/^(hola|buenas|buen d[ií]a|buenos d[ií]as|inicio)\b/i.test(lower)) {
+          mappedButton = "btn_saludo_inicial";
         }
 
         const snapshot = await procesarEventoWebhookWhatsApp({

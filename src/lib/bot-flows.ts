@@ -379,6 +379,54 @@ export async function procesarEventoWebhookWhatsApp(params: {
 
   appendUserMessage(state, actor, params.buttonTitle || params.buttonId);
 
+  const asisActor = state.asistencias.find(
+    (a) => a.jornada_id === targetJornada.id && a.participante_id === actor.id
+  );
+  const yaValidadoEnClub = Boolean(asisActor?.presente_validado_en_club);
+  const eventoTerminado = targetJornada.estado === "finalizada";
+  const mensajesPreviosActor = state.mensajes.filter(
+    (m) => m.participante_id === actor.id && !m.id.startsWith("msg-sync-")
+  );
+  // Descontamos el mensaje que acabamos de pushear en appendUserMessage
+  const teniaHistorialDeChat = mensajesPreviosActor.length > 1;
+
+  // Si ya se valido su presencia en el club o el evento termino, cualquier mensaje entrante es conversacion libre
+  if (
+    (yaValidadoEnClub || eventoTerminado) &&
+    parsed.baseAction !== "btn_checkin_qr"
+  ) {
+    addLog(
+      state,
+      actor.nombre,
+      "Mensaje Recibido post-asistencia",
+      `${actor.nombre}: "${params.buttonTitle || params.buttonId}"`,
+      "info"
+    );
+    writeState(state);
+    await syncToSupabaseIfConfigured(state);
+    return state;
+  }
+
+  // Si manda "Hola" pero ya habia respondido la convocatoria o ya estaba chateando con el coordinador, no volver a disparar el menu de convocatoria
+  if (
+    parsed.baseAction === "btn_saludo_inicial" &&
+    (teniaHistorialDeChat ||
+      (asisActor &&
+        asisActor.modalidad_elegida !== "sin_respuesta" &&
+        asisActor.modalidad_elegida !== "no_asiste"))
+  ) {
+    addLog(
+      state,
+      actor.nombre,
+      "Mensaje Recibido por WhatsApp",
+      `${actor.nombre}: "${params.buttonTitle || ""}"`,
+      "info"
+    );
+    writeState(state);
+    await syncToSupabaseIfConfigured(state);
+    return state;
+  }
+
   if (parsed.baseAction === "btn_texto_libre") {
     addLog(
       state,
@@ -397,7 +445,11 @@ export async function procesarEventoWebhookWhatsApp(params: {
     targetCircuito.coords_club
   );
 
-  if (parsed.baseAction === "btn_menu_convocatoria") {
+  if (
+    parsed.baseAction === "btn_menu_convocatoria" ||
+    parsed.baseAction === "btn_menu_convocatoria_explicito" ||
+    parsed.baseAction === "btn_saludo_inicial"
+  ) {
     const asis = state.asistencias.find(
       (a) => a.jornada_id === targetJornada.id && a.participante_id === actor.id
     );

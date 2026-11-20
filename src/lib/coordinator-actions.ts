@@ -931,7 +931,6 @@ export async function validarPresenciaEnClub(
     if (!presente) {
       if (!asis.presente_validado_en_club) continue;
       asis.presente_validado_en_club = false;
-      asis.codigo_canje_farmacia = null;
       asis.updated_at = new Date().toISOString();
 
       addLog(
@@ -946,25 +945,7 @@ export async function validarPresenciaEnClub(
 
     if (asis.presente_validado_en_club) continue;
 
-    if (
-      asis.modalidad_elegida === "sin_respuesta" ||
-      asis.modalidad_elegida === "no_asiste"
-    ) {
-      asis.modalidad_elegida =
-        adulto.nivel_autonomia_habitual === 1
-          ? "nivel_1_puerta"
-          : adulto.nivel_autonomia_habitual === 2
-          ? "nivel_2_esquina"
-          : "nivel_3_directo";
-      if (asis.modalidad_elegida === "nivel_1_puerta") {
-        asis.estado_padrino = "confirmado";
-        asis.padrino_asignado_id =
-          adulto.padrino_preferido_id || SEED_IDS.padrinoCarlos;
-      }
-    }
-
     asis.presente_validado_en_club = true;
-    asis.codigo_canje_farmacia = null;
     asis.updated_at = new Date().toISOString();
 
     const primerNombre = adulto.nombre.split(" ")[0];
