@@ -1,0 +1,57 @@
+RESUMEN DE ARCHIVOS Y LINEAS DE CODIGO DEL PROYECTO (SIN LIBRERIAS NI DEPENDENCIAS)
+Generado: 2026-11-20 10:46:44
+-----------------------------------------------------------------
+Archivo                                             |     Lineas
+-----------------------------------------------------------------
+src/lib/coordinator-actions.ts                      |       1836
+src/components/tabs/TabMonitorCircuito.tsx          |       1613
+src/components/modals/ModalCrearEventoLugar.tsx     |       1048
+src/lib/bot-flows.ts                                |        886
+src/components/modals/ModalPerfilParticipante.tsx   |        845
+src/components/DashboardCoordinador.tsx             |        832
+src/components/tabs/TabCadenaConfianza.tsx          |        617
+src/lib/domain-helpers.ts                           |        610
+src/components/modals/ModalDerivacionFamiliar.tsx   |        541
+src/lib/state-persistence.ts                        |        524
+src/lib/seed-data.ts                                |        521
+src/components/auth/PantallaLoginTutor.tsx          |        519
+src/components/MapaCircuitoLeaflet.tsx              |        487
+supabase/schema_and_seed.sql                        |        447
+src/components/tabs/TabRecompensas.tsx              |        413
+src/components/SimuladorWhatsApp.tsx                |        336
+src/app/api/state/route.ts                          |        299
+src/components/tabs/TabRecepcionClub.tsx            |        295
+src/components/mapa/SelectorMapaLugar.tsx           |        292
+src/components/modals/ModalAcreditarCoordinador.tsx |        277
+src/components/mapa/EditorRutaPanel.tsx             |        263
+src/lib/whatsapp-cloud.ts                           |        259
+whatsapp_api_resumen.txt                            |        236
+src/components/modals/ModalAcreditarPadrino.tsx     |        226
+src/components/layout/HeaderInstitucional.tsx       |        202
+src/types/domain.ts                                 |        181
+src/app/api/whatsapp/webhook/route.ts               |        179
+src/components/modals/ModalIniciarActividad.tsx     |        179
+src/components/whatsapp/BurbujaMensaje.tsx          |        160
+src/components/modals/ModalSuspenderEvento.tsx      |        155
+src/components/mapa/SelectorMapaLeaflet.tsx         |        149
+src/lib/street-routing.ts                           |        149
+src/components/modals/ModalCargando.tsx             |        145
+src/components/modals/ModalLectorQr.tsx             |        127
+src/components/mapa/map-icons.ts                    |        112
+src/components/layout/FooterInstitucional.tsx       |         82
+src/lib/supabase.ts                                 |         81
+src/app/page.tsx                                    |         61
+src/app/layout.tsx                                  |         41
+README.md                                           |         39
+.gitignore                                          |         36
+package.json                                        |         33
+src/lib/store.ts                                    |         33
+tailwind.config.ts                                  |         33
+cuentas_acceso.txt                                  |         26
+tsconfig.json                                       |         26
+src/app/globals.css                                 |         23
+.env.example                                        |         20
+postcss.config.mjs                                  |          9
+next.config.mjs                                     |          6
+-----------------------------------------------------------------
+TOTAL (50 archivos)                                 |      16509
