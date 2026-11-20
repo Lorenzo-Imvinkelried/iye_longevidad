@@ -2,7 +2,7 @@
 
 import React from "react";
 import { WhatsAppMessage, WhatsAppReplyButton } from "@/types/domain";
-import { CheckCheck, ShieldCheck, Volume2 } from "lucide-react";
+import { CheckCheck, ShieldCheck } from "lucide-react";
 
 function formatWhatsAppText(text: string) {
   const parts = text.split(/(\*[^*]+\*)/g);
@@ -21,16 +21,12 @@ function formatWhatsAppText(text: string) {
 interface BurbujaProps {
   msg: WhatsAppMessage;
   sendingButtonId: string | null;
-  playingAudioId: string | null;
-  onSpeakMessage: (msgId: string, text: string) => void;
   onTouchButton: (btn: WhatsAppReplyButton) => void;
 }
 
 export default function BurbujaMensaje({
   msg,
   sendingButtonId,
-  playingAudioId,
-  onSpeakMessage,
   onTouchButton,
 }: BurbujaProps) {
   const isBot = msg.sender === "bot_sancor";
@@ -51,14 +47,6 @@ export default function BurbujaMensaje({
             <span className="text-[10px] font-semibold uppercase tracking-wide text-emerald-900">
               {msg.esAlertaPrioritaria ? "Aviso prioritario" : "Bot Oficial"}
             </span>
-            <button
-              type="button"
-              onClick={() => onSpeakMessage(msg.id, msg.text)}
-              className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-medium bg-white/80 hover:bg-white text-slate-700"
-            >
-              <Volume2 className="w-3 h-3" />
-              <span>{playingAudioId === msg.id ? "Detener" : "Escuchar"}</span>
-            </button>
           </div>
         )}
 

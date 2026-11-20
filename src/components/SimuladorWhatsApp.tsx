@@ -32,7 +32,6 @@ export default function SimuladorWhatsApp({
   const [lastWebhookPayload, setLastWebhookPayload] = useState<Record<string, unknown> | null>(
     null
   );
-  const [playingAudioId, setPlayingAudioId] = useState<string | null>(null);
   const [manualText, setManualText] = useState<string>("");
   const [sendingManual, setSendingManual] = useState<boolean>(false);
   const chatBottomRef = useRef<HTMLDivElement | null>(null);
@@ -129,22 +128,6 @@ export default function SimuladorWhatsApp({
       sendingRef.current = false;
       setSendingButtonId(null);
     }
-  };
-
-  const handleSpeakMessage = (msgId: string, text: string) => {
-    if (typeof window === "undefined" || !("speechSynthesis" in window)) return;
-    window.speechSynthesis.cancel();
-    if (playingAudioId === msgId) {
-      setPlayingAudioId(null);
-      return;
-    }
-    const cleanText = text.replace(/\*/g, "");
-    const utterance = new SpeechSynthesisUtterance(cleanText);
-    utterance.lang = "es-AR";
-    utterance.rate = 0.95;
-    utterance.onend = () => setPlayingAudioId(null);
-    setPlayingAudioId(msgId);
-    window.speechSynthesis.speak(utterance);
   };
 
   const handleSendManualMessage = async (e: React.FormEvent) => {
@@ -304,8 +287,6 @@ export default function SimuladorWhatsApp({
             key={msg.id}
             msg={msg}
             sendingButtonId={sendingButtonId}
-            playingAudioId={playingAudioId}
-            onSpeakMessage={handleSpeakMessage}
             onTouchButton={handleTouchInteractiveButton}
           />
         ))}
