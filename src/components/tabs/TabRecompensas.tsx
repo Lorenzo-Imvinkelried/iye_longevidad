@@ -9,6 +9,8 @@ import {
 import {
   Award,
   CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Gift,
   MessageSquare,
   PlusCircle,
@@ -65,6 +67,11 @@ export default function TabRecompensas({
     "todos"
   );
   const [busqueda, setBusqueda] = useState("");
+  const [expandedIds, setExpandedIds] = useState<Record<string, boolean>>({});
+
+  const toggleExpand = (id: string) => {
+    setExpandedIds((prev) => ({ ...prev, [id]: !prev[id] }));
+  };
 
   const { circuito, jornada, participantes, asistencias } = snapshot;
 
@@ -182,20 +189,46 @@ export default function TabRecompensas({
           </button>
         </div>
 
-        <div className="relative">
-          <Search className="w-3.5 h-3.5 text-[#52606d] absolute left-2.5 top-1/2 -translate-y-1/2" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre o DNI..."
-            value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
-            className="border border-[#c4c9cd] rounded-full pl-8 pr-3 py-1 text-xs text-[#363f48] w-48 sm:w-56 focus:outline-none focus:border-[#a70355]"
-          />
+        <div className="flex items-center gap-2 flex-wrap">
+          <button
+            type="button"
+            onClick={() => {
+              const allExpanded =
+                beneficiarios.length > 0 &&
+                beneficiarios.every((b) => expandedIds[b.id]);
+              if (allExpanded) {
+                setExpandedIds({});
+              } else {
+                const next: Record<string, boolean> = {};
+                beneficiarios.forEach((b) => {
+                  next[b.id] = true;
+                });
+                setExpandedIds(next);
+              }
+            }}
+            className="text-[11px] font-semibold text-[#52606d] hover:text-[#a70355] border border-[#eaeced] hover:border-[#e1a9c5] bg-[#f6f6f7] hover:bg-[#fdf9fb] px-2.5 py-1 rounded-full transition"
+          >
+            {beneficiarios.length > 0 &&
+            beneficiarios.every((b) => expandedIds[b.id])
+              ? "Contraer todos"
+              : "Desplegar todos"}
+          </button>
+
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 text-[#52606d] absolute left-2.5 top-1/2 -translate-y-1/2" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre o DNI..."
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              className="border border-[#c4c9cd] rounded-full pl-8 pr-3 py-1 text-xs text-[#363f48] w-48 sm:w-56 focus:outline-none focus:border-[#a70355]"
+            />
+          </div>
         </div>
       </div>
 
-      {/* Grilla de perfiles con sus Puntos, Creditos ($ ARS), Descuentos actuales y Proximo beneficio futuro */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2.5">
+      {/* Grilla compacta y desplegable de perfiles con sus Puntos, Creditos ($ ARS) y Descuentos */}
+      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-2 items-start">
         {beneficiarios.map((part, idx) => {
           const reward = getParticipantRewardInfo(part);
           const avatarUrl = getParticipanteAvatarUrl(part, idx);
@@ -203,195 +236,228 @@ export default function TabRecompensas({
             (a) => a.participante_id === part.id
           );
           const presenteHoy = Boolean(asisHoy?.presente_validado_en_club);
+          const isExpanded = Boolean(expandedIds[part.id]);
 
           return (
             <div
               key={part.id}
-              onClick={() => onOpenPerfilParticipante(part.id)}
-              role="button"
-              tabIndex={0}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onOpenPerfilParticipante(part.id);
-                }
-              }}
-              className="bg-white rounded-2xl border border-[#eaeced] hover:border-[#a70355] transition p-3.5 flex flex-col justify-between gap-2.5 shadow-2xs cursor-pointer group"
+              className={`bg-white rounded-xl border transition p-3 flex flex-col gap-2 shadow-2xs ${
+                isExpanded
+                  ? "border-[#a70355] ring-2 ring-[#a70355]/10"
+                  : "border-[#eaeced] hover:border-[#e1a9c5]"
+              }`}
             >
-              {/* Encabezado de perfil + Puntos / Credito */}
-              <div className="space-y-2.5">
-                <div className="flex items-start justify-between gap-2.5">
-                  <div className="flex items-center gap-2.5 min-w-0">
-                    <img
-                      src={avatarUrl}
-                      alt={part.nombre}
-                      width={48}
-                      height={48}
-                      className="w-12 h-12 rounded-xl object-cover border border-[#eaeced] shrink-0 bg-[#f6f6f7]"
-                    />
-                    <div className="min-w-0">
-                      <div className="flex items-center gap-1.5 flex-wrap">
-                        <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-full bg-[#faf0f5] text-[#a70355]">
-                          {part.rol === "padrino"
-                            ? `Padrino ${part.credencial_nro || ""}`
-                            : "Adulto Mayor"}
-                        </span>
-                        {presenteHoy && (
-                          <span className="text-[10px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full inline-flex items-center gap-0.5">
-                            <CheckCircle2 className="w-2.5 h-2.5" />
-                            <span>Presente hoy</span>
-                          </span>
-                        )}
-                      </div>
-                      <h3 className="font-bold text-sm text-[#363f48] truncate mt-0.5">
-                        {part.nombre}
-                      </h3>
-                      <div className="text-[11px] text-[#52606d] truncate">
-                        DNI {part.dni} • {part.edad} anos
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Tarjetita de Puntos y Plata disponible */}
-                  <div className="text-right bg-[#fdf9fb] border border-[#e1a9c5] rounded-xl px-2.5 py-1.5 shrink-0">
-                    <div className="text-xs font-extrabold text-[#a70355] flex items-center justify-end gap-1">
-                      <Award className="w-3.5 h-3.5" />
-                      <span>{reward.puntos.toLocaleString("es-AR")} pts</span>
-                    </div>
-                    <div className="text-[11px] font-bold text-[#363f48]">
-                      ${reward.creditoPesos.toLocaleString("es-AR")} ARS
-                    </div>
-                    <div className="text-[9px] text-[#52606d]">
-                      Credito disponible
-                    </div>
-                  </div>
-                </div>
-
-                {/* Nivel actual y Cupon */}
-                <div className="flex items-center justify-between gap-2 bg-[#f6f6f7] rounded-xl px-2.5 py-1.5 text-[11px]">
-                  <span className="font-bold text-[#363f48]">
-                    {reward.nivelActual} ({reward.descuentoActualPct}% OFF)
-                  </span>
-                  <span className="font-mono font-bold text-[10px] text-[#a70355] bg-white border border-[#e1a9c5] px-2 py-0.5 rounded">
-                    {reward.codigoCupon}
-                  </span>
-                </div>
-
-                {/* Descuentos actuales disponibles en distintos lugares */}
-                <div className="space-y-1">
-                  <div className="text-[10px] font-bold uppercase tracking-wide text-[#52606d] flex items-center gap-1">
-                    <Store className="w-3 h-3 text-[#a70355]" />
-                    <span>Descuentos y Creditos Actuales por Lugar:</span>
-                  </div>
-                  <div className="space-y-1">
-                    {reward.comerciosActuales.map((com) => (
-                      <div
-                        key={com.lugar}
-                        className="p-2 rounded-lg border border-[#eaeced] bg-white flex items-center justify-between gap-2 text-[11px]"
-                      >
-                        <div className="min-w-0">
-                          <div className="font-semibold text-[#363f48] truncate">
-                            {com.lugar}
-                          </div>
-                          <div className="text-[10px] text-[#52606d] truncate">
-                            {com.detalle}
-                          </div>
-                        </div>
-                        <span className="font-bold text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
-                          {com.beneficio}
-                        </span>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                {/* Barra de progreso hacia proximo descuento futuro */}
-                <div className="p-2.5 rounded-xl bg-[#fdf9fb] border border-[#f4e1eb] space-y-1">
-                  <div className="flex items-center justify-between text-[10px] font-bold text-[#a70355]">
-                    <span className="flex items-center gap-1">
-                      <TrendingUp className="w-3 h-3" />
-                      <span>
-                        {reward.proximoNivel
-                          ? `Proximo: ${reward.proximoNivel}`
-                          : "Nivel Maximo Desbloqueado"}
+              {/* Encabezado compacto: Foto + Nombre + Puntos/Plata (click abre ficha completa) */}
+              <div
+                onClick={() => onOpenPerfilParticipante(part.id)}
+                role="button"
+                tabIndex={0}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" || e.key === " ") {
+                    e.preventDefault();
+                    onOpenPerfilParticipante(part.id);
+                  }
+                }}
+                className="flex items-center justify-between gap-2 cursor-pointer group"
+              >
+                <div className="flex items-center gap-2.5 min-w-0">
+                  <img
+                    src={avatarUrl}
+                    alt={part.nombre}
+                    width={40}
+                    height={40}
+                    className="w-10 h-10 rounded-xl object-cover border border-[#eaeced] shrink-0 bg-[#f6f6f7]"
+                  />
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <span className="text-[9px] font-bold uppercase px-1.5 py-0.5 rounded-full bg-[#faf0f5] text-[#a70355]">
+                        {part.rol === "padrino"
+                          ? `Padrino ${part.credencial_nro || ""}`
+                          : "Adulto Mayor"}
                       </span>
-                    </span>
-                    <span>{reward.progresoPct}%</span>
+                      {presenteHoy && (
+                        <span className="text-[9px] font-bold bg-emerald-50 text-emerald-800 border border-emerald-200 px-1.5 py-0.5 rounded-full inline-flex items-center gap-0.5">
+                          <CheckCircle2 className="w-2.5 h-2.5" />
+                          <span>Presente</span>
+                        </span>
+                      )}
+                    </div>
+                    <h3 className="font-bold text-xs sm:text-sm text-[#363f48] group-hover:text-[#a70355] transition truncate mt-0.5">
+                      {part.nombre}
+                    </h3>
+                    <div className="text-[10px] text-[#52606d] truncate">
+                      DNI {part.dni} • {part.edad} anos
+                    </div>
                   </div>
-                  <div className="w-full h-1.5 bg-[#f4e1eb] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#a70355] rounded-full transition-all"
-                      style={{ width: `${reward.progresoPct}%` }}
-                    />
+                </div>
+
+                {/* Saldo compacto */}
+                <div className="text-right bg-[#fdf9fb] border border-[#e1a9c5] rounded-lg px-2 py-1 shrink-0">
+                  <div className="text-xs font-extrabold text-[#a70355] flex items-center justify-end gap-1 leading-tight">
+                    <Award className="w-3 h-3" />
+                    <span>{reward.puntos.toLocaleString("es-AR")} pts</span>
                   </div>
-                  <p className="text-[10px] text-[#52606d] leading-snug">
-                    {reward.proximoBeneficioResumen}
-                  </p>
+                  <div className="text-[10px] font-bold text-[#363f48] leading-tight mt-0.5">
+                    ${reward.creditoPesos.toLocaleString("es-AR")} ARS
+                  </div>
                 </div>
               </div>
 
-              {/* Acciones rapidas (Canjear en comercio / Sumar actividad / Enviar por WhatsApp) */}
-              <div
-                onClick={(e) => e.stopPropagation()}
-                className="pt-2 border-t border-[#eaeced] flex flex-wrap items-center justify-between gap-1.5 text-[11px]"
-              >
-                <div className="flex items-center gap-1">
-                  <button
-                    type="button"
-                    disabled={loadingAction === "ajustar_recompensa"}
-                    onClick={() =>
-                      onExecuteAction("ajustar_recompensa", {
-                        participanteId: part.id,
-                        deltaPesos: 2500,
-                        motivo: `Asistencia validada en ${circuito.nombre_club}`,
-                        enviarWhatsApp: true,
-                      })
-                    }
-                    title="Acreditar +250 pts (+$2.500) y enviar aviso por WhatsApp"
-                    className="bg-[#faf0f5] hover:bg-[#a70355] text-[#a70355] hover:text-white border border-[#e1a9c5] font-semibold px-2.5 py-1 rounded-full transition inline-flex items-center gap-1"
-                  >
-                    <PlusCircle className="w-3 h-3" />
-                    <span>+250 pts</span>
-                  </button>
+              {/* Resumen compacto en 1 linea: Nivel + Cupon + Progreso */}
+              <div className="flex items-center justify-between gap-2 bg-[#f6f6f7] rounded-lg px-2.5 py-1.5 text-[10px]">
+                <span className="font-bold text-[#363f48] truncate">
+                  {reward.nivelActual} ({reward.descuentoActualPct}% OFF)
+                </span>
+                <span className="font-mono font-bold text-[#a70355] bg-white border border-[#e1a9c5] px-1.5 py-0.5 rounded shrink-0">
+                  {reward.codigoCupon}
+                </span>
+              </div>
 
-                  {reward.creditoPesos >= 2500 && (
+              {/* Detalle desplegable por persona */}
+              {isExpanded && (
+                <div className="space-y-2.5 pt-1 border-t border-[#eaeced]">
+                  {/* Descuentos actuales disponibles en distintos lugares */}
+                  <div className="space-y-1">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-[#52606d] flex items-center gap-1">
+                      <Store className="w-3 h-3 text-[#a70355]" />
+                      <span>Descuentos y Creditos Actuales por Lugar:</span>
+                    </div>
+                    <div className="space-y-1">
+                      {reward.comerciosActuales.map((com) => (
+                        <div
+                          key={com.lugar}
+                          className="p-2 rounded-lg border border-[#eaeced] bg-white flex items-center justify-between gap-2 text-[11px]"
+                        >
+                          <div className="min-w-0">
+                            <div className="font-semibold text-[#363f48] truncate">
+                              {com.lugar}
+                            </div>
+                            <div className="text-[10px] text-[#52606d] truncate">
+                              {com.detalle}
+                            </div>
+                          </div>
+                          <span className="font-bold text-[10px] bg-emerald-50 text-emerald-800 border border-emerald-200 px-2 py-0.5 rounded-full shrink-0">
+                            {com.beneficio}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Barra de progreso hacia proximo descuento futuro */}
+                  <div className="p-2.5 rounded-xl bg-[#fdf9fb] border border-[#f4e1eb] space-y-1">
+                    <div className="flex items-center justify-between text-[10px] font-bold text-[#a70355]">
+                      <span className="flex items-center gap-1">
+                        <TrendingUp className="w-3 h-3" />
+                        <span>
+                          {reward.proximoNivel
+                            ? `Proximo: ${reward.proximoNivel}`
+                            : "Nivel Maximo Desbloqueado"}
+                        </span>
+                      </span>
+                      <span>{reward.progresoPct}%</span>
+                    </div>
+                    <div className="w-full h-1.5 bg-[#f4e1eb] rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-[#a70355] rounded-full transition-all"
+                        style={{ width: `${reward.progresoPct}%` }}
+                      />
+                    </div>
+                    <p className="text-[10px] text-[#52606d] leading-snug">
+                      {reward.proximoBeneficioResumen}
+                    </p>
+                  </div>
+
+                  {/* Acciones rapidas (Canjear en comercio / Sumar actividad / Enviar por WhatsApp) */}
+                  <div className="pt-1.5 border-t border-[#eaeced] flex flex-wrap items-center justify-between gap-1.5 text-[11px]">
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        disabled={loadingAction === "ajustar_recompensa"}
+                        onClick={() =>
+                          onExecuteAction("ajustar_recompensa", {
+                            participanteId: part.id,
+                            deltaPesos: 2500,
+                            motivo: `Asistencia validada en ${circuito.nombre_club}`,
+                            enviarWhatsApp: true,
+                          })
+                        }
+                        title="Acreditar +250 pts (+$2.500) y enviar aviso por WhatsApp"
+                        className="bg-[#faf0f5] hover:bg-[#a70355] text-[#a70355] hover:text-white border border-[#e1a9c5] font-semibold px-2.5 py-1 rounded-full transition inline-flex items-center gap-1"
+                      >
+                        <PlusCircle className="w-3 h-3" />
+                        <span>+250 pts</span>
+                      </button>
+
+                      {reward.creditoPesos >= 2500 && (
+                        <button
+                          type="button"
+                          disabled={loadingAction === "ajustar_recompensa"}
+                          onClick={() =>
+                            onExecuteAction("ajustar_recompensa", {
+                              participanteId: part.id,
+                              deltaPesos: -2500,
+                              motivo: "Farmacia y Supermercado Adherido Sancor",
+                              enviarWhatsApp: true,
+                            })
+                          }
+                          title="Simular canje de $2.500 en Farmacia/Comercio y enviar comprobante por WhatsApp"
+                          className="bg-white hover:bg-slate-100 text-[#363f48] border border-[#c4c9cd] font-semibold px-2.5 py-1 rounded-full transition inline-flex items-center gap-1"
+                        >
+                          <ShoppingBag className="w-3 h-3 text-[#a70355]" />
+                          <span>Canjear $2.500</span>
+                        </button>
+                      )}
+                    </div>
+
                     <button
                       type="button"
                       disabled={loadingAction === "ajustar_recompensa"}
                       onClick={() =>
                         onExecuteAction("ajustar_recompensa", {
                           participanteId: part.id,
-                          deltaPesos: -2500,
-                          motivo: "Farmacia y Supermercado Adherido Sancor",
+                          deltaPesos: 0,
+                          motivo: "Resumen de Beneficios Sancor",
                           enviarWhatsApp: true,
                         })
                       }
-                      title="Simular canje de $2.500 en Farmacia/Comercio y enviar comprobante por WhatsApp"
-                      className="bg-white hover:bg-slate-100 text-[#363f48] border border-[#c4c9cd] font-semibold px-2.5 py-1 rounded-full transition inline-flex items-center gap-1"
+                      title="Enviar resumen de puntos y descuentos actuales al WhatsApp"
+                      className="text-[#a70355] hover:underline font-semibold inline-flex items-center gap-1"
                     >
-                      <ShoppingBag className="w-3 h-3 text-[#a70355]" />
-                      <span>Canjear $2.500</span>
+                      <Send className="w-3 h-3" />
+                      <span>Enviar a WhatsApp</span>
                     </button>
-                  )}
+                  </div>
                 </div>
+              )}
 
-                <div className="flex items-center gap-1.5">
+              {/* Pie compacto: Boton desplegar/contraer + accesos rapidos */}
+              <div className="pt-1.5 border-t border-[#eaeced] flex items-center justify-between gap-2 text-[11px]">
+                <button
+                  type="button"
+                  onClick={() => toggleExpand(part.id)}
+                  className="font-semibold text-[#a70355] hover:underline inline-flex items-center gap-1"
+                >
+                  {isExpanded ? (
+                    <>
+                      <ChevronUp className="w-3.5 h-3.5" />
+                      <span>Ocultar detalle</span>
+                    </>
+                  ) : (
+                    <>
+                      <ChevronDown className="w-3.5 h-3.5" />
+                      <span>Ver descuentos y acciones</span>
+                    </>
+                  )}
+                </button>
+
+                <div className="flex items-center gap-2">
                   <button
                     type="button"
-                    disabled={loadingAction === "ajustar_recompensa"}
-                    onClick={() =>
-                      onExecuteAction("ajustar_recompensa", {
-                        participanteId: part.id,
-                        deltaPesos: 0,
-                        motivo: "Resumen de Beneficios Sancor",
-                        enviarWhatsApp: true,
-                      })
-                    }
-                    title="Enviar resumen de puntos y descuentos actuales al WhatsApp"
-                    className="text-[#a70355] hover:underline font-semibold inline-flex items-center gap-1"
+                    onClick={() => onOpenPerfilParticipante(part.id)}
+                    className="text-[#52606d] hover:text-[#363f48] font-medium"
                   >
-                    <Send className="w-3 h-3" />
-                    <span>Enviar a WhatsApp</span>
+                    Ficha
                   </button>
                   <span className="text-[#c4c9cd]">|</span>
                   <button
