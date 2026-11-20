@@ -143,6 +143,32 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
       for (const a of state.asistencias) mergedAsis.set(a.id, a);
       for (const a of dbAsis) mergedAsis.set(a.id, a);
       state.asistencias = Array.from(mergedAsis.values());
+
+      // Restaurar mensajes de WhatsApp guardados en Supabase (CHAT_V1:...)
+      const msgMap = new Map<string, WhatsAppMessage>();
+      for (const m of state.mensajes) msgMap.set(m.id, m);
+      for (const a of dbAsis) {
+        if (
+          typeof a.codigo_canje_farmacia === "string" &&
+          a.codigo_canje_farmacia.startsWith("CHAT_V1:")
+        ) {
+          try {
+            const parsedMsgs = JSON.parse(
+              a.codigo_canje_farmacia.slice("CHAT_V1:".length)
+            ) as WhatsAppMessage[];
+            if (Array.isArray(parsedMsgs)) {
+              for (const pm of parsedMsgs) {
+                if (pm && pm.id) {
+                  msgMap.set(pm.id, pm);
+                }
+              }
+            }
+          } catch {
+            // Ignore malformed chat history
+          }
+        }
+      }
+      state.mensajes = Array.from(msgMap.values());
       reconcileSimulatorMessagesFromSupabase(state);
     }
 
@@ -446,6 +472,14 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
     }
 
     for (const a of state.asistencias) {
+      const msgsForPart = state.mensajes
+        .filter((m) => m.participante_id === a.participante_id)
+        .slice(-14);
+      const chatPayload =
+        msgsForPart.length > 0
+          ? `CHAT_V1:${JSON.stringify(msgsForPart)}`
+          : a.codigo_canje_farmacia;
+
       const { error } = await supabase.from("asistencias").upsert({
         id: a.id,
         jornada_id: a.jornada_id,
@@ -456,7 +490,7 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         estado_padrino: a.estado_padrino,
         acuse_suspension_leido: a.acuse_suspension_leido,
         presente_validado_en_club: a.presente_validado_en_club,
-        codigo_canje_farmacia: a.codigo_canje_farmacia,
+        codigo_canje_farmacia: chatPayload,
         updated_at: a.updated_at,
       });
       if (error) console.error("[Supabase upsert asistencias]", error.message);

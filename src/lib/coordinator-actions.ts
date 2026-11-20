@@ -1467,6 +1467,8 @@ export async function editarEventoOLugar(input: {
   jornadaId: string;
   nombreClub: string;
   direccionClub: string;
+  coordsClub?: Coords | null;
+  barrioClub?: string;
   actividad: string;
   fecha: string;
   horaCaminata: string;
@@ -1490,6 +1492,55 @@ export async function editarEventoOLugar(input: {
   }
   if (input.direccionClub && input.direccionClub.trim()) {
     targetCircuito.direccion_club = input.direccionClub.trim();
+  }
+  if (input.barrioClub && input.barrioClub.trim()) {
+    targetCircuito.nombre_barrio = input.barrioClub.trim();
+  }
+  if (
+    input.coordsClub &&
+    Number.isFinite(input.coordsClub.lat) &&
+    Number.isFinite(input.coordsClub.lng)
+  ) {
+    const prevLat = targetCircuito.coords_club.lat;
+    const prevLng = targetCircuito.coords_club.lng;
+    const nextLat = Number(input.coordsClub.lat.toFixed(6));
+    const nextLng = Number(input.coordsClub.lng.toFixed(6));
+    const moved =
+      Math.abs(prevLat - nextLat) > 0.0001 || Math.abs(prevLng - nextLng) > 0.0001;
+    targetCircuito.coords_club = { lat: nextLat, lng: nextLng };
+
+    if (moved) {
+      const p1 = {
+        lat: Number((nextLat + 0.0022).toFixed(6)),
+        lng: Number((nextLng - 0.002).toFixed(6)),
+      };
+      const p2 = {
+        lat: Number((nextLat + 0.0011).toFixed(6)),
+        lng: Number((nextLng - 0.0009).toFixed(6)),
+      };
+      if (targetCircuito.paradas_seguras[0]) {
+        targetCircuito.paradas_seguras[0].lat = p1.lat;
+        targetCircuito.paradas_seguras[0].lng = p1.lng;
+      }
+      if (targetCircuito.paradas_seguras[1]) {
+        targetCircuito.paradas_seguras[1].lat = p2.lat;
+        targetCircuito.paradas_seguras[1].lng = p2.lng;
+      }
+      try {
+        const waypoints: [number, number][] = [
+          ...targetCircuito.paradas_seguras.map(
+            (ps) => [ps.lat, ps.lng] as [number, number]
+          ),
+          [nextLat, nextLng],
+        ];
+        if (waypoints.length >= 2) {
+          const streetRes = await fetchStreetWalkingRoute(waypoints);
+          targetCircuito.ruta_polilinea = streetRes.coords;
+        }
+      } catch {
+        // Keep previous route if street routing fails
+      }
+    }
   }
   if (input.coordinadoresIds && input.coordinadoresIds.length > 0) {
     targetCircuito.poliza_nro = formatPolizaWithTutores(

@@ -7,7 +7,12 @@ import {
   SystemSnapshot,
   WhatsAppReplyButton,
 } from "@/types/domain";
-import { phonesMatch } from "@/lib/domain-helpers";
+import {
+  formatDistanceMeters,
+  getDistanceMeters,
+  isSeniorNearForWalking,
+  phonesMatch,
+} from "@/lib/domain-helpers";
 import { isWhatsAppCloudConfigured } from "@/lib/whatsapp-cloud";
 import {
   addLog,
@@ -19,7 +24,16 @@ import {
   writeState,
 } from "@/lib/state-persistence";
 
-function buildConvocatoriaButtons(jornadaId: string): WhatsAppReplyButton[] {
+function buildConvocatoriaButtons(
+  jornadaId: string,
+  canWalkToCorner: boolean = true
+): WhatsAppReplyButton[] {
+  if (!canWalkToCorner) {
+    return [
+      { id: `btn_nivel_1:${jornadaId}`, title: "Pasen a buscarme", variant: "primary" },
+      { id: `btn_nivel_3:${jornadaId}`, title: "Voy directo al club", variant: "primary" },
+    ];
+  }
   return [
     { id: `btn_nivel_1:${jornadaId}`, title: "Pasen a buscarme", variant: "primary" },
     { id: `btn_nivel_2:${jornadaId}`, title: "Voy a la esquina", variant: "primary" },
@@ -175,27 +189,33 @@ export async function dispararConvocatoriaJornada(
       }
       sentCount += 1;
       const primerNombre = adulto.nombre.split(" ")[0];
+      const canWalk = isSeniorNearForWalking(
+        adulto.coords_domicilio,
+        targetCircuito.coords_club
+      );
       const cloudRes = await appendBotMessage(
         state,
         adulto,
         `Hola ${primerNombre}, te escribimos para coordinar tu asistencia al encuentro de hoy a las ${targetJornada.hora_inicio_caminata} hs en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}). ¿Como te sumas hoy?`,
         {
-          buttons: buildConvocatoriaButtons(targetJornada.id),
-          template: {
-            name: "convocatoria_encuentro_barrial",
-            languageCode: "es_AR",
-            bodyParams: [
-              primerNombre,
-              targetJornada.hora_inicio_caminata,
-              targetCircuito.nombre_club,
-              targetCircuito.direccion_club,
-            ],
-            buttonPayloads: [
-              `btn_nivel_1:${targetJornada.id}`,
-              `btn_nivel_2:${targetJornada.id}`,
-              `btn_nivel_3:${targetJornada.id}`,
-            ],
-          },
+          buttons: buildConvocatoriaButtons(targetJornada.id, canWalk),
+          template: canWalk
+            ? {
+                name: "convocatoria_encuentro_barrial",
+                languageCode: "es_AR",
+                bodyParams: [
+                  primerNombre,
+                  targetJornada.hora_inicio_caminata,
+                  targetCircuito.nombre_club,
+                  targetCircuito.direccion_club,
+                ],
+                buttonPayloads: [
+                  `btn_nivel_1:${targetJornada.id}`,
+                  `btn_nivel_2:${targetJornada.id}`,
+                  `btn_nivel_3:${targetJornada.id}`,
+                ],
+              }
+            : undefined,
         }
       );
       if (cloudRes.dispatched) {
@@ -359,6 +379,24 @@ export async function procesarEventoWebhookWhatsApp(params: {
 
   appendUserMessage(state, actor, params.buttonTitle || params.buttonId);
 
+  if (parsed.baseAction === "btn_texto_libre") {
+    addLog(
+      state,
+      actor.nombre,
+      "Mensaje Recibido por WhatsApp",
+      `${actor.nombre}: "${params.buttonTitle || ""}"`,
+      "info"
+    );
+    writeState(state);
+    await syncToSupabaseIfConfigured(state);
+    return state;
+  }
+
+  const canWalkActor = isSeniorNearForWalking(
+    actor.coords_domicilio,
+    targetCircuito.coords_club
+  );
+
   if (parsed.baseAction === "btn_menu_convocatoria") {
     const asis = state.asistencias.find(
       (a) => a.jornada_id === targetJornada.id && a.participante_id === actor.id
@@ -373,7 +411,7 @@ export async function procesarEventoWebhookWhatsApp(params: {
       state,
       actor,
       `Hola ${primerNombre}, te escribimos para coordinar tu asistencia al encuentro de hoy a las ${targetJornada.hora_inicio_caminata} hs en *${targetCircuito.nombre_club}* (${targetCircuito.direccion_club}). ¿Como te sumas hoy?`,
-      { buttons: buildConvocatoriaButtons(targetJornada.id) }
+      { buttons: buildConvocatoriaButtons(targetJornada.id, canWalkActor) }
     );
   } else if (parsed.baseAction === "btn_nivel_1") {
     const padrinoId = actor.padrino_preferido_id || SEED_IDS.padrinoCarlos;
@@ -596,6 +634,21 @@ export async function procesarEventoWebhookWhatsApp(params: {
       );
     }
   } else if (parsed.baseAction === "btn_nivel_2") {
+    if (!canWalkActor) {
+      const distStr = formatDistanceMeters(
+        getDistanceMeters(actor.coords_domicilio, targetCircuito.coords_club)
+      );
+      await appendBotMessage(
+        state,
+        actor,
+        `${primerNombre}, como tu domicilio esta a *${distStr}* de ${targetCircuito.nombre_club}, la opcion de caminar hasta la esquina no esta habilitada por lejanía. Elegi si preferis que te pasen a buscar puerta a puerta o si vas directo al lugar:`,
+        { buttons: buildConvocatoriaButtons(targetJornada.id, false) }
+      );
+      writeState(state);
+      await syncToSupabaseIfConfigured(state);
+      return state;
+    }
+
     const paradaButtons: WhatsAppReplyButton[] = targetCircuito.paradas_seguras.map(
       (parada, idx) => ({
         id: `btn_parada:${parada.id}:${targetJornada.id}`,

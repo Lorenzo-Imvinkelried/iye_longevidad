@@ -1,11 +1,100 @@
 import {
   Asistencia,
   CircuitoBarrial,
+  Coords,
   Jornada,
   Participante,
   SEED_IDS,
   SystemSnapshot,
 } from "@/types/domain";
+
+export const MAX_WALKING_DISTANCE_METERS = 1000;
+
+export function getDistanceMeters(a?: Coords | null, b?: Coords | null): number {
+  if (
+    !a ||
+    !b ||
+    !Number.isFinite(a.lat) ||
+    !Number.isFinite(a.lng) ||
+    !Number.isFinite(b.lat) ||
+    !Number.isFinite(b.lng)
+  ) {
+    return 0;
+  }
+  const R = 6371000;
+  const toRad = (deg: number) => (deg * Math.PI) / 180;
+  const dLat = toRad(b.lat - a.lat);
+  const dLng = toRad(b.lng - a.lng);
+  const sinLat = Math.sin(dLat / 2);
+  const sinLng = Math.sin(dLng / 2);
+  const h =
+    sinLat * sinLat +
+    Math.cos(toRad(a.lat)) * Math.cos(toRad(b.lat)) * sinLng * sinLng;
+  return Math.round(2 * R * Math.atan2(Math.sqrt(h), Math.sqrt(1 - h)));
+}
+
+export function formatDistanceMeters(meters: number): string {
+  if (!Number.isFinite(meters) || meters <= 0) return "0 m";
+  if (meters < 1000) {
+    return `${Math.max(50, Math.round(meters / 10) * 10)} m`;
+  }
+  return `${(meters / 1000).toFixed(1).replace(".", ",")} km`;
+}
+
+export function isSeniorNearForWalking(
+  adultoCoords?: Coords | null,
+  clubCoords?: Coords | null
+): boolean {
+  const dist = getDistanceMeters(adultoCoords, clubCoords);
+  return dist <= MAX_WALKING_DISTANCE_METERS;
+}
+
+export function getSeniorCentrosDistances(
+  adulto: Participante,
+  allCircuitos: CircuitoBarrial[],
+  allJornadas: Jornada[],
+  allAsistencias: Asistencia[],
+  currentCircuito?: CircuitoBarrial
+): Array<{
+  circuitoId: string;
+  nombreClub: string;
+  meters: number;
+  formatted: string;
+  canWalk: boolean;
+}> {
+  const jornadaIds = new Set(
+    allAsistencias
+      .filter((a) => a.participante_id === adulto.id)
+      .map((a) => a.jornada_id)
+  );
+  const circuitoIds = new Set<string>();
+  if (currentCircuito) circuitoIds.add(currentCircuito.id);
+  for (const j of allJornadas) {
+    if (jornadaIds.has(j.id)) {
+      circuitoIds.add(j.circuito_id);
+    }
+  }
+  const result: Array<{
+    circuitoId: string;
+    nombreClub: string;
+    meters: number;
+    formatted: string;
+    canWalk: boolean;
+  }> = [];
+  for (const cId of Array.from(circuitoIds)) {
+    const c = allCircuitos.find((ci) => ci.id === cId);
+    if (!c) continue;
+    const meters = getDistanceMeters(adulto.coords_domicilio, c.coords_club);
+    result.push({
+      circuitoId: c.id,
+      nombreClub: c.nombre_club,
+      meters,
+      formatted: formatDistanceMeters(meters),
+      canWalk: meters <= MAX_WALKING_DISTANCE_METERS,
+    });
+  }
+  return result;
+}
 
 export function normalizeDni(dni: string): string {
   return (dni || "").replace(/[^0-9a-zA-Z]/g, "").toLowerCase();

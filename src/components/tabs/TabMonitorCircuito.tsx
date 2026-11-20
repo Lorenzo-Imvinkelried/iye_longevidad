@@ -12,8 +12,12 @@ import {
   SystemSnapshot,
 } from "@/types/domain";
 import {
+  formatDistanceMeters,
+  getDistanceMeters,
   getParticipanteAvatarUrl,
+  getSeniorCentrosDistances,
   getTutorJornadas,
+  isSeniorNearForWalking,
 } from "@/lib/domain-helpers";
 import { compressImageFileToDataUrl } from "@/components/modals/ModalDerivacionFamiliar";
 import { fetchStreetWalkingRoute } from "@/lib/street-routing";
@@ -830,27 +834,37 @@ export default function TabMonitorCircuito({
               </span>
             </div>
             <p className="text-[11px] text-[#52606d]">
-              Esquinas relevadas con horario de paso.
+              Esquinas relevadas (para abuelos a menos de 1 km).
             </p>
             <div className="mt-1.5 pt-1 border-t border-[#eaeced] space-y-0.5">
-              {circuito.paradas_seguras.map((parada, idx) => {
-                const count = asistenciasNivel2.filter(
-                  (a) => a.parada_esquina_id === parada.id
-                ).length;
-                return (
-                  <div
-                    key={parada.id}
-                    className="flex items-center justify-between text-xs py-0.5 px-1.5"
-                  >
-                    <span className="text-[#52606d] truncate">
-                      Parada {idx + 1} ({parada.horario_paso})
-                    </span>
-                    <span className="font-semibold text-[#363f48] bg-[#f6f6f7] border border-[#eaeced] px-2 py-0.5 rounded-full text-[10px] shrink-0">
-                      {count === 1 ? "1 anotado" : `${count} anotados`}
-                    </span>
-                  </div>
-                );
-              })}
+              {adultosActivos.length > 0 &&
+              !adultosActivos.some((ad) =>
+                isSeniorNearForWalking(ad.coords_domicilio, circuito.coords_club)
+              ) &&
+              asistenciasNivel2.length === 0 ? (
+                <div className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-1.5 leading-snug">
+                  Ocultas en el mapa: todos los abuelos de este evento viven a mas de 1 km del centro.
+                </div>
+              ) : (
+                circuito.paradas_seguras.map((parada, idx) => {
+                  const count = asistenciasNivel2.filter(
+                    (a) => a.parada_esquina_id === parada.id
+                  ).length;
+                  return (
+                    <div
+                      key={parada.id}
+                      className="flex items-center justify-between text-xs py-0.5 px-1.5"
+                    >
+                      <span className="text-[#52606d] truncate">
+                        Parada {idx + 1} ({parada.horario_paso})
+                      </span>
+                      <span className="font-semibold text-[#363f48] bg-[#f6f6f7] border border-[#eaeced] px-2 py-0.5 rounded-full text-[10px] shrink-0">
+                        {count === 1 ? "1 anotado" : `${count} anotados`}
+                      </span>
+                    </div>
+                  );
+                })
+              )}
             </div>
           </div>
 
@@ -1160,78 +1174,113 @@ export default function TabMonitorCircuito({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#f6f6f7] border border-[#eaeced]">
-                  <div>
-                    <label className="font-semibold text-[#363f48] block mb-1">
-                      Modalidad en este evento
-                    </label>
-                    <select
-                      value={editAdultoForm.modalidadElegida}
-                      onChange={(e) =>
-                        setEditAdultoForm({
-                          ...editAdultoForm,
-                          modalidadElegida: e.target.value as ModalidadElegida,
-                        })
-                      }
-                      className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2 bg-white"
-                    >
-                      <option value="sin_respuesta">Sin respuesta aun</option>
-                      <option value="nivel_1_puerta">Puerta a puerta</option>
-                      <option value="nivel_2_esquina">Parada segura</option>
-                      <option value="nivel_3_directo">Directo al club</option>
-                      <option value="no_asiste">No asiste hoy</option>
-                    </select>
-                  </div>
+                {(() => {
+                  const currentAdulto = participantes.find(
+                    (p) => p.id === editingAdultoId
+                  );
+                  const canWalkEdit = currentAdulto
+                    ? isSeniorNearForWalking(
+                        currentAdulto.coords_domicilio,
+                        circuito.coords_club
+                      )
+                    : true;
+                  const distEditStr = currentAdulto
+                    ? formatDistanceMeters(
+                        getDistanceMeters(
+                          currentAdulto.coords_domicilio,
+                          circuito.coords_club
+                        )
+                      )
+                    : "";
 
-                  {editAdultoForm.modalidadElegida === "nivel_1_puerta" && (
-                    <div>
-                      <label className="font-semibold text-[#363f48] block mb-1">
-                        Padrino que pasa a buscarlo
-                      </label>
-                      <select
-                        value={editAdultoForm.padrinoPreferidoId}
-                        onChange={(e) =>
-                          setEditAdultoForm({
-                            ...editAdultoForm,
-                            padrinoPreferidoId: e.target.value,
-                          })
-                        }
-                        className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2 bg-white"
-                      >
-                        <option value="">Sin asignar</option>
-                        {padrinosAcreditados.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.nombre} ({p.credencial_nro || "Acreditado"})
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
+                  return (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#f6f6f7] border border-[#eaeced]">
+                      <div>
+                        <label className="font-semibold text-[#363f48] block mb-1">
+                          Modalidad en este evento{" "}
+                          {distEditStr && (
+                            <span className="text-[10px] font-normal text-[#52606d]">
+                              (A {distEditStr} del centro)
+                            </span>
+                          )}
+                        </label>
+                        <select
+                          value={editAdultoForm.modalidadElegida}
+                          onChange={(e) =>
+                            setEditAdultoForm({
+                              ...editAdultoForm,
+                              modalidadElegida: e.target.value as ModalidadElegida,
+                            })
+                          }
+                          className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2 bg-white"
+                        >
+                          <option value="sin_respuesta">Sin respuesta aun</option>
+                          <option value="nivel_1_puerta">Puerta a puerta</option>
+                          {canWalkEdit && (
+                            <option value="nivel_2_esquina">Parada segura</option>
+                          )}
+                          <option value="nivel_3_directo">Directo al club</option>
+                          <option value="no_asiste">No asiste hoy</option>
+                        </select>
+                        {!canWalkEdit && (
+                          <p className="text-[10px] text-amber-800 mt-1">
+                            Vive a mas de 1 km ({distEditStr}): solo aplica Puerta a puerta o Directo al club.
+                          </p>
+                        )}
+                      </div>
 
-                  {editAdultoForm.modalidadElegida === "nivel_2_esquina" && (
-                    <div>
-                      <label className="font-semibold text-[#363f48] block mb-1">
-                        Parada segura elegida
-                      </label>
-                      <select
-                        value={editAdultoForm.paradaEsquinaId}
-                        onChange={(e) =>
-                          setEditAdultoForm({
-                            ...editAdultoForm,
-                            paradaEsquinaId: e.target.value,
-                          })
-                        }
-                        className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2 bg-white"
-                      >
-                        {circuito.paradas_seguras.map((ps) => (
-                          <option key={ps.id} value={ps.id}>
-                            {ps.nombre_esquina} ({ps.horario_paso})
-                          </option>
-                        ))}
-                      </select>
+                      {editAdultoForm.modalidadElegida === "nivel_1_puerta" && (
+                        <div>
+                          <label className="font-semibold text-[#363f48] block mb-1">
+                            Padrino que pasa a buscarlo
+                          </label>
+                          <select
+                            value={editAdultoForm.padrinoPreferidoId}
+                            onChange={(e) =>
+                              setEditAdultoForm({
+                                ...editAdultoForm,
+                                padrinoPreferidoId: e.target.value,
+                              })
+                            }
+                            className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2 bg-white"
+                          >
+                            <option value="">Sin asignar</option>
+                            {padrinosAcreditados.map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.nombre} ({p.credencial_nro || "Acreditado"})
+                              </option>
+                            ))}
+                          </select>
+                        </div>
+                      )}
+
+                      {canWalkEdit &&
+                        editAdultoForm.modalidadElegida === "nivel_2_esquina" && (
+                          <div>
+                            <label className="font-semibold text-[#363f48] block mb-1">
+                              Parada segura elegida
+                            </label>
+                            <select
+                              value={editAdultoForm.paradaEsquinaId}
+                              onChange={(e) =>
+                                setEditAdultoForm({
+                                  ...editAdultoForm,
+                                  paradaEsquinaId: e.target.value,
+                                })
+                              }
+                              className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-2 bg-white"
+                            >
+                              {circuito.paradas_seguras.map((ps) => (
+                                <option key={ps.id} value={ps.id}>
+                                  {ps.nombre_esquina} ({ps.horario_paso})
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                        )}
                     </div>
-                  )}
-                </div>
+                  );
+                })()}
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                   <div>
@@ -1397,6 +1446,27 @@ export default function TabMonitorCircuito({
                                     {ad.telefono}
                                   </strong>
                                 </span>
+                              </div>
+                              <div className="flex flex-wrap items-center gap-1 pt-0.5">
+                                {getSeniorCentrosDistances(
+                                  ad,
+                                  circuitos || [circuito],
+                                  jornadas || [jornada],
+                                  asistencias,
+                                  circuito
+                                ).map((cd) => (
+                                  <span
+                                    key={cd.circuitoId}
+                                    className={`text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                                      cd.canWalk
+                                        ? "bg-[#f6f6f7] text-[#363f48] border-[#eaeced]"
+                                        : "bg-amber-50 text-amber-800 border-amber-200"
+                                    }`}
+                                  >
+                                    {cd.nombreClub}: <strong>{cd.formatted}</strong>
+                                    {!cd.canWalk ? " (>1 km)" : ""}
+                                  </span>
+                                ))}
                               </div>
                             </div>
                           </div>

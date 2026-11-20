@@ -43,6 +43,8 @@ interface ModalEventoProps {
     jornadaId: string;
     nombreClub: string;
     direccionClub: string;
+    coordsClub?: Coords | null;
+    barrioClub?: string;
     actividad: string;
     fecha: string;
     horaCaminata: string;
@@ -100,6 +102,9 @@ export default function ModalCrearEventoLugar({
   const [editForm, setEditForm] = useState<{
     nombreClub: string;
     direccionClub: string;
+    originalDireccionClub: string;
+    coordsClub: Coords | null;
+    barrioClub?: string;
     actividad: string;
     fecha: string;
     horaCaminata: string;
@@ -108,6 +113,9 @@ export default function ModalCrearEventoLugar({
   }>({
     nombreClub: "",
     direccionClub: "",
+    originalDireccionClub: "",
+    coordsClub: null,
+    barrioClub: undefined,
     actividad: "",
     fecha: "",
     horaCaminata: "",
@@ -165,6 +173,9 @@ export default function ModalCrearEventoLugar({
     setEditForm({
       nombreClub: c.nombre_club,
       direccionClub: c.direccion_club,
+      originalDireccionClub: c.direccion_club,
+      coordsClub: c.coords_club,
+      barrioClub: c.nombre_barrio,
       actividad: j.actividad_cierre,
       fecha: j.fecha,
       horaCaminata: j.hora_inicio_caminata,
@@ -178,9 +189,47 @@ export default function ModalCrearEventoLugar({
     if (submitting) return;
     setSubmitting(true);
     try {
+      let resolvedCoords = editForm.coordsClub;
+      const addrTrim = editForm.direccionClub.trim();
+      if (addrTrim && addrTrim !== editForm.originalDireccionClub.trim()) {
+        try {
+          const query = addrTrim.toLowerCase().includes("santa fe")
+            ? addrTrim
+            : `${addrTrim}, Santa Fe, Argentina`;
+          const resGeo = await fetch(
+            `https://nominatim.openstreetmap.org/search?format=jsonv2&q=${encodeURIComponent(
+              query
+            )}&limit=1`
+          );
+          if (resGeo.ok) {
+            const rows = (await resGeo.json()) as Array<{
+              lat: string;
+              lon: string;
+            }>;
+            if (rows.length > 0) {
+              const lat = Number(rows[0].lat);
+              const lng = Number(rows[0].lon);
+              if (Number.isFinite(lat) && Number.isFinite(lng)) {
+                resolvedCoords = { lat, lng };
+              }
+            }
+          }
+        } catch {
+          // Keep existing/map coords
+        }
+      }
+
       const res = await onEditEvento({
         jornadaId,
-        ...editForm,
+        nombreClub: editForm.nombreClub,
+        direccionClub: editForm.direccionClub,
+        coordsClub: resolvedCoords,
+        barrioClub: editForm.barrioClub,
+        actividad: editForm.actividad,
+        fecha: editForm.fecha,
+        horaCaminata: editForm.horaCaminata,
+        horaEncuentro: editForm.horaEncuentro,
+        coordinadoresIds: editForm.coordinadoresIds,
       });
       if (res.ok) {
         setEditingJornadaId(null);
@@ -459,7 +508,7 @@ export default function ModalCrearEventoLugar({
                             </div>
                             <div>
                               <label className="font-semibold text-[#363f48] block mb-0.5 text-[11px]">
-                                Direccion *
+                                Direccion (escribila o hace clic en el mapa de abajo) *
                               </label>
                               <input
                                 type="text"
@@ -475,6 +524,30 @@ export default function ModalCrearEventoLugar({
                               />
                             </div>
                           </div>
+
+                          <SelectorMapaLugar
+                            mode="nuevo"
+                            circuitos={allCircuitos}
+                            pickedCoords={editForm.coordsClub || c.coords_club}
+                            onLocationPicked={({
+                              coords,
+                              address,
+                              barrio,
+                              suggestedName,
+                            }) => {
+                              setEditForm((prev) => ({
+                                ...prev,
+                                coordsClub: coords,
+                                direccionClub: address || prev.direccionClub,
+                                originalDireccionClub: address || prev.direccionClub,
+                                barrioClub: barrio || prev.barrioClub,
+                                nombreClub:
+                                  !prev.nombreClub.trim() && suggestedName
+                                    ? suggestedName
+                                    : prev.nombreClub,
+                              }));
+                            }}
+                          />
 
                           <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
                             <div className="sm:col-span-2">

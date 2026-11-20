@@ -110,11 +110,11 @@ export async function POST(req: NextRequest) {
         });
       }
 
-      // Soporte de texto libre enviado desde el telefono fisico ("hola", "test", "1", "2", "3")
+      // Soporte de texto libre enviado desde el telefono fisico ("hola", "test", "1", "2", "3", o respuesta libre)
       const textBody: string = (message?.text?.body || "").trim();
       if (textBody) {
         const lower = textBody.toLowerCase();
-        let mappedButton = "btn_menu_convocatoria";
+        let mappedButton = "btn_texto_libre";
         if (lower === "1" || lower.includes("buscar")) {
           mappedButton = "btn_nivel_1";
         } else if (lower === "2" || lower.includes("esquina") || lower.includes("parada")) {
@@ -125,6 +125,12 @@ export async function POST(req: NextRequest) {
           mappedButton = "btn_checkin_qr";
         } else if (lower.includes("cancel") || lower.includes("no voy")) {
           mappedButton = "btn_adulto_cancela";
+        } else if (
+          /^(hola|buenas|buen d[ií]a|buenos d[ií]as|men[uú]|opciones|inicio|sumarme)\b/i.test(
+            lower
+          )
+        ) {
+          mappedButton = "btn_menu_convocatoria";
         }
 
         const snapshot = await procesarEventoWebhookWhatsApp({

@@ -2,8 +2,14 @@
 
 import React, { useState } from "react";
 import { SEED_IDS, SystemSnapshot } from "@/types/domain";
-import { getParticipanteAvatarUrl } from "@/lib/domain-helpers";
-import { ShieldCheck, UserCheck, UserPlus } from "lucide-react";
+import {
+  formatDistanceMeters,
+  getDistanceMeters,
+  getParticipanteAvatarUrl,
+  getSeniorCentrosDistances,
+  isSeniorNearForWalking,
+} from "@/lib/domain-helpers";
+import { MapPin, ShieldCheck, UserCheck, UserPlus } from "lucide-react";
 
 interface TabConfianzaProps {
   snapshot: SystemSnapshot;
@@ -24,7 +30,8 @@ export default function TabCadenaConfianza({
     Record<string, string>
   >({});
 
-  const { circuito, jornada, participantes, asistencias } = snapshot;
+  const { circuito, jornada, circuitos, jornadas, participantes, asistencias } =
+    snapshot;
 
   const asistenciasEvento = asistencias.filter(
     (a) => a.jornada_id === jornada.id
@@ -100,6 +107,18 @@ export default function TabCadenaConfianza({
               (p) => p.id === adulto.padrino_preferido_id
             );
             const avatarUrl = getParticipanteAvatarUrl(adulto, idx);
+            const canWalkHere = isSeniorNearForWalking(
+              adulto.coords_domicilio,
+              circuito.coords_club
+            );
+            const centrosDist = getSeniorCentrosDistances(
+              adulto,
+              circuitos || [circuito],
+              jornadas || [jornada],
+              asistencias,
+              circuito
+            );
+
             return (
               <div
                 key={adulto.id}
@@ -119,7 +138,9 @@ export default function TabCadenaConfianza({
                         {adulto.nombre} ({adulto.edad} anos)
                       </span>
                       <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] px-2.5 py-0.5 rounded-full shrink-0">
-                        {adulto.nivel_autonomia_habitual === 1
+                        {!canWalkHere && adulto.nivel_autonomia_habitual === 2
+                          ? "Puerta a puerta / Directo (>1 km)"
+                          : adulto.nivel_autonomia_habitual === 1
                           ? "Puerta a puerta"
                           : adulto.nivel_autonomia_habitual === 2
                           ? "Parada segura"
@@ -137,6 +158,26 @@ export default function TabCadenaConfianza({
                         Padrino habitual: {padrinoPref.nombre} ({padrinoPref.credencial_nro})
                       </div>
                     )}
+
+                    {/* Distancias simples hacia los centros a los que asiste */}
+                    <div className="pt-1 flex flex-wrap items-center gap-1.5">
+                      {centrosDist.map((cd) => (
+                        <span
+                          key={cd.circuitoId}
+                          className={`inline-flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full border ${
+                            cd.canWalk
+                              ? "bg-[#f6f6f7] text-[#363f48] border-[#eaeced]"
+                              : "bg-amber-50 text-amber-800 border-amber-200"
+                          }`}
+                        >
+                          <MapPin className="w-2.5 h-2.5 text-[#a70355] shrink-0" />
+                          <span>
+                            {cd.nombreClub}: <strong>{cd.formatted}</strong>
+                            {!cd.canWalk ? " (Lejos para esquina)" : ""}
+                          </span>
+                        </span>
+                      ))}
+                    </div>
                   </div>
                 </div>
 
@@ -277,7 +318,17 @@ export default function TabCadenaConfianza({
                       </span>
                     </div>
                     <div className="text-xs text-slate-600">
-                      DNI {pad.dni} • {pad.direccion}
+                      DNI {pad.dni} • {pad.direccion} •{" "}
+                      <strong className="text-[#a70355]">
+                        A{" "}
+                        {formatDistanceMeters(
+                          getDistanceMeters(
+                            pad.coords_domicilio,
+                            circuito.coords_club
+                          )
+                        )}{" "}
+                        de {circuito.nombre_club}
+                      </strong>
                     </div>
                     {pad.notas_vulnerabilidad && (
                       <p className="text-xs text-slate-500">{pad.notas_vulnerabilidad}</p>

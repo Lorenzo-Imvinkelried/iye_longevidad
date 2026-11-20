@@ -19,6 +19,11 @@ import {
   Participante,
 } from "@/types/domain";
 import {
+  formatDistanceMeters,
+  getDistanceMeters,
+  isSeniorNearForWalking,
+} from "@/lib/domain-helpers";
+import {
   createAdultoDomicilioIcon,
   createClubIcon,
   createPadrinoIcon,
@@ -137,8 +142,21 @@ export default function MapaCircuitoLeaflet({
       ? `${circuito.nombre_club.slice(0, 22)}...`
       : circuito.nombre_club;
 
+  const mostrarParadasYRutaPeatonal =
+    editMode ||
+    adultosActivos.length === 0 ||
+    adultosActivos.some((ad) =>
+      isSeniorNearForWalking(ad.coords_domicilio, circuito.coords_club)
+    ) ||
+    asistenciasEvento.some((a) => a.modalidad_elegida === "nivel_2_esquina");
+
   return (
     <div className="relative w-full h-[300px] sm:h-[360px] lg:h-full rounded-xl overflow-hidden border border-[#eaeced] bg-[#f6f6f7]">
+      {!mostrarParadasYRutaPeatonal && (
+        <div className="absolute top-2.5 left-12 z-[400] bg-white/95 border border-[#e1a9c5] text-[#a70355] text-[11px] font-semibold px-3 py-1 rounded-full shadow-sm pointer-events-none">
+          Paradas a pie ocultas: todos los abuelos de este evento viven a mas de 1 km
+        </div>
+      )}
       <MapContainer
         center={center}
         zoom={16}
@@ -160,31 +178,36 @@ export default function MapaCircuitoLeaflet({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        <Polyline
-          positions={activeRoutePositions}
-          pathOptions={{
-            color: editMode ? "#dc9abb" : "#e1a9c5",
-            weight: 12,
-            opacity: 0.35,
-            lineCap: "round",
-            lineJoin: "round",
-          }}
-        />
+        {mostrarParadasYRutaPeatonal && (
+          <>
+            <Polyline
+              positions={activeRoutePositions}
+              pathOptions={{
+                color: editMode ? "#dc9abb" : "#e1a9c5",
+                weight: 12,
+                opacity: 0.35,
+                lineCap: "round",
+                lineJoin: "round",
+              }}
+            />
 
-        <Polyline
-          positions={activeRoutePositions}
-          pathOptions={{
-            color:
-              jornada.estado === "suspendida_emergencia"
-                ? "#bf2020"
-                : editMode
-                ? "#7d0240"
-                : "#a70355",
-            weight: 4.5,
-            opacity: 0.92,
-            dashArray: jornada.estado === "suspendida_emergencia" ? "8, 8" : undefined,
-          }}
-        />
+            <Polyline
+              positions={activeRoutePositions}
+              pathOptions={{
+                color:
+                  jornada.estado === "suspendida_emergencia"
+                    ? "#bf2020"
+                    : editMode
+                    ? "#7d0240"
+                    : "#a70355",
+                weight: 4.5,
+                opacity: 0.92,
+                dashArray:
+                  jornada.estado === "suspendida_emergencia" ? "8, 8" : undefined,
+              }}
+            />
+          </>
+        )}
 
         {adultosActivos.map((adulto) => {
           const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
@@ -272,7 +295,7 @@ export default function MapaCircuitoLeaflet({
               />
             );
           })
-        ) : (
+        ) : mostrarParadasYRutaPeatonal ? (
           circuito.paradas_seguras.map((parada, idx) => {
             const abuelosEnEsquina = asistenciasEvento
               .filter(
@@ -319,7 +342,7 @@ export default function MapaCircuitoLeaflet({
               </Marker>
             );
           })
-        )}
+        ) : null}
 
         {padrinosActivos.map((padrino) => (
           <Marker
@@ -416,7 +439,19 @@ export default function MapaCircuitoLeaflet({
                   <div className="font-bold text-slate-900 text-sm">
                     {adulto.nombre} ({adulto.edad} anos)
                   </div>
-                  <div className="text-slate-600">{adulto.direccion}</div>
+                  <div className="text-slate-600">
+                    {adulto.direccion} •{" "}
+                    <strong className="text-[#a70355]">
+                      A{" "}
+                      {formatDistanceMeters(
+                        getDistanceMeters(
+                          adulto.coords_domicilio,
+                          circuito.coords_club
+                        )
+                      )}{" "}
+                      del centro
+                    </strong>
+                  </div>
                   <div className="text-slate-800">
                     Estado: <strong>{etiquetaEstado}</strong>
                   </div>
