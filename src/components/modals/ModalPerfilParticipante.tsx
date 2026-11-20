@@ -27,6 +27,7 @@ import {
   Phone,
   ShieldCheck,
   User,
+  Users,
   X,
 } from "lucide-react";
 
@@ -72,6 +73,9 @@ export default function ModalPerfilParticipante({
   const padrinosAcreditados = participantes.filter(
     (p) => p.rol === "padrino" && p.acreditado_por_club
   );
+  const adultosActivosAll = participantes.filter(
+    (p) => p.rol === "adulto_mayor" && p.estado_alta === "activo"
+  );
 
   const [form, setForm] = useState<{
     nombre: string;
@@ -86,6 +90,7 @@ export default function ModalPerfilParticipante({
     notasVulnerabilidad: string;
     avatarUrl: string;
     padrinoPreferidoId: string;
+    adultosAsignadosIds: string[];
     modalidadElegida: ModalidadElegida;
     paradaEsquinaId: string;
   }>({
@@ -101,6 +106,7 @@ export default function ModalPerfilParticipante({
     notasVulnerabilidad: "",
     avatarUrl: "",
     padrinoPreferidoId: "",
+    adultosAsignadosIds: [],
     modalidadElegida: "sin_respuesta",
     paradaEsquinaId: "",
   });
@@ -124,8 +130,10 @@ export default function ModalPerfilParticipante({
         padrinoPreferidoId:
           asisActual?.padrino_asignado_id ||
           participante.padrino_preferido_id ||
-          padrinosAcreditados[0]?.id ||
           "",
+        adultosAsignadosIds: adultosActivosAll
+          .filter((a) => a.padrino_preferido_id === participante.id)
+          .map((a) => a.id),
         modalidadElegida: asisActual?.modalidad_elegida || "sin_respuesta",
         paradaEsquinaId:
           asisActual?.parada_esquina_id || circuito.paradas_seguras[0]?.id || "",
@@ -164,6 +172,9 @@ export default function ModalPerfilParticipante({
           a.modalidad_elegida === "nivel_1_puerta" &&
           a.padrino_asignado_id === participante.id
       )
+    : [];
+  const abuelosACargoPadrino = esPadrino
+    ? adultosActivosAll.filter((a) => a.padrino_preferido_id === participante.id)
     : [];
 
   const handleSave = async (e: React.FormEvent) => {
@@ -220,6 +231,7 @@ export default function ModalPerfilParticipante({
           coordsDomicilio: updatedCoords,
           credencialNro: esPadrino ? form.credencialNro : undefined,
           padrinoPreferidoId: !esPadrino ? form.padrinoPreferidoId || null : undefined,
+          adultosAsignadosIds: esPadrino ? form.adultosAsignadosIds : undefined,
           contactoFamiliarNombre: form.contactoFamiliarNombre,
           contactoFamiliarTel: form.contactoFamiliarTel,
           notasVulnerabilidad: form.notasVulnerabilidad,
@@ -443,18 +455,86 @@ export default function ModalPerfilParticipante({
             </div>
 
             {esPadrino ? (
-              <div>
-                <label className="font-semibold text-[#363f48] block mb-1">
-                  Credencial de Padrino
-                </label>
-                <input
-                  type="text"
-                  value={form.credencialNro}
-                  onChange={(e) =>
-                    setForm({ ...form, credencialNro: e.target.value })
-                  }
-                  className="w-full border border-[#c4c9cd] rounded-lg px-3 py-1.5"
-                />
+              <div className="space-y-2.5">
+                <div>
+                  <label className="font-semibold text-[#363f48] block mb-1">
+                    Credencial de Padrino
+                  </label>
+                  <input
+                    type="text"
+                    value={form.credencialNro}
+                    onChange={(e) =>
+                      setForm({ ...form, credencialNro: e.target.value })
+                    }
+                    className="w-full border border-[#c4c9cd] rounded-lg px-3 py-1.5"
+                  />
+                </div>
+
+                <div className="p-3 rounded-xl bg-[#fdf9fb] border border-[#f4e1eb] space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <label className="font-bold text-[#363f48] flex items-center gap-1.5">
+                      <Users className="w-3.5 h-3.5 text-[#a70355]" />
+                      <span>Abuelos asignados a este padrino</span>
+                    </label>
+                    <span className="text-[10px] font-bold text-[#a70355]">
+                      {form.adultosAsignadosIds.length} a cargo
+                    </span>
+                  </div>
+                  <div className="max-h-36 overflow-y-auto space-y-1.5 pr-1">
+                    {adultosActivosAll.map((ad) => {
+                      const checked = form.adultosAsignadosIds.includes(ad.id);
+                      const otroPadrino =
+                        ad.padrino_preferido_id &&
+                        ad.padrino_preferido_id !== participante.id
+                          ? participantes.find(
+                              (p) => p.id === ad.padrino_preferido_id
+                            )
+                          : null;
+                      return (
+                        <label
+                          key={ad.id}
+                          className={`flex items-center justify-between gap-2 p-2 rounded-lg border cursor-pointer transition ${
+                            checked
+                              ? "bg-white border-[#a70355]"
+                              : "bg-white/70 border-[#eaeced] hover:border-[#e1a9c5]"
+                          }`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              onChange={() =>
+                                setForm((prev) => ({
+                                  ...prev,
+                                  adultosAsignadosIds:
+                                    prev.adultosAsignadosIds.includes(ad.id)
+                                      ? prev.adultosAsignadosIds.filter(
+                                          (id) => id !== ad.id
+                                        )
+                                      : [...prev.adultosAsignadosIds, ad.id],
+                                }))
+                              }
+                              className="accent-[#a70355] w-3.5 h-3.5 shrink-0"
+                            />
+                            <div className="min-w-0">
+                              <div className="font-semibold text-[#363f48] truncate">
+                                {ad.nombre}
+                              </div>
+                              <div className="text-[10px] text-[#52606d] truncate">
+                                {ad.direccion}
+                              </div>
+                            </div>
+                          </div>
+                          {otroPadrino && !checked && (
+                            <span className="text-[10px] text-[#52606d] bg-[#f6f6f7] px-2 py-0.5 rounded-full shrink-0">
+                              Con {otroPadrino.nombre.split(" ")[0]}
+                            </span>
+                          )}
+                        </label>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
             ) : (
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 p-3 rounded-xl bg-[#f6f6f7] border border-[#eaeced]">
@@ -482,30 +562,28 @@ export default function ModalPerfilParticipante({
                   </select>
                 </div>
 
-                {form.modalidadElegida === "nivel_1_puerta" && (
-                  <div>
-                    <label className="font-semibold text-[#363f48] block mb-1">
-                      Padrino asignado
-                    </label>
-                    <select
-                      value={form.padrinoPreferidoId}
-                      onChange={(e) =>
-                        setForm({ ...form, padrinoPreferidoId: e.target.value })
-                      }
-                      className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-1.5 bg-white"
-                    >
-                      <option value="">Sin asignar</option>
-                      {padrinosAcreditados.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.nombre} ({p.credencial_nro || "Acreditado"})
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
+                <div>
+                  <label className="font-semibold text-[#363f48] block mb-1">
+                    Padrino habitual / asignado
+                  </label>
+                  <select
+                    value={form.padrinoPreferidoId}
+                    onChange={(e) =>
+                      setForm({ ...form, padrinoPreferidoId: e.target.value })
+                    }
+                    className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-1.5 bg-white"
+                  >
+                    <option value="">Sin asignar</option>
+                    {padrinosAcreditados.map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {p.nombre} ({p.credencial_nro || "Acreditado"})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 {canWalkHere && form.modalidadElegida === "nivel_2_esquina" && (
-                  <div>
+                  <div className="sm:col-span-2">
                     <label className="font-semibold text-[#363f48] block mb-1">
                       Parada segura elegida
                     </label>
@@ -647,7 +725,7 @@ export default function ModalPerfilParticipante({
 
             {/* Modalidad / Acompanamiento */}
             {esPadrino ? (
-              <div className="p-3 rounded-xl bg-white border border-[#eaeced] space-y-1">
+              <div className="p-3 rounded-xl bg-white border border-[#eaeced] space-y-2">
                 <div className="text-[10px] font-bold uppercase text-[#52606d]">
                   Estado de Vecino Padrino Acreditado
                 </div>
@@ -658,6 +736,27 @@ export default function ModalPerfilParticipante({
                   </strong>{" "}
                   • Acompanamientos hoy en {circuito.nombre_club}:{" "}
                   <strong>{acompanamientosPadrino.length}</strong>
+                </div>
+                <div className="pt-1 border-t border-[#eaeced] space-y-1">
+                  <div className="text-[10px] font-bold uppercase text-[#52606d]">
+                    Abuelos asignados a su cargo ({abuelosACargoPadrino.length})
+                  </div>
+                  {abuelosACargoPadrino.length === 0 ? (
+                    <div className="text-[11px] text-[#52606d]">
+                      Sin abuelos asignados todavia. Toca &ldquo;Editar ficha&rdquo; para asignarle abuelos.
+                    </div>
+                  ) : (
+                    <div className="flex flex-wrap gap-1.5">
+                      {abuelosACargoPadrino.map((ad) => (
+                        <span
+                          key={ad.id}
+                          className="text-[11px] font-semibold bg-[#faf0f5] text-[#a70355] border border-[#f4e1eb] px-2.5 py-0.5 rounded-full"
+                        >
+                          {ad.nombre}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             ) : (

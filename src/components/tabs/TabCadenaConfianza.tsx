@@ -448,6 +448,9 @@ export default function TabCadenaConfianza({
                     a.modalidad_elegida === "nivel_1_puerta" &&
                     a.padrino_asignado_id === pad.id
                 );
+                const abuelosACargo = todosLosAdultosActivos.filter(
+                  (a) => a.padrino_preferido_id === pad.id
+                );
                 const distPad = formatDistanceMeters(
                   getDistanceMeters(pad.coords_domicilio, circuito.coords_club)
                 );
@@ -486,8 +489,21 @@ export default function TabCadenaConfianza({
                         <div className="text-[10px] text-[#52606d] truncate">
                           {pad.direccion} • <strong>A {distPad}</strong>
                         </div>
-                        <div className="text-[10px] text-[#52606d]">
-                          Acompana hoy:{" "}
+                        <div className="text-[10px] text-[#52606d] truncate">
+                          {abuelosACargo.length > 0 ? (
+                            <>
+                              A cargo:{" "}
+                              <strong className="text-[#363f48]">
+                                {abuelosACargo
+                                  .map((a) => a.nombre.split(" ")[0])
+                                  .join(", ")}
+                              </strong>
+                              {" • "}
+                            </>
+                          ) : (
+                            <span>Sin abuelos asignados • </span>
+                          )}
+                          Hoy:{" "}
                           <strong className="text-[#363f48]">
                             {asignadosHoy.length}
                           </strong>

@@ -1390,6 +1390,7 @@ export async function acreditarNuevoVecinoPadrino(input: {
   dni: string;
   telefono: string;
   direccion: string;
+  adultosAsignadosIds?: string[];
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
   const padrinosCount = state.participantes.filter(
@@ -1423,11 +1424,36 @@ export async function acreditarNuevoVecinoPadrino(input: {
 
   state.participantes.push(nuevoPadrino);
 
+  const asignadosNombres: string[] = [];
+  if (Array.isArray(input.adultosAsignadosIds) && input.adultosAsignadosIds.length > 0) {
+    const asignadosSet = new Set(input.adultosAsignadosIds);
+    for (const p of state.participantes) {
+      if (p.rol === "adulto_mayor" && asignadosSet.has(p.id)) {
+        p.padrino_preferido_id = nuevoPadrino.id;
+        asignadosNombres.push(p.nombre);
+      }
+    }
+    for (const asis of state.asistencias) {
+      if (
+        asignadosSet.has(asis.participante_id) &&
+        (asis.modalidad_elegida === "sin_respuesta" ||
+          asis.modalidad_elegida === "nivel_1_puerta")
+      ) {
+        asis.padrino_asignado_id = nuevoPadrino.id;
+        asis.updated_at = new Date().toISOString();
+      }
+    }
+  }
+
   addLog(
     state,
     state.circuito.nombre_club,
     "Nuevo Vecino Padrino Acreditado",
-    `Se valido DNI ${nuevoPadrino.dni} de ${nuevoPadrino.nombre} con Credencial ${nuevaCredencial}.`,
+    `Se valido DNI ${nuevoPadrino.dni} de ${nuevoPadrino.nombre} con Credencial ${nuevaCredencial}${
+      asignadosNombres.length > 0
+        ? ` (Asignado a: ${asignadosNombres.join(", ")})`
+        : ""
+    }.`,
     "success"
   );
 
@@ -1446,6 +1472,7 @@ export async function actualizarParticipanteAdulto(input: {
   direccion: string;
   coordsDomicilio?: Coords;
   padrinoPreferidoId?: string | null;
+  adultosAsignadosIds?: string[];
   credencialNro?: string | null;
   contactoFamiliarNombre?: string;
   contactoFamiliarTel?: string;
@@ -1520,6 +1547,37 @@ export async function actualizarParticipanteAdulto(input: {
   if (input.credencialNro !== undefined && adulto.rol === "padrino") {
     adulto.credencial_nro = (input.credencialNro || "").trim() || adulto.credencial_nro;
   }
+  if (adulto.rol === "padrino" && Array.isArray(input.adultosAsignadosIds)) {
+    const selectedSet = new Set(input.adultosAsignadosIds);
+    for (const p of state.participantes) {
+      if (p.rol !== "adulto_mayor") continue;
+      if (selectedSet.has(p.id)) {
+        p.padrino_preferido_id = adulto.id;
+        for (const a of state.asistencias) {
+          if (
+            a.participante_id === p.id &&
+            (a.modalidad_elegida === "sin_respuesta" ||
+              a.modalidad_elegida === "nivel_1_puerta")
+          ) {
+            a.padrino_asignado_id = adulto.id;
+            a.updated_at = new Date().toISOString();
+          }
+        }
+      } else if (p.padrino_preferido_id === adulto.id) {
+        p.padrino_preferido_id = null;
+        for (const a of state.asistencias) {
+          if (
+            a.participante_id === p.id &&
+            a.padrino_asignado_id === adulto.id &&
+            a.modalidad_elegida === "sin_respuesta"
+          ) {
+            a.padrino_asignado_id = null;
+            a.updated_at = new Date().toISOString();
+          }
+        }
+      }
+    }
+  }
   if (input.contactoFamiliarNombre !== undefined) {
     adulto.contacto_familiar_nombre =
       input.contactoFamiliarNombre.trim() || adulto.contacto_familiar_nombre;
@@ -1574,6 +1632,10 @@ export async function actualizarParticipanteAdulto(input: {
         asis.parada_esquina_id =
           input.paradaEsquinaId || asis.parada_esquina_id || null;
         asis.padrino_asignado_id = null;
+        asis.estado_padrino = "no_aplica";
+      } else if (asis.modalidad_elegida === "sin_respuesta") {
+        asis.parada_esquina_id = null;
+        asis.padrino_asignado_id = adulto.padrino_preferido_id || null;
         asis.estado_padrino = "no_aplica";
       } else {
         asis.parada_esquina_id = null;

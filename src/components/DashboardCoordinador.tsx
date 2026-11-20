@@ -601,6 +601,7 @@ function DashboardCoordinadorInner({
       {padrinoModalOpen && (
         <ModalAcreditarPadrino
           open={padrinoModalOpen}
+          participantes={participantes}
           onClose={() => setPadrinoModalOpen(false)}
           onSubmit={async (payload) => {
             const res = await executeCoordinatorAction("acreditar_padrino", {
