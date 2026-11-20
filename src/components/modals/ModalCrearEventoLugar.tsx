@@ -328,11 +328,10 @@ export default function ModalCrearEventoLugar({
           <button
             type="button"
             onClick={() => setVista("lista")}
-            className={`py-1.5 px-3 rounded-full font-semibold transition flex items-center justify-center gap-1.5 ${
-              vista === "lista"
+            className={`py-1.5 px-3 rounded-full font-semibold transition flex items-center justify-center gap-1.5 ${vista === "lista"
                 ? "bg-[#363f48] text-white"
                 : "text-[#52606d] hover:text-[#363f48]"
-            }`}
+              }`}
           >
             <Building2 className="w-3.5 h-3.5" />
             <span>Mis Eventos Guardados ({jornadasDelTutor.length})</span>
@@ -340,14 +339,13 @@ export default function ModalCrearEventoLugar({
           <button
             type="button"
             onClick={() => setVista("crear")}
-            className={`py-1.5 px-3 rounded-full font-semibold transition flex items-center justify-center gap-1.5 ${
-              vista === "crear"
+            className={`py-1.5 px-3 rounded-full font-semibold transition flex items-center justify-center gap-1.5 ${vista === "crear"
                 ? "bg-[#a70355] text-white"
                 : "text-[#52606d] hover:text-[#363f48]"
-            }`}
+              }`}
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>+ Nuevo Evento o Sede</span>
+            <span> Nuevo Evento o Sede</span>
           </button>
         </div>
 
@@ -387,11 +385,10 @@ export default function ModalCrearEventoLugar({
               return (
                 <div
                   key={j.id}
-                  className={`rounded-xl border transition overflow-hidden ${
-                    isCurrent
+                  className={`rounded-xl border transition overflow-hidden ${isCurrent
                       ? "border-[#a70355] bg-[#fdf9fb]"
                       : "border-[#eaeced] bg-white"
-                  }`}
+                    }`}
                 >
                   {/* Fila compacta del evento */}
                   <div
@@ -645,11 +642,10 @@ export default function ModalCrearEventoLugar({
                                           })
                                       )
                                     }
-                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition ${
-                                      active
+                                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition ${active
                                         ? "bg-[#a70355] text-white border-[#a70355]"
                                         : "bg-white text-[#52606d] border-[#c4c9cd]"
-                                    }`}
+                                      }`}
                                   >
                                     <img
                                       src={getParticipanteAvatarUrl(co)}
@@ -818,22 +814,20 @@ export default function ModalCrearEventoLugar({
               <button
                 type="button"
                 onClick={() => setModoLugar("existente")}
-                className={`py-1.5 px-3 rounded-full font-semibold transition ${
-                  modoLugar === "existente"
+                className={`py-1.5 px-3 rounded-full font-semibold transition ${modoLugar === "existente"
                     ? "bg-[#363f48] text-white"
                     : "text-[#52606d] hover:text-[#363f48]"
-                }`}
+                  }`}
               >
                 En un centro ya guardado
               </button>
               <button
                 type="button"
                 onClick={() => setModoLugar("nuevo")}
-                className={`py-1.5 px-3 rounded-full font-semibold transition ${
-                  modoLugar === "nuevo"
+                className={`py-1.5 px-3 rounded-full font-semibold transition ${modoLugar === "nuevo"
                     ? "bg-[#a70355] text-white"
                     : "text-[#52606d] hover:text-[#363f48]"
-                }`}
+                  }`}
               >
                 + Ubicar nuevo centro en mapa
               </button>
@@ -864,7 +858,7 @@ export default function ModalCrearEventoLugar({
                   selectedCircuitoId={circuitoId || circuitoActualId}
                   pickedCoords={null}
                   onSelectCircuitoExistente={(id) => setCircuitoId(id)}
-                  onLocationPicked={() => {}}
+                  onLocationPicked={() => { }}
                 />
               </div>
             ) : (
@@ -1007,11 +1001,10 @@ export default function ModalCrearEventoLugar({
                           setCoCoordinadoresIds
                         )
                       }
-                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition ${
-                        active
+                      className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-semibold border transition ${active
                           ? "bg-[#a70355] text-white border-[#a70355]"
                           : "bg-white text-[#52606d] border-[#c4c9cd]"
-                      }`}
+                        }`}
                     >
                       <img
                         src={getParticipanteAvatarUrl(co)}
