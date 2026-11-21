@@ -24,6 +24,12 @@ import {
   isSeniorNearForWalking,
 } from "@/lib/domain-helpers";
 import {
+  decodeMultiBranchPolylines,
+  getOrderedRamales,
+  getParadaShortCode,
+  getRamalStyle,
+} from "@/lib/street-routing";
+import {
   createAdultoDomicilioIcon,
   createClubIcon,
   createPadrinoIcon,
@@ -102,6 +108,16 @@ export default function MapaCircuitoLeaflet({
       ? draftPolyline
       : circuito.ruta_polilinea;
 
+  const branchPolylines = decodeMultiBranchPolylines(activeRoutePositions);
+  const ramalesActivos = getOrderedRamales(
+    editMode ? draftNodes : circuito.paradas_seguras
+  );
+  const tieneMultiRamales =
+    ramalesActivos.length > 1 ||
+    (editMode
+      ? draftNodes.some((n) => Boolean(n.ramal && n.ramal !== "A"))
+      : circuito.paradas_seguras.some((p) => Boolean(p.ramal)));
+
   const asistenciasEvento = asistencias.filter(
     (a) => a.jornada_id === jornada.id
   );
@@ -157,6 +173,22 @@ export default function MapaCircuitoLeaflet({
           Paradas a pie ocultas: todos los abuelos de este evento viven a mas de 1 km
         </div>
       )}
+      {mostrarParadasYRutaPeatonal && !editMode && ramalesActivos.length > 1 && (
+        <div className="absolute top-2.5 left-12 z-[400] bg-white/95 border border-[#eaeced] text-[#363f48] text-[10px] font-bold px-2.5 py-1 rounded-full shadow-sm pointer-events-none flex items-center gap-2.5">
+          {ramalesActivos.map((r) => {
+            const st = getRamalStyle(r);
+            return (
+              <span key={r} className="inline-flex items-center gap-1">
+                <span
+                  className="w-2.5 h-2.5 rounded-full inline-block"
+                  style={{ backgroundColor: st.stroke }}
+                />
+                <span>{st.label}</span>
+              </span>
+            );
+          })}
+        </div>
+      )}
       <MapContainer
         center={center}
         zoom={16}
@@ -178,36 +210,41 @@ export default function MapaCircuitoLeaflet({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
 
-        {mostrarParadasYRutaPeatonal && (
-          <>
-            <Polyline
-              positions={activeRoutePositions}
-              pathOptions={{
-                color: editMode ? "#dc9abb" : "#e1a9c5",
-                weight: 12,
-                opacity: 0.35,
-                lineCap: "round",
-                lineJoin: "round",
-              }}
-            />
-
-            <Polyline
-              positions={activeRoutePositions}
-              pathOptions={{
-                color:
-                  jornada.estado === "suspendida_emergencia"
-                    ? "#bf2020"
-                    : editMode
-                    ? "#7d0240"
-                    : "#a70355",
-                weight: 4.5,
-                opacity: 0.92,
-                dashArray:
-                  jornada.estado === "suspendida_emergencia" ? "8, 8" : undefined,
-              }}
-            />
-          </>
-        )}
+        {mostrarParadasYRutaPeatonal &&
+          branchPolylines.map((positions, branchIdx) => {
+            const ramalKey = ramalesActivos[branchIdx] || "A";
+            const style = getRamalStyle(ramalKey);
+            const strokeColor =
+              jornada.estado === "suspendida_emergencia"
+                ? "#bf2020"
+                : style.stroke;
+            return (
+              <React.Fragment key={`branch-poly-${ramalKey}-${branchIdx}`}>
+                <Polyline
+                  positions={positions}
+                  pathOptions={{
+                    color: style.halo,
+                    weight: 11,
+                    opacity: 0.35,
+                    lineCap: "round",
+                    lineJoin: "round",
+                  }}
+                />
+                <Polyline
+                  positions={positions}
+                  pathOptions={{
+                    color: strokeColor,
+                    weight: 4.5,
+                    opacity: 0.92,
+                    dashArray:
+                      jornada.estado === "suspendida_emergencia"
+                        ? "8, 8"
+                        : undefined,
+                  }}
+                />
+              </React.Fragment>
+            );
+          })}
 
         {adultosActivos.map((adulto) => {
           const asis = asistenciasEvento.find((a) => a.participante_id === adulto.id);
@@ -259,12 +296,13 @@ export default function MapaCircuitoLeaflet({
 
         {editMode ? (
           draftNodes.map((node, idx) => {
-            const paradaOrdinal =
-              node.kind === "parada"
-                ? draftNodes
-                    .slice(0, idx + 1)
-                    .filter((n) => n.kind === "parada").length - 1
-                : 0;
+            const paradasDraft = draftNodes.filter((n) => n.kind === "parada");
+            const paradaIdx = paradasDraft.findIndex((n) => n.id === node.id);
+            const ramalStyle = getRamalStyle(node.ramal);
+            const codigoCorto =
+              node.kind === "parada" && paradaIdx >= 0
+                ? getParadaShortCode(node, paradasDraft, paradaIdx)
+                : undefined;
 
             return (
               <Marker
@@ -274,10 +312,12 @@ export default function MapaCircuitoLeaflet({
                 icon={
                   node.kind === "parada"
                     ? createParadaIcon(
-                        paradaOrdinal,
+                        Math.max(0, paradaIdx),
                         node.horarioPaso || "16:00 hs",
                         0,
-                        true
+                        true,
+                        codigoCorto,
+                        ramalStyle.badge
                       )
                     : createViaWaypointIcon(idx)
                 }
@@ -306,11 +346,27 @@ export default function MapaCircuitoLeaflet({
               .map((a) => participantes.find((p) => p.id === a.participante_id))
               .filter(Boolean) as Participante[];
 
+            const codigoCorto = getParadaShortCode(
+              parada,
+              circuito.paradas_seguras,
+              idx
+            );
+            const colorRamal = tieneMultiRamales
+              ? getRamalStyle(parada.ramal).badge
+              : undefined;
+
             return (
               <Marker
                 key={parada.id}
                 position={[parada.lat, parada.lng]}
-                icon={createParadaIcon(idx, parada.horario_paso, abuelosEnEsquina.length)}
+                icon={createParadaIcon(
+                  idx,
+                  parada.horario_paso,
+                  abuelosEnEsquina.length,
+                  false,
+                  codigoCorto,
+                  colorRamal
+                )}
               >
                 <Popup>
                   <div className="p-1 min-w-[220px] space-y-1 text-xs">

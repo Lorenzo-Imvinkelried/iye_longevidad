@@ -27,16 +27,25 @@ export function createParadaIcon(
   index: number,
   horario: string,
   count: number,
-  editable = false
+  editable = false,
+  codigoCorto?: string,
+  colorHex?: string
 ) {
-  const activeBg = editable ? "#a70355" : count > 0 ? "#363f48" : "#52606d";
+  const activeBg = colorHex
+    ? colorHex
+    : editable
+    ? "#a70355"
+    : count > 0
+    ? "#363f48"
+    : "#52606d";
+  const label = codigoCorto || `Parada ${index + 1}`;
 
   return L.divIcon({
     className: "custom-leaflet-marker",
     html: `
       <div style="position:relative;display:flex;flex-direction:column;align-items:center;transform:translate(-50%,-85%);cursor:${editable ? "grab" : "pointer"};">
-        <div style="background:${activeBg};color:white;padding:5px 9px;border-radius:8px;font-weight:600;font-size:11px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.22);border:2px solid #ffffff;display:flex;align-items:center;gap:6px;">
-          <span>Parada ${index + 1} (${horario})</span>
+        <div style="background:${activeBg};color:white;padding:5px 9px;border-radius:8px;font-weight:700;font-size:11px;white-space:nowrap;box-shadow:0 3px 10px rgba(0,0,0,0.22);border:2px solid #ffffff;display:flex;align-items:center;gap:6px;">
+          <span>${label} (${horario})</span>
           <span style="background:#ffffff;color:${activeBg};padding:1px 5px;border-radius:4px;font-size:10px;font-weight:800;">
             ${editable ? "Mover" : count}
           </span>

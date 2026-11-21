@@ -699,12 +699,39 @@ export async function procesarEventoWebhookWhatsApp(params: {
       return state;
     }
 
-    const paradaButtons: WhatsAppReplyButton[] = targetCircuito.paradas_seguras.map(
-      (parada, idx) => ({
-        id: `btn_parada:${parada.id}:${targetJornada.id}`,
-        title: `Parada ${idx + 1} (${parada.horario_paso})`,
-        variant: "primary",
-      })
+    // Ordenar paradas por cercania al domicilio del adulto mayor y mostrar las 2 mas cercanas (limite 3 botones de WhatsApp)
+    const paradasConDistancia = targetCircuito.paradas_seguras
+      .map((parada, idx) => ({
+        parada,
+        idx,
+        dist: getDistanceMeters(actor.coords_domicilio, {
+          lat: parada.lat,
+          lng: parada.lng,
+        }),
+      }))
+      .sort((a, b) => a.dist - b.dist);
+
+    const paradasCercanas = paradasConDistancia.slice(0, 2);
+    const tieneRamales = targetCircuito.paradas_seguras.some((p) => Boolean(p.ramal));
+
+    const getCodigoParada = (parada: (typeof targetCircuito.paradas_seguras)[number], idx: number) => {
+      if (!tieneRamales) return `Parada ${idx + 1}`;
+      const r = (parada.ramal || "A").toUpperCase();
+      const ord = targetCircuito.paradas_seguras
+        .slice(0, idx + 1)
+        .filter((p) => (p.ramal || "A").toUpperCase() === r).length;
+      return `${r}${ord}`;
+    };
+
+    const paradaButtons: WhatsAppReplyButton[] = paradasCercanas.map(
+      ({ parada, idx }) => {
+        const codigo = getCodigoParada(parada, idx);
+        return {
+          id: `btn_parada:${parada.id}:${targetJornada.id}`,
+          title: `${codigo} (${parada.horario_paso})`.slice(0, 20),
+          variant: "primary",
+        };
+      }
     );
 
     paradaButtons.push({
@@ -713,20 +740,21 @@ export async function procesarEventoWebhookWhatsApp(params: {
       variant: "danger",
     });
 
-    const detalleParadas = targetCircuito.paradas_seguras
-      .map(
-        (p, idx) =>
-          `• *Parada ${idx + 1}:* ${p.nombre_esquina.replace(
-            /^Parada \d+:\s*/,
-            ""
-          )} (${p.horario_paso})`
-      )
+    const detalleParadas = paradasCercanas
+      .map(({ parada, idx, dist }) => {
+        const codigo = getCodigoParada(parada, idx);
+        const limpio = parada.nombre_esquina.replace(
+          /^(Parada \d+|[A-C]\d+):\s*/i,
+          ""
+        );
+        return `• *${codigo}:* ${limpio} (${parada.horario_paso} • a ${formatDistanceMeters(dist)})`;
+      })
       .join("\n");
 
     await appendBotMessage(
       state,
       actor,
-      `Muy bien, ${primerNombre}. Elegi en cual de las *Paradas Seguras relevadas por Sancor* hacia ${targetCircuito.nombre_club} te sumas hoy:\n${detalleParadas}`,
+      `Muy bien, ${primerNombre}. Estas son las *Paradas Seguras* mas cercanas a tu casa hacia ${targetCircuito.nombre_club}:\n${detalleParadas}`,
       { buttons: paradaButtons }
     );
 

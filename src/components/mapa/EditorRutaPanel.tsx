@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { getRamalStyle } from "@/lib/street-routing";
 import {
   ArrowDown,
   ArrowUp,
@@ -8,6 +9,7 @@ import {
   MapPin,
   RefreshCw,
   Route,
+  Sparkles,
   Trash2,
   X,
 } from "lucide-react";
@@ -15,6 +17,7 @@ import {
 export interface EditableRouteNode {
   id: string;
   kind: "parada" | "via";
+  ramal: string;
   lat: number;
   lng: number;
   nombreEsquina?: string;
@@ -24,10 +27,14 @@ export interface EditableRouteNode {
 interface EditorRutaProps {
   nodes: EditableRouteNode[];
   clickTool: "via" | "parada";
+  activeRamal: string;
   routingBusy: boolean;
   saving: boolean;
   distanceMeters?: number;
   onChangeClickTool: (tool: "via" | "parada") => void;
+  onChangeActiveRamal: (ramal: string) => void;
+  onChangeNodeRamal: (id: string, ramal: string) => void;
+  onAutoSuggestSmartRoutes: () => void;
   onUpdateParadaText: (
     id: string,
     field: "nombreEsquina" | "horarioPaso",
@@ -41,13 +48,19 @@ interface EditorRutaProps {
   onSave: () => void;
 }
 
+const RAMALES = ["A", "B", "C"];
+
 export default function EditorRutaPanel({
   nodes,
   clickTool,
+  activeRamal,
   routingBusy,
   saving,
   distanceMeters,
   onChangeClickTool,
+  onChangeActiveRamal,
+  onChangeNodeRamal,
+  onAutoSuggestSmartRoutes,
   onUpdateParadaText,
   onMoveNodeOrder,
   onRemoveNode,
@@ -64,7 +77,7 @@ export default function EditorRutaPanel({
         <div className="flex items-center gap-1.5">
           <Route className="w-4 h-4 text-[#a70355]" />
           <span className="text-xs font-bold text-[#363f48]">
-            Editor de Ruta Segura (por calles)
+            Editor de Ramales y Paradas
           </span>
         </div>
         {distanceMeters ? (
@@ -74,45 +87,100 @@ export default function EditorRutaPanel({
         ) : null}
       </div>
 
-      <p className="text-[11px] text-[#52606d] leading-snug shrink-0">
-        Toca el mapa para agregar puntos o <strong>arrastra los marcadores</strong>. La linea magenta sigue automaticamente las calles reales hasta la sede.
+      {/* Boton de sugerencia inteligente de ramales y paradas */}
+      <button
+        type="button"
+        disabled={routingBusy || saving}
+        onClick={onAutoSuggestSmartRoutes}
+        className="w-full bg-[#faf0f5] hover:bg-[#a70355] text-[#a70355] hover:text-white border border-[#e1a9c5] font-bold text-[11px] py-1.5 px-3 rounded-xl transition flex items-center justify-center gap-1.5 shrink-0 disabled:opacity-50"
+      >
+        <Sparkles className="w-3.5 h-3.5" />
+        <span>Sugerir ramales y paradas inteligentes</span>
+      </button>
+
+      <p className="text-[10px] text-[#52606d] leading-snug shrink-0">
+        Cada ramal (<strong>A1 → A2 → Club</strong>, <strong>B1 → B2 → Club</strong>) traza su propio recorrido independiente por calles hacia la sede.
       </p>
 
-      {/* Selector de que agrega al hacer clic en el mapa */}
-      <div className="grid grid-cols-2 gap-1 p-1 bg-[#f6f6f7] rounded-full text-[11px] shrink-0">
-        <button
-          type="button"
-          onClick={() => onChangeClickTool("via")}
-          className={`py-1 px-2 rounded-full font-semibold transition ${
-            clickTool === "via"
-              ? "bg-[#363f48] text-white"
-              : "text-[#52606d] hover:text-[#363f48]"
-          }`}
-        >
-          + Punto de calle
-        </button>
-        <button
-          type="button"
-          onClick={() => onChangeClickTool("parada")}
-          className={`py-1 px-2 rounded-full font-semibold transition ${
-            clickTool === "parada"
-              ? "bg-[#a70355] text-white"
-              : "text-[#52606d] hover:text-[#363f48]"
-          }`}
-        >
-          + Parada segura
-        </button>
+      {/* Selector de Ramal activo (A / B / C) + herramienta de clic */}
+      <div className="space-y-1.5 shrink-0">
+        <div className="grid grid-cols-3 gap-1 text-[10px]">
+          {RAMALES.map((r) => {
+            const st = getRamalStyle(r);
+            const active = activeRamal === r;
+            return (
+              <button
+                key={r}
+                type="button"
+                onClick={() => onChangeActiveRamal(r)}
+                style={
+                  active
+                    ? { backgroundColor: st.stroke, borderColor: st.stroke }
+                    : undefined
+                }
+                className={`py-1 px-2 rounded-full font-bold border transition flex items-center justify-center gap-1 ${
+                  active
+                    ? "text-white shadow-2xs"
+                    : "bg-white text-[#52606d] border-[#c4c9cd] hover:text-[#363f48]"
+                }`}
+              >
+                <span
+                  className="w-2 h-2 rounded-full shrink-0"
+                  style={{
+                    backgroundColor: active ? "#ffffff" : st.stroke,
+                  }}
+                />
+                <span>{st.label}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="grid grid-cols-2 gap-1 p-1 bg-[#f6f6f7] rounded-full text-[11px]">
+          <button
+            type="button"
+            onClick={() => onChangeClickTool("parada")}
+            className={`py-1 px-2 rounded-full font-semibold transition ${
+              clickTool === "parada"
+                ? "bg-[#a70355] text-white"
+                : "text-[#52606d] hover:text-[#363f48]"
+            }`}
+          >
+            + Parada segura
+          </button>
+          <button
+            type="button"
+            onClick={() => onChangeClickTool("via")}
+            className={`py-1 px-2 rounded-full font-semibold transition ${
+              clickTool === "via"
+                ? "bg-[#363f48] text-white"
+                : "text-[#52606d] hover:text-[#363f48]"
+            }`}
+          >
+            + Punto de calle
+          </button>
+        </div>
       </div>
 
       {/* Lista ordenada de puntos del recorrido */}
       <div className="flex-1 min-h-0 overflow-y-auto space-y-1.5 pr-0.5">
         {nodes.length === 0 ? (
           <div className="p-3 text-center text-[11px] text-[#52606d] bg-[#f6f6f7] rounded-lg">
-            Hace clic en el mapa para trazar el inicio de la caminata y sus paradas.
+            Toca el mapa o usa &ldquo;Sugerir ramales y paradas inteligentes&rdquo; arriba.
           </div>
         ) : (
           nodes.map((node, idx) => {
             const isParada = node.kind === "parada";
+            const st = getRamalStyle(node.ramal);
+            const ordEnRamal =
+              nodes
+                .slice(0, idx + 1)
+                .filter(
+                  (n) =>
+                    n.kind === "parada" &&
+                    (n.ramal || "A") === (node.ramal || "A")
+                ).length;
+
             return (
               <div
                 key={node.id}
@@ -125,14 +193,25 @@ export default function EditorRutaPanel({
                 <div className="flex items-center justify-between gap-1">
                   <div className="flex items-center gap-1.5 min-w-0">
                     <span
-                      className={`w-4 h-4 rounded-full text-[9px] font-bold text-white flex items-center justify-center shrink-0 ${
-                        isParada ? "bg-[#a70355]" : "bg-[#52606d]"
-                      }`}
+                      style={{ backgroundColor: isParada ? st.badge : "#52606d" }}
+                      className="px-1.5 h-4 rounded-full text-[9px] font-extrabold text-white flex items-center justify-center shrink-0"
                     >
-                      {idx + 1}
+                      {isParada ? `${node.ramal || "A"}${ordEnRamal}` : `V${idx + 1}`}
                     </span>
-                    <span className="font-bold text-[11px] text-[#363f48] truncate">
-                      {isParada ? "Parada segura" : "Punto de paso por calle"}
+                    <select
+                      aria-label="Cambiar ramal"
+                      value={node.ramal || "A"}
+                      onChange={(e) => onChangeNodeRamal(node.id, e.target.value)}
+                      className="text-[10px] font-bold text-[#363f48] bg-white border border-[#c4c9cd] rounded px-1 py-0.5"
+                    >
+                      {RAMALES.map((r) => (
+                        <option key={r} value={r}>
+                          Ramal {r}
+                        </option>
+                      ))}
+                    </select>
+                    <span className="font-semibold text-[10px] text-[#52606d] truncate">
+                      {isParada ? "Parada" : "Paso"}
                     </span>
                   </div>
 

@@ -25,6 +25,7 @@ export interface Coords {
 
 export interface ParadaSegura {
   id: string;
+  ramal?: string;
   nombre_esquina: string;
   lat: number;
   lng: number;

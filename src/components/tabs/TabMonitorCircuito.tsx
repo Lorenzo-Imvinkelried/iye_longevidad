@@ -20,7 +20,13 @@ import {
   isSeniorNearForWalking,
 } from "@/lib/domain-helpers";
 import { compressImageFileToDataUrl } from "@/components/modals/ModalDerivacionFamiliar";
-import { fetchStreetWalkingRoute } from "@/lib/street-routing";
+import {
+  computeSmartBranchStops,
+  fetchMultiBranchWalkingRoutes,
+  getOrderedRamales,
+  getParadaShortCode,
+  getRamalStyle,
+} from "@/lib/street-routing";
 import {
   buildWhatsAppInviteLink,
   WHATSAPP_BOT_DISPLAY_PHONE,
@@ -127,7 +133,8 @@ export default function TabMonitorCircuito({
     modalidadElegida: "sin_respuesta",
     paradaEsquinaId: "",
   });
-  const [clickTool, setClickTool] = useState<"via" | "parada">("via");
+  const [clickTool, setClickTool] = useState<"via" | "parada">("parada");
+  const [activeRamal, setActiveRamal] = useState<string>("A");
   const [draftNodes, setDraftNodes] = useState<EditableRouteNode[]>([]);
   const [draftPolyline, setDraftPolyline] = useState<[number, number][]>([]);
   const [routingBusy, setRoutingBusy] = useState(false);
@@ -255,27 +262,98 @@ export default function TabMonitorCircuito({
   };
 
   const recomputeStreetRoute = async (nodes: EditableRouteNode[]) => {
-    const waypoints: [number, number][] = [
-      ...nodes.map((n) => [n.lat, n.lng] as [number, number]),
-      [circuito.coords_club.lat, circuito.coords_club.lng],
-    ];
-    if (waypoints.length < 2) {
+    const ramales = getOrderedRamales(nodes);
+    const branchInputs = ramales
+      .map((ramal) => {
+        const nodesDeRamal = nodes.filter(
+          (n) => (n.ramal || "A").toUpperCase() === ramal
+        );
+        const waypoints: [number, number][] = [
+          ...nodesDeRamal.map((n) => [n.lat, n.lng] as [number, number]),
+          [circuito.coords_club.lat, circuito.coords_club.lng],
+        ];
+        return { ramal, waypoints };
+      })
+      .filter((b) => b.waypoints.length >= 2);
+
+    if (branchInputs.length === 0) {
       setDraftPolyline([]);
       return;
     }
     setRoutingBusy(true);
     try {
       await withLoading(
-        "Calculando ruta segura por calles...",
-        "Ajustando el recorrido peatonal sobre las calles de Santa Fe...",
+        "Calculando ramales seguros por calles...",
+        "Trazando cada corredor peatonal independiente hacia la sede...",
         async () => {
-          const res = await fetchStreetWalkingRoute(waypoints);
-          setDraftPolyline(res.coords);
-          setDistanceMeters(res.distanceMeters);
+          const res = await fetchMultiBranchWalkingRoutes(branchInputs);
+          setDraftPolyline(res.combinedCoords);
+          setDistanceMeters(res.totalDistanceMeters);
         }
       );
     } finally {
       setRoutingBusy(false);
+    }
+  };
+
+  const handleAutoSuggestSmartRoutes = async () => {
+    if (routeActionRef.current) return;
+    routeActionRef.current = true;
+    try {
+      const suggested = computeSmartBranchStops(
+        circuito.coords_club,
+        adultosActivos,
+        jornada.hora_inicio_caminata || "16:00"
+      );
+
+      const initialSmartNodes: EditableRouteNode[] = suggested.map((p) => ({
+        id: p.id,
+        kind: "parada",
+        ramal: p.ramal || "A",
+        lat: p.lat,
+        lng: p.lng,
+        nombreEsquina: p.nombre_esquina,
+        horarioPaso: p.horario_paso,
+      }));
+
+      setDraftNodes(initialSmartNodes);
+
+      // Resolver nombres de calles reales + calcular rutas peatonales en paralelo
+      await Promise.all([
+        recomputeStreetRoute(initialSmartNodes),
+        Promise.all(
+          initialSmartNodes.map(async (node, idx) => {
+            try {
+              const res = await fetch(
+                `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${node.lat}&lon=${node.lng}&addressdetails=1`
+              );
+              if (!res.ok) return;
+              const data = await res.json();
+              const road = data?.address?.road;
+              const num = data?.address?.house_number;
+              if (road) {
+                const codigo = getParadaShortCode(
+                  node,
+                  initialSmartNodes,
+                  idx
+                );
+                const label = `${codigo}: ${[road, num]
+                  .filter(Boolean)
+                  .join(" ")}`;
+                setDraftNodes((prev) =>
+                  prev.map((n) =>
+                    n.id === node.id ? { ...n, nombreEsquina: label } : n
+                  )
+                );
+              }
+            } catch {
+              // Keep smart cardinal label
+            }
+          })
+        ),
+      ]);
+    } finally {
+      routeActionRef.current = false;
     }
   };
 
@@ -284,6 +362,7 @@ export default function TabMonitorCircuito({
       (p) => ({
         id: p.id,
         kind: "parada",
+        ramal: (p.ramal || "A").toUpperCase(),
         lat: p.lat,
         lng: p.lng,
         nombreEsquina: p.nombre_esquina,
@@ -291,10 +370,12 @@ export default function TabMonitorCircuito({
       })
     );
 
+    const hasMulti = paradaNodes.some((p) => p.ramal !== "A");
     const firstPoly = circuito.ruta_polilinea?.[0];
     const firstParada = paradaNodes[0];
     const initialNodes: EditableRouteNode[] = [];
     if (
+      !hasMulti &&
       firstPoly &&
       firstParada &&
       (Math.abs(firstPoly[0] - firstParada.lat) > 0.001 ||
@@ -303,12 +384,14 @@ export default function TabMonitorCircuito({
       initialNodes.push({
         id: "via_inicio",
         kind: "via",
+        ramal: "A",
         lat: firstPoly[0],
         lng: firstPoly[1],
       });
     }
     initialNodes.push(...paradaNodes);
 
+    setActiveRamal("A");
     setDraftNodes(initialNodes);
     setDraftPolyline(circuito.ruta_polilinea || []);
     setIsEditingRoute(true);
@@ -321,24 +404,28 @@ export default function TabMonitorCircuito({
     try {
       const newId =
         clickTool === "parada"
-          ? `parada_${Date.now().toString(36)}`
-          : `via_${Date.now().toString(36)}`;
-      const nextParadaIdx =
-        draftNodes.filter((n) => n.kind === "parada").length + 1;
+          ? `parada_${activeRamal.toLowerCase()}_${Date.now().toString(36)}`
+          : `via_${activeRamal.toLowerCase()}_${Date.now().toString(36)}`;
+      const nextOrdInRamal =
+        draftNodes.filter(
+          (n) => n.kind === "parada" && (n.ramal || "A") === activeRamal
+        ).length + 1;
 
       const newNode: EditableRouteNode =
         clickTool === "parada"
           ? {
               id: newId,
               kind: "parada",
+              ramal: activeRamal,
               lat,
               lng,
-              nombreEsquina: `Parada ${nextParadaIdx}: Punto en circuito`,
+              nombreEsquina: `${activeRamal}${nextOrdInRamal}: Punto en ramal ${activeRamal}`,
               horarioPaso: `${jornada.hora_inicio_caminata || "16:00"} hs`,
             }
           : {
               id: newId,
               kind: "via",
+              ramal: activeRamal,
               lat,
               lng,
             };
@@ -359,7 +446,7 @@ export default function TabMonitorCircuito({
                   const road = data?.address?.road;
                   const num = data?.address?.house_number;
                   if (road) {
-                    const label = `Parada ${nextParadaIdx}: ${[road, num]
+                    const label = `${activeRamal}${nextOrdInRamal}: ${[road, num]
                       .filter(Boolean)
                       .join(" ")}`;
                     setDraftNodes((prev) =>
@@ -388,6 +475,14 @@ export default function TabMonitorCircuito({
     void recomputeStreetRoute(nextNodes);
   };
 
+  const handleChangeNodeRamal = (nodeId: string, ramal: string) => {
+    const nextNodes = draftNodes.map((n) =>
+      n.id === nodeId ? { ...n, ramal } : n
+    );
+    setDraftNodes(nextNodes);
+    void recomputeStreetRoute(nextNodes);
+  };
+
   const handleMoveNodeOrder = (index: number, dir: -1 | 1) => {
     const targetIdx = index + dir;
     if (targetIdx < 0 || targetIdx >= draftNodes.length) return;
@@ -411,25 +506,29 @@ export default function TabMonitorCircuito({
       const existingMap = new Map(
         circuito.paradas_seguras.map((p) => [p.id, p])
       );
-      const updatedParadas: ParadaSegura[] = draftNodes
-        .filter((n) => n.kind === "parada")
-        .map((n, idx) => {
-          const prev = existingMap.get(n.id);
-          return {
-            id: n.id,
-            nombre_esquina:
-              (n.nombreEsquina || "").trim() || `Parada ${idx + 1}`,
-            lat: n.lat,
-            lng: n.lng,
-            horario_paso:
-              (n.horarioPaso || "").trim() ||
-              `${jornada.hora_inicio_caminata} hs`,
-            estado_veredas:
-              prev?.estado_veredas || "Tramo validado en mapa por organizador",
-            tiene_rampa: prev?.tiene_rampa ?? true,
-            iluminacion_ok: prev?.iluminacion_ok ?? true,
-          };
-        });
+      const paradasOnly = draftNodes.filter((n) => n.kind === "parada");
+      const useExplicitRamales =
+        paradasOnly.some((n) => (n.ramal || "A") !== "A") ||
+        circuito.paradas_seguras.some((p) => Boolean(p.ramal));
+
+      const updatedParadas: ParadaSegura[] = paradasOnly.map((n, idx) => {
+        const prev = existingMap.get(n.id);
+        return {
+          id: n.id,
+          ramal: useExplicitRamales ? (n.ramal || "A").toUpperCase() : prev?.ramal,
+          nombre_esquina:
+            (n.nombreEsquina || "").trim() || `Parada ${idx + 1}`,
+          lat: n.lat,
+          lng: n.lng,
+          horario_paso:
+            (n.horarioPaso || "").trim() ||
+            `${jornada.hora_inicio_caminata} hs`,
+          estado_veredas:
+            prev?.estado_veredas || "Tramo validado en mapa por organizador",
+          tiene_rampa: prev?.tiene_rampa ?? true,
+          iluminacion_ok: prev?.iluminacion_ok ?? true,
+        };
+      });
 
       await onExecuteAction("actualizar_ruta_circuito", {
         circuitoId: circuito.id,
@@ -737,10 +836,14 @@ export default function TabMonitorCircuito({
             <EditorRutaPanel
               nodes={draftNodes}
               clickTool={clickTool}
+              activeRamal={activeRamal}
               routingBusy={routingBusy}
               saving={loadingAction === "actualizar_ruta_circuito"}
               distanceMeters={distanceMeters}
               onChangeClickTool={setClickTool}
+              onChangeActiveRamal={setActiveRamal}
+              onChangeNodeRamal={handleChangeNodeRamal}
+              onAutoSuggestSmartRoutes={() => void handleAutoSuggestSmartRoutes()}
               onUpdateParadaText={(id, field, val) =>
                 setDraftNodes((prev) =>
                   prev.map((n) => (n.id === id ? { ...n, [field]: val } : n))
@@ -850,13 +953,37 @@ export default function TabMonitorCircuito({
                   const count = asistenciasNivel2.filter(
                     (a) => a.parada_esquina_id === parada.id
                   ).length;
+                  const codigo = getParadaShortCode(
+                    parada,
+                    circuito.paradas_seguras,
+                    idx
+                  );
+                  const hasRamales = circuito.paradas_seguras.some((p) =>
+                    Boolean(p.ramal)
+                  );
+                  const ramalStyle = getRamalStyle(parada.ramal);
                   return (
                     <div
                       key={parada.id}
-                      className="flex items-center justify-between text-xs py-0.5 px-1.5"
+                      className="flex items-center justify-between gap-2 text-xs py-0.5 px-1.5"
                     >
-                      <span className="text-[#52606d] truncate">
-                        Parada {idx + 1} ({parada.horario_paso})
+                      <span className="text-[#52606d] truncate flex items-center gap-1.5 min-w-0">
+                        {hasRamales && (
+                          <span
+                            style={{ backgroundColor: ramalStyle.badge }}
+                            className="text-[9px] font-extrabold text-white px-1.5 py-0.2 rounded-full shrink-0"
+                          >
+                            {codigo}
+                          </span>
+                        )}
+                        <span className="truncate">
+                          {hasRamales
+                            ? `${parada.nombre_esquina.replace(
+                                /^(Parada \d+|[A-C]\d+):\s*/i,
+                                ""
+                              )} (${parada.horario_paso})`
+                            : `Parada ${idx + 1} (${parada.horario_paso})`}
+                        </span>
                       </span>
                       <span className="font-semibold text-[#363f48] bg-[#f6f6f7] border border-[#eaeced] px-2 py-0.5 rounded-full text-[10px] shrink-0">
                         {count === 1 ? "1 anotado" : `${count} anotados`}
