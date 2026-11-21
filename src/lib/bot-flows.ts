@@ -199,23 +199,21 @@ export async function dispararConvocatoriaJornada(
         `Hola ${primerNombre}, te escribimos para coordinar tu asistencia al encuentro de hoy a las ${targetJornada.hora_inicio_caminata} hs en ${targetCircuito.nombre_club} (${targetCircuito.direccion_club}). ¿Como te sumas hoy?`,
         {
           buttons: buildConvocatoriaButtons(targetJornada.id, canWalk),
-          template: canWalk
-            ? {
-                name: "convocatoria_encuentro_barrial",
-                languageCode: "es_AR",
-                bodyParams: [
-                  primerNombre,
-                  targetJornada.hora_inicio_caminata,
-                  targetCircuito.nombre_club,
-                  targetCircuito.direccion_club,
-                ],
-                buttonPayloads: [
-                  `btn_nivel_1:${targetJornada.id}`,
-                  `btn_nivel_2:${targetJornada.id}`,
-                  `btn_nivel_3:${targetJornada.id}`,
-                ],
-              }
-            : undefined,
+          template: {
+            name: "convocatoria_encuentro_barrial",
+            languageCode: "es_AR",
+            bodyParams: [
+              primerNombre,
+              targetJornada.hora_inicio_caminata,
+              targetCircuito.nombre_club,
+              targetCircuito.direccion_club,
+            ],
+            buttonPayloads: [
+              `btn_nivel_1:${targetJornada.id}`,
+              `btn_nivel_2:${targetJornada.id}`,
+              `btn_nivel_3:${targetJornada.id}`,
+            ],
+          },
         }
       );
       if (cloudRes.dispatched) {
