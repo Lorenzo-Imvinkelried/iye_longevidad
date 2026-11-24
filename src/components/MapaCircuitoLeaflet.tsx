@@ -468,8 +468,25 @@ export default function MapaCircuitoLeaflet({
                 etiquetaEstado = "Salida frenada";
               }
             } else if (asis.modalidad_elegida === "nivel_2_esquina") {
-              colorHex = "#b5286f";
-              etiquetaEstado = "En esquina";
+              const paradaIdx = circuito.paradas_seguras.findIndex(
+                (ps) => ps.id === asis.parada_esquina_id
+              );
+              const paradaElegida =
+                paradaIdx >= 0 ? circuito.paradas_seguras[paradaIdx] : null;
+              if (paradaElegida) {
+                const codigoParada = getParadaShortCode(
+                  paradaElegida,
+                  circuito.paradas_seguras,
+                  paradaIdx
+                );
+                etiquetaEstado = `Va a ${codigoParada}`;
+                colorHex = tieneMultiRamales
+                  ? getRamalStyle(paradaElegida.ramal).badge
+                  : "#b5286f";
+              } else {
+                colorHex = "#b5286f";
+                etiquetaEstado = "Parada segura";
+              }
             } else if (asis.modalidad_elegida === "nivel_3_directo") {
               colorHex = "#c2387c";
               etiquetaEstado = "Va directo";
