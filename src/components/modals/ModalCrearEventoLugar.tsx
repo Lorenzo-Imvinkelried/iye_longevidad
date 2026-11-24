@@ -9,7 +9,9 @@ import {
   Participante,
 } from "@/types/domain";
 import {
+  DEFAULT_CUPO_MAXIMO,
   getCircuitoTutoresIds,
+  getJornadaCupoMaximo,
   getParticipanteAvatarUrl,
 } from "@/lib/domain-helpers";
 import SelectorMapaLugar from "@/components/mapa/SelectorMapaLugar";
@@ -50,6 +52,7 @@ interface ModalEventoProps {
     fecha: string;
     horaCaminata: string;
     horaEncuentro: string;
+    cupoMaximo?: number;
     coordinadoresIds: string[];
   }) => Promise<{ ok: boolean; error?: string }>;
   onPasarAbuelo: (payload: {
@@ -71,6 +74,7 @@ interface ModalEventoProps {
     fecha: string;
     horaCaminata: string;
     horaEncuentro: string;
+    cupoMaximo: number;
     montoReintegro: number;
     plusPadrino: number;
     incluirAbuelosDelTutor: boolean;
@@ -109,6 +113,7 @@ export default function ModalCrearEventoLugar({
     fecha: string;
     horaCaminata: string;
     horaEncuentro: string;
+    cupoMaximo: number;
     coordinadoresIds: string[];
   }>({
     nombreClub: "",
@@ -120,6 +125,7 @@ export default function ModalCrearEventoLugar({
     fecha: "",
     horaCaminata: "",
     horaEncuentro: "",
+    cupoMaximo: DEFAULT_CUPO_MAXIMO,
     coordinadoresIds: [tutorId],
   });
 
@@ -137,6 +143,7 @@ export default function ModalCrearEventoLugar({
   const [fecha, setFecha] = useState(new Date().toISOString().split("T")[0]);
   const [horaCaminata, setHoraCaminata] = useState("16:00");
   const [horaEncuentro, setHoraEncuentro] = useState("16:20");
+  const [cupoMaximo, setCupoMaximo] = useState<number>(DEFAULT_CUPO_MAXIMO);
   const [montoReintegro] = useState(0);
   const [plusPadrino] = useState(0);
   const [incluirAbuelosDelTutor, setIncluirAbuelosDelTutor] = useState(true);
@@ -180,6 +187,7 @@ export default function ModalCrearEventoLugar({
       fecha: j.fecha,
       horaCaminata: j.hora_inicio_caminata,
       horaEncuentro: j.hora_encuentro_club,
+      cupoMaximo: getJornadaCupoMaximo(j),
       coordinadoresIds: getCircuitoTutoresIds(c),
     });
   };
@@ -229,6 +237,7 @@ export default function ModalCrearEventoLugar({
         fecha: editForm.fecha,
         horaCaminata: editForm.horaCaminata,
         horaEncuentro: editForm.horaEncuentro,
+        cupoMaximo: Number(editForm.cupoMaximo) || DEFAULT_CUPO_MAXIMO,
         coordinadoresIds: editForm.coordinadoresIds,
       });
       if (res.ok) {
@@ -259,6 +268,7 @@ export default function ModalCrearEventoLugar({
         fecha,
         horaCaminata,
         horaEncuentro,
+        cupoMaximo: Number(cupoMaximo) || DEFAULT_CUPO_MAXIMO,
         montoReintegro,
         plusPadrino,
         incluirAbuelosDelTutor,
@@ -399,9 +409,14 @@ export default function ModalCrearEventoLugar({
                         <span className="font-bold text-xs sm:text-sm text-[#363f48] truncate">
                           {c.nombre_club}
                         </span>
-                        <span className="text-[10px] font-semibold text-[#a70355] bg-[#faf0f5] border border-[#e1a9c5] px-2 py-0.5 rounded-full">
-                          {abuelosEnEvento.length}{" "}
-                          {abuelosEnEvento.length === 1 ? "abuelo" : "abuelos"}
+                        <span
+                          className={`text-[10px] font-semibold border px-2 py-0.5 rounded-full ${
+                            abuelosEnEvento.length >= getJornadaCupoMaximo(j)
+                              ? "text-amber-800 bg-amber-50 border-amber-300"
+                              : "text-[#a70355] bg-[#faf0f5] border-[#e1a9c5]"
+                          }`}
+                        >
+                          {abuelosEnEvento.length} / {getJornadaCupoMaximo(j)} abuelos
                         </span>
                       </div>
                       <div className="text-[11px] text-[#363f48] font-medium truncate">
@@ -546,8 +561,8 @@ export default function ModalCrearEventoLugar({
                             }}
                           />
 
-                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2">
-                            <div className="sm:col-span-2">
+                          <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
+                            <div className="sm:col-span-5">
                               <label className="font-semibold text-[#363f48] block mb-0.5 text-[11px]">
                                 Actividad del Encuentro *
                               </label>
@@ -564,7 +579,26 @@ export default function ModalCrearEventoLugar({
                                 className="w-full border border-[#c4c9cd] rounded-lg px-2.5 py-1.5 bg-white"
                               />
                             </div>
-                            <div>
+                            <div className="sm:col-span-2">
+                              <label className="font-semibold text-[#363f48] block mb-0.5 text-[11px]">
+                                Cupo max.
+                              </label>
+                              <input
+                                type="number"
+                                min={1}
+                                max={200}
+                                required
+                                value={editForm.cupoMaximo}
+                                onChange={(e) =>
+                                  setEditForm({
+                                    ...editForm,
+                                    cupoMaximo: Math.max(1, Number(e.target.value) || 1),
+                                  })
+                                }
+                                className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5 bg-white"
+                              />
+                            </div>
+                            <div className="sm:col-span-2">
                               <label className="font-semibold text-[#363f48] block mb-0.5 text-[11px]">
                                 Fecha
                               </label>
@@ -580,7 +614,7 @@ export default function ModalCrearEventoLugar({
                                 className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5 bg-white"
                               />
                             </div>
-                            <div>
+                            <div className="sm:col-span-3">
                               <label className="font-semibold text-[#363f48] block mb-0.5 text-[11px]">
                                 Hora Salida / Sede
                               </label>
@@ -927,7 +961,7 @@ export default function ModalCrearEventoLugar({
             )}
 
             <div className="grid grid-cols-1 sm:grid-cols-12 gap-2">
-              <div className="sm:col-span-6">
+              <div className="sm:col-span-5">
                 <label className="font-semibold text-[#363f48] block mb-1">
                   Actividad del Evento *
                 </label>
@@ -942,6 +976,22 @@ export default function ModalCrearEventoLugar({
               </div>
               <div className="sm:col-span-2">
                 <label className="font-semibold text-[#363f48] block mb-1">
+                  Limite abuelos *
+                </label>
+                <input
+                  type="number"
+                  min={1}
+                  max={200}
+                  required
+                  value={cupoMaximo}
+                  onChange={(e) =>
+                    setCupoMaximo(Math.max(1, Number(e.target.value) || 1))
+                  }
+                  className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <label className="font-semibold text-[#363f48] block mb-1">
                   Fecha
                 </label>
                 <input
@@ -951,27 +1001,24 @@ export default function ModalCrearEventoLugar({
                   className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5"
                 />
               </div>
-              <div className="sm:col-span-2">
+              <div className="sm:col-span-3">
                 <label className="font-semibold text-[#363f48] block mb-1">
-                  Salida
+                  Salida / En Sede
                 </label>
-                <input
-                  type="text"
-                  value={horaCaminata}
-                  onChange={(e) => setHoraCaminata(e.target.value)}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5"
-                />
-              </div>
-              <div className="sm:col-span-2">
-                <label className="font-semibold text-[#363f48] block mb-1">
-                  En Sede
-                </label>
-                <input
-                  type="text"
-                  value={horaEncuentro}
-                  onChange={(e) => setHoraEncuentro(e.target.value)}
-                  className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5"
-                />
+                <div className="flex items-center gap-1">
+                  <input
+                    type="text"
+                    value={horaCaminata}
+                    onChange={(e) => setHoraCaminata(e.target.value)}
+                    className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5"
+                  />
+                  <input
+                    type="text"
+                    value={horaEncuentro}
+                    onChange={(e) => setHoraEncuentro(e.target.value)}
+                    className="w-full border border-[#c4c9cd] rounded-lg px-2 py-1.5"
+                  />
+                </div>
               </div>
             </div>
 

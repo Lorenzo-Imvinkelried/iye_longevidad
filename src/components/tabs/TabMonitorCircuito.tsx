@@ -14,6 +14,7 @@ import {
 import {
   formatDistanceMeters,
   getDistanceMeters,
+  getJornadaCupoMaximo,
   getParticipanteAvatarUrl,
   getSeniorCentrosDistances,
   getTutorJornadas,
@@ -616,7 +617,7 @@ export default function TabMonitorCircuito({
               className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#bf2020] bg-[#f2d2d2]/40 hover:bg-[#f2d2d2]/70 px-2.5 py-1 rounded-full border border-[#e5a6a6] whitespace-nowrap transition cursor-pointer"
             >
               <span>
-                Suspendida ({adultosActivos.length} abuelos)
+                Suspendida ({adultosActivos.length}/{getJornadaCupoMaximo(jornada)} abuelos)
               </span>
               <ChevronDown className="w-3 h-3" />
             </button>
@@ -625,10 +626,16 @@ export default function TabMonitorCircuito({
               type="button"
               onClick={() => setListaAbuelosOpen(true)}
               title="Ver lista de abuelos en este evento"
-              className="shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold text-[#363f48] bg-[#f6f6f7] hover:bg-[#faf0f5] hover:text-[#a70355] hover:border-[#dc9abb] px-2.5 py-1 rounded-full border border-[#c4c9cd] whitespace-nowrap transition cursor-pointer"
+              className={`shrink-0 inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full border whitespace-nowrap transition cursor-pointer ${
+                adultosActivos.length >= getJornadaCupoMaximo(jornada)
+                  ? "text-amber-800 bg-amber-50 hover:bg-amber-100 border-amber-300"
+                  : "text-[#363f48] bg-[#f6f6f7] hover:bg-[#faf0f5] hover:text-[#a70355] hover:border-[#dc9abb] border-[#c4c9cd]"
+              }`}
             >
               <span>
-                Activa ({adultosActivos.length} {adultosActivos.length === 1 ? "abuelo" : "abuelos"} en lista)
+                {adultosActivos.length >= getJornadaCupoMaximo(jornada)
+                  ? `Cupo lleno (${adultosActivos.length}/${getJornadaCupoMaximo(jornada)})`
+                  : `Activa (${adultosActivos.length}/${getJornadaCupoMaximo(jornada)} abuelos)`}
               </span>
               <ChevronDown className="w-3 h-3" />
             </button>
@@ -642,10 +649,20 @@ export default function TabMonitorCircuito({
         <div className="flex flex-wrap items-center gap-2 shrink-0">
           <button
             onClick={onOpenFamiliarModal}
-            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
+            disabled={adultosActivos.length >= getJornadaCupoMaximo(jornada)}
+            title={
+              adultosActivos.length >= getJornadaCupoMaximo(jornada)
+                ? "Cupo maximo alcanzado. Podes ampliarlo desde Mis Eventos y Lugares -> Editar."
+                : "Sumar un adulto mayor a esta actividad"
+            }
+            className="border border-[#a70355] text-[#a70355] hover:bg-[#a70355] hover:text-white disabled:opacity-45 disabled:hover:bg-transparent disabled:hover:text-[#a70355] font-semibold text-xs px-3.5 py-1.5 rounded-full transition flex items-center gap-1.5"
           >
             <UserPlus className="w-3.5 h-3.5" />
-            <span>Sumar Abuelo</span>
+            <span>
+              {adultosActivos.length >= getJornadaCupoMaximo(jornada)
+                ? "Cupo lleno"
+                : "Sumar Abuelo"}
+            </span>
           </button>
 
           {jornada.estado === "convocando" ||

@@ -13,6 +13,10 @@ import {
   WhatsAppReplyButton,
 } from "@/types/domain";
 import { buildInitialState } from "@/lib/seed-data";
+import {
+  decodeActividadYCupo,
+  encodeActividadConCupo,
+} from "@/lib/domain-helpers";
 import { getSupabaseServerClient, isSupabaseConfigured } from "@/lib/supabase";
 import {
   CloudApiResult,
@@ -115,11 +119,18 @@ export async function readStateAsync(): Promise<SystemSnapshot> {
     }
 
     if (jorRes.data && jorRes.data.length > 0) {
-      const dbJornadas: Jornada[] = jorRes.data.map((j) => ({
-        ...(j as Jornada),
-        monto_reintegro_asistencia: Number(j.monto_reintegro_asistencia || 2500),
-        plus_reintegro_padrino: Number(j.plus_reintegro_padrino || 1500),
-      }));
+      const dbJornadas: Jornada[] = jorRes.data.map((j) => {
+        const decoded = decodeActividadYCupo(
+          (j as Jornada).actividad_cierre
+        );
+        return {
+          ...(j as Jornada),
+          actividad_cierre: decoded.actividad || (j as Jornada).actividad_cierre,
+          cupo_maximo: decoded.cupoMaximo ?? (j as Jornada).cupo_maximo,
+          monto_reintegro_asistencia: Number(j.monto_reintegro_asistencia || 2500),
+          plus_reintegro_padrino: Number(j.plus_reintegro_padrino || 1500),
+        };
+      });
       const mergedJor = new Map<string, Jornada>();
       for (const j of state.jornadas) mergedJor.set(j.id, j);
       for (const j of dbJornadas) mergedJor.set(j.id, j);
@@ -461,7 +472,10 @@ export async function syncToSupabaseIfConfigured(state: SystemSnapshot) {
         fecha: j.fecha,
         hora_inicio_caminata: j.hora_inicio_caminata,
         hora_encuentro_club: j.hora_encuentro_club,
-        actividad_cierre: j.actividad_cierre,
+        actividad_cierre: encodeActividadConCupo(
+          j.actividad_cierre,
+          j.cupo_maximo
+        ),
         monto_reintegro_asistencia: j.monto_reintegro_asistencia,
         plus_reintegro_padrino: j.plus_reintegro_padrino,
         estado: j.estado,

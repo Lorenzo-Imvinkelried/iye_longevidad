@@ -18,11 +18,14 @@ import {
   PARQUE_FEDERAL_STREET_ROUTE,
 } from "@/lib/street-routing";
 import {
+  countActiveAdultsInJornada,
+  DEFAULT_CUPO_MAXIMO,
   encodeNotasWithFoto,
   findExistingSeniorByDniOrPhone,
   findScheduleConflict,
   formatPolizaWithTutores,
   getCircuitoTutoresIds,
+  getJornadaCupoMaximo,
   getParticipantRewardInfo,
   normalizeDni,
   phonesMatch,
@@ -469,6 +472,24 @@ export async function registrarNuevoTutorYLugar(input: {
   return state;
 }
 
+function assertCupoDisponible(
+  state: SystemSnapshot,
+  jornada: Jornada,
+  circuito: CircuitoBarrial
+): void {
+  const cupo = getJornadaCupoMaximo(jornada);
+  const actuales = countActiveAdultsInJornada(
+    jornada.id,
+    state.participantes,
+    state.asistencias
+  );
+  if (actuales >= cupo) {
+    throw new Error(
+      `Cupo completo en ${circuito.nombre_club}: ya hay ${actuales}/${cupo} abuelos inscriptos en esta actividad. Podes ampliar el limite editando el evento.`
+    );
+  }
+}
+
 export async function crearNuevoEventoOLugar(input: {
   tutorId: string;
   modoLugar: "existente" | "nuevo";
@@ -482,6 +503,7 @@ export async function crearNuevoEventoOLugar(input: {
   fecha: string;
   horaCaminata: string;
   horaEncuentro: string;
+  cupoMaximo?: number;
   montoReintegro: number;
   plusPadrino: number;
   incluirAbuelosDelTutor: boolean;
@@ -526,6 +548,13 @@ export async function crearNuevoEventoOLugar(input: {
     }
   }
 
+  const cupoVal =
+    typeof input.cupoMaximo === "number" &&
+    Number.isFinite(input.cupoMaximo) &&
+    input.cupoMaximo >= 1
+      ? Math.round(input.cupoMaximo)
+      : DEFAULT_CUPO_MAXIMO;
+
   const nuevaJornada: Jornada = {
     id: generateUuid(),
     circuito_id: targetCircuito.id,
@@ -534,6 +563,7 @@ export async function crearNuevoEventoOLugar(input: {
     hora_encuentro_club: input.horaEncuentro || "16:20",
     actividad_cierre:
       input.actividad || "Torneo de Truco, Canasta y Bingo Recreativo",
+    cupo_maximo: cupoVal,
     monto_reintegro_asistencia: Number(input.montoReintegro) || 0,
     plus_reintegro_padrino: Number(input.plusPadrino) || 0,
     estado: "programada",
@@ -576,7 +606,11 @@ export async function crearNuevoEventoOLugar(input: {
   );
 
   const omitidosPorConflicto: string[] = [];
+  let inscriptosEnNueva = 0;
   for (const ad of adultosParaInscribir) {
+    if (inscriptosEnNueva >= cupoVal) {
+      break;
+    }
     const conflicto = findScheduleConflict(
       ad.id,
       nuevaJornada,
@@ -589,6 +623,7 @@ export async function crearNuevoEventoOLugar(input: {
       continue;
     }
 
+    inscriptosEnNueva += 1;
     state.asistencias.push({
       id: generateUuid(),
       jornada_id: nuevaJornada.id,
@@ -675,6 +710,8 @@ export async function vincularAbueloExistenteAEvento(input: {
   if (yaEnEsteEvento) {
     return state;
   }
+
+  assertCupoDisponible(state, targetJornada, targetCircuito);
 
   const conflicto = findScheduleConflict(
     adulto.id,
@@ -1183,6 +1220,7 @@ export async function aprobarAltaDerivacionFamiliar(
         a.jornada_id === targetJornada.id && a.participante_id === adulto.id
     );
     if (!existeAsis) {
+      assertCupoDisponible(state, targetJornada, targetCircuito);
       state.asistencias.push({
         id: generateUuid(),
         jornada_id: targetJornada.id,
@@ -1290,6 +1328,9 @@ export async function crearSolicitudNietoFamiliar(input: {
       (a) => a.jornada_id === targetJornada.id && a.participante_id === existente.id
     );
     if (!yaInscripto) {
+      if (input.aprobarDirecto) {
+        assertCupoDisponible(state, targetJornada, targetCircuito);
+      }
       state.asistencias.push({
         id: generateUuid(),
         jornada_id: targetJornada.id,
@@ -1352,6 +1393,10 @@ export async function crearSolicitudNietoFamiliar(input: {
     avatar_url: input.avatarUrl || null,
     estado_alta: input.aprobarDirecto ? "activo" : "pendiente_aprobacion",
   };
+
+  if (input.aprobarDirecto) {
+    assertCupoDisponible(state, targetJornada, targetCircuito);
+  }
 
   state.participantes.push(nuevo);
 
@@ -1669,6 +1714,7 @@ export async function editarEventoOLugar(input: {
   fecha: string;
   horaCaminata: string;
   horaEncuentro: string;
+  cupoMaximo?: number;
   coordinadoresIds?: string[];
 }): Promise<SystemSnapshot> {
   const state = await readStateAsync();
@@ -1757,6 +1803,13 @@ export async function editarEventoOLugar(input: {
   if (input.horaEncuentro && input.horaEncuentro.trim()) {
     targetJornada.hora_encuentro_club = input.horaEncuentro.trim();
   }
+  if (
+    typeof input.cupoMaximo === "number" &&
+    Number.isFinite(input.cupoMaximo) &&
+    input.cupoMaximo >= 1
+  ) {
+    targetJornada.cupo_maximo = Math.round(input.cupoMaximo);
+  }
   targetJornada.updated_at = new Date().toISOString();
 
   if (state.jornada.id === targetJornada.id) {
@@ -1805,6 +1858,7 @@ export async function pasarAbueloEntreEventos(input: {
     (a) => a.jornada_id === toJornada.id && a.participante_id === adulto.id
   );
   if (!yaEnDestino) {
+    assertCupoDisponible(state, toJornada, toCircuito);
     state.asistencias.push({
       id: generateUuid(),
       jornada_id: toJornada.id,

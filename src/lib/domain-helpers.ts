@@ -608,3 +608,62 @@ export function getParticipantRewardInfo(
     codigoCupon,
   };
 }
+
+export const DEFAULT_CUPO_MAXIMO = 20;
+
+export function decodeActividadYCupo(raw?: string | null): {
+  actividad: string;
+  cupoMaximo?: number;
+} {
+  const txt = (raw || "").trim();
+  const match = /\s*\|cupo:(\d+)\s*$/i.exec(txt);
+  if (!match) {
+    return { actividad: txt };
+  }
+  const num = Number(match[1]);
+  return {
+    actividad: txt.slice(0, match.index).trim(),
+    cupoMaximo: Number.isFinite(num) && num >= 1 ? Math.round(num) : undefined,
+  };
+}
+
+export function encodeActividadConCupo(
+  actividad: string,
+  cupoMaximo?: number
+): string {
+  const clean = decodeActividadYCupo(actividad).actividad;
+  if (
+    typeof cupoMaximo === "number" &&
+    Number.isFinite(cupoMaximo) &&
+    cupoMaximo >= 1
+  ) {
+    return `${clean} |cupo:${Math.round(cupoMaximo)}`;
+  }
+  return clean;
+}
+
+export function getJornadaCupoMaximo(jornada?: Pick<Jornada, "cupo_maximo"> | null): number {
+  const val = Number(jornada?.cupo_maximo);
+  if (Number.isFinite(val) && val >= 1) {
+    return Math.round(val);
+  }
+  return DEFAULT_CUPO_MAXIMO;
+}
+
+export function countActiveAdultsInJornada(
+  jornadaId: string,
+  participantes: Participante[],
+  asistencias: Asistencia[]
+): number {
+  const activeIds = new Set(
+    participantes
+      .filter((p) => p.rol === "adulto_mayor" && p.estado_alta === "activo")
+      .map((p) => p.id)
+  );
+  const enrolled = new Set(
+    asistencias
+      .filter((a) => a.jornada_id === jornadaId && activeIds.has(a.participante_id))
+      .map((a) => a.participante_id)
+  );
+  return enrolled.size;
+}

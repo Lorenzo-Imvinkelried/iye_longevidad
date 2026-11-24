@@ -87,6 +87,7 @@ export interface Jornada {
   hora_inicio_caminata: string;
   hora_encuentro_club: string;
   actividad_cierre: string;
+  cupo_maximo?: number;
   monto_reintegro_asistencia: number;
   plus_reintegro_padrino: number;
   estado: EstadoJornada;

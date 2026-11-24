@@ -7,6 +7,7 @@ import {
   Jornada,
   Participante,
 } from "@/types/domain";
+import { getJornadaCupoMaximo } from "@/lib/domain-helpers";
 import {
   ArrowRight,
   Calendar,
@@ -100,6 +101,8 @@ export default function ModalIniciarActividad({
                     a.jornada_id === j.id &&
                     adultosActivosIds.has(a.participante_id)
                 ).length;
+                const cupoMax = getJornadaCupoMaximo(j);
+                const cupoLleno = abuelosCount >= cupoMax;
 
                 return (
                   <div
@@ -111,11 +114,17 @@ export default function ModalIniciarActividad({
                         <h4 className="font-bold text-sm text-[#363f48] truncate">
                           {circ?.nombre_club || "Sede barrial"}
                         </h4>
-                        <span className="text-[10px] font-bold bg-[#faf0f5] text-[#a70355] border border-[#f4e1eb] px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0">
+                        <span
+                          className={`text-[10px] font-bold border px-2 py-0.5 rounded-full inline-flex items-center gap-1 shrink-0 ${
+                            cupoLleno
+                              ? "bg-amber-50 text-amber-800 border-amber-300"
+                              : "bg-[#faf0f5] text-[#a70355] border-[#f4e1eb]"
+                          }`}
+                        >
                           <Users className="w-3 h-3" />
                           <span>
-                            {abuelosCount}{" "}
-                            {abuelosCount === 1 ? "abuelo" : "abuelos"}
+                            {abuelosCount} / {cupoMax} abuelos
+                            {cupoLleno ? " (Cupo lleno)" : ""}
                           </span>
                         </span>
                       </div>
