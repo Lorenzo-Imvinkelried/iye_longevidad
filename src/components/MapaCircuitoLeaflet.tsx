@@ -32,6 +32,7 @@ import {
 import {
   createAdultoDomicilioIcon,
   createClubIcon,
+  createDirectionArrowIcon,
   createPadrinoIcon,
   createParadaIcon,
   createViaWaypointIcon,
@@ -275,6 +276,71 @@ export default function MapaCircuitoLeaflet({
             />
           );
         })}
+
+        {/* Flechas direccionales desde el domicilio hacia la parada elegida (nivel 2) o directo al club (nivel 3) */}
+        {!editMode &&
+          jornada.estado !== "suspendida_emergencia" &&
+          adultosActivos.map((adulto) => {
+            const asis = asistenciasEvento.find(
+              (a) => a.participante_id === adulto.id
+            );
+            if (!asis || asis.presente_validado_en_club) return null;
+
+            let targetLat: number | null = null;
+            let targetLng: number | null = null;
+            let arrowColor = "#c2387c";
+
+            if (asis.modalidad_elegida === "nivel_2_esquina") {
+              const paradaElegida = circuito.paradas_seguras.find(
+                (ps) => ps.id === asis.parada_esquina_id
+              );
+              if (!paradaElegida) return null;
+              targetLat = paradaElegida.lat;
+              targetLng = paradaElegida.lng;
+              arrowColor = tieneMultiRamales
+                ? getRamalStyle(paradaElegida.ramal).stroke
+                : "#b5286f";
+            } else if (asis.modalidad_elegida === "nivel_3_directo") {
+              targetLat = circuito.coords_club.lat;
+              targetLng = circuito.coords_club.lng;
+              arrowColor = "#c2387c";
+            } else {
+              // No mostrar flecha para nivel_1_puerta (esperan que los busquen), sin_respuesta ni no_asiste
+              return null;
+            }
+
+            const origLat = adulto.coords_domicilio.lat;
+            const origLng = adulto.coords_domicilio.lng;
+            const dx =
+              (targetLng - origLng) * Math.cos((origLat * Math.PI) / 180);
+            const dy = -(targetLat - origLat);
+            const angleDeg = (Math.atan2(dy, dx) * 180) / Math.PI;
+            const t = 0.55;
+            const arrowLat = origLat + (targetLat - origLat) * t;
+            const arrowLng = origLng + (targetLng - origLng) * t;
+
+            return (
+              <React.Fragment key={`dir-arrow-${adulto.id}`}>
+                <Polyline
+                  positions={[
+                    [origLat, origLng],
+                    [targetLat, targetLng],
+                  ]}
+                  pathOptions={{
+                    color: arrowColor,
+                    weight: 2.5,
+                    dashArray: "6, 6",
+                    opacity: 0.82,
+                  }}
+                />
+                <Marker
+                  position={[arrowLat, arrowLng]}
+                  interactive={false}
+                  icon={createDirectionArrowIcon(angleDeg, arrowColor)}
+                />
+              </React.Fragment>
+            );
+          })}
 
         <Marker
           position={[circuito.coords_club.lat, circuito.coords_club.lng]}

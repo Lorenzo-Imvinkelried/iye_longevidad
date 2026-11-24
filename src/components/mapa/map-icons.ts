@@ -119,3 +119,18 @@ export function createPadrinoIcon(nombreCorto: string, credencial: string) {
     iconAnchor: [0, 0],
   });
 }
+
+export function createDirectionArrowIcon(angleDeg: number, colorHex: string) {
+  return L.divIcon({
+    className: "custom-leaflet-marker",
+    html: `
+      <div style="transform:translate(-50%,-50%) rotate(${angleDeg.toFixed(1)}deg);pointer-events:none;display:flex;align-items:center;justify-content:center;">
+        <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="filter:drop-shadow(0 1px 2px rgba(0,0,0,0.35));">
+          <path d="M3 3.5L15 9L3 14.5L6.2 9L3 3.5Z" fill="${colorHex}" stroke="#ffffff" stroke-width="1.6" stroke-linejoin="round"/>
+        </svg>
+      </div>
+    `,
+    iconSize: [0, 0],
+    iconAnchor: [0, 0],
+  });
+}
